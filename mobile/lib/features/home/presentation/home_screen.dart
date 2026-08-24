@@ -23,9 +23,16 @@ class HomeScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Your financial picture', style: Theme.of(context).textTheme.labelLarge),
+                        Text(
+                          'Your financial picture',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
                         const SizedBox(height: PlanItSpacing.xxs),
-                        Text('PlanIT', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+                        Text(
+                          'PlanIT',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
                       ],
                     ),
                   ),
@@ -39,16 +46,28 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: PlanItSpacing.lg),
               const _EmptyBalanceCard(),
               const SizedBox(height: PlanItSpacing.lg),
-              Text('Start with the foundation', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Start with the foundation',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: PlanItSpacing.sm),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(PlanItSpacing.lg),
                   child: Column(
                     children: <Widget>[
-                      const Icon(Icons.account_balance_wallet_outlined, size: 42),
+                      const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 42,
+                      ),
                       const SizedBox(height: PlanItSpacing.md),
-                      Text('Add your first account', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        'Add your first account',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                       const SizedBox(height: PlanItSpacing.xs),
                       Text(
                         'Bank accounts, savings, cards, and cash stay separate while PlanIT gives you one trustworthy total.',
@@ -72,6 +91,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
 class _EmptyBalanceCard extends StatelessWidget {
   const _EmptyBalanceCard();
 
@@ -86,7 +106,11 @@ class _EmptyBalanceCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(PlanItRadius.lg),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x33315CF6), blurRadius: 24, offset: Offset(0, 12)),
+          BoxShadow(
+            color: Color(0x33315CF6),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
         ],
       ),
       child: Padding(
@@ -94,15 +118,33 @@ class _EmptyBalanceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('MONEY IN ACCOUNTS', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white70, letterSpacing: 1.1)),
+            Text(
+              'MONEY IN ACCOUNTS',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Colors.white70,
+                letterSpacing: 1.1,
+              ),
+            ),
             const SizedBox(height: PlanItSpacing.sm),
-            Text('—', style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+            Text(
+              '—',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: PlanItSpacing.lg),
             const Row(
               children: <Widget>[
-                Expanded(child: _BalanceCaption(label: 'People owe me', value: '—')),
-                Expanded(child: _BalanceCaption(label: 'I owe people', value: '—')),
-                Expanded(child: _BalanceCaption(label: 'Net position', value: '—')),
+                Expanded(
+                  child: _BalanceCaption(label: 'People owe me', value: '—'),
+                ),
+                Expanded(
+                  child: _BalanceCaption(label: 'I owe people', value: '—'),
+                ),
+                Expanded(
+                  child: _BalanceCaption(label: 'Net position', value: '—'),
+                ),
               ],
             ),
           ],
@@ -123,9 +165,20 @@ class _BalanceCaption extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: Colors.white70),
+        ),
         const SizedBox(height: PlanItSpacing.xxs),
-        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }

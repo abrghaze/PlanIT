@@ -16,6 +16,10 @@ class AccountPosition:
     allow_negative: bool
     version: int
 
+    def __post_init__(self) -> None:
+        if self.version <= 0:
+            raise DomainError("INVALID_VERSION", "Account version must be positive.")
+
 
 @dataclass(frozen=True, slots=True)
 class ReallocationLine:

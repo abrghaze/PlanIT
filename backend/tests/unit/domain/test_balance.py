@@ -70,3 +70,10 @@ def test_ledger_movement_must_be_strictly_positive() -> None:
         )
 
     assert error.value.code == "NON_POSITIVE_AMOUNT"
+
+
+def test_ledger_movement_rejects_naive_timestamp() -> None:
+    with pytest.raises(DomainError) as error:
+        movement("1", AccountEffect.OUTFLOW, occurred_at=datetime(2026, 1, 1))
+
+    assert error.value.code == "INVALID_TIMESTAMP"

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import (
     JSON,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -22,6 +23,15 @@ from app.db.base import Base, TimestampMixin, UuidPrimaryKeyMixin
 class IdempotencyKeyModel(UuidPrimaryKeyMixin, Base):
     __tablename__ = "idempotency_keys"
     __table_args__ = (
+        CheckConstraint(
+            "(response_status IS NULL) = (response_json IS NULL)",
+            name="response_pair_coherent",
+        ),
+        CheckConstraint(
+            "response_status IS NULL OR response_status BETWEEN 200 AND 599",
+            name="response_status_valid",
+        ),
+        CheckConstraint("expires_at > created_at", name="expiry_after_creation"),
         UniqueConstraint("user_id", "scope", "key", name="uq_idempotency_user_scope_key"),
         Index("ix_idempotency_keys_expires_at", "expires_at"),
     )

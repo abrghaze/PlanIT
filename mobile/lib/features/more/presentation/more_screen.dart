@@ -19,7 +19,12 @@ class MoreScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(PlanItSpacing.lg),
       children: <Widget>[
-        Text('More', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+        Text(
+          'More',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: PlanItSpacing.lg),
         for (final entry in entries)
           Card(

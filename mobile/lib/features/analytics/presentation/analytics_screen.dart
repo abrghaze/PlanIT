@@ -11,9 +11,17 @@ class AnalyticsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Analytics', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Analytics',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: PlanItSpacing.sm),
-          Text('Every chart will drill down to its source transactions.', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Every chart will drill down to its source transactions.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const Spacer(),
           const Center(child: Text('Add account activity to unlock insights.')),
           const Spacer(),

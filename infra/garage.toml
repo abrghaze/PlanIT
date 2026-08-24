@@ -1,3 +1,4 @@
+# Local-only single-node configuration. Never reuse these credentials in deployment.
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"
 db_engine = "sqlite"

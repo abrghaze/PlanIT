@@ -4,7 +4,7 @@ Each milestone must leave the repository runnable and may advance only after its
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
-| 0 — Foundation | Architecture, configuration, error contract, decimal money, initial ledger schema, app shell, CI | Static checks pass; migration builds from zero; backend and mobile test gates exist |
+| 0 — Foundation | Architecture, configuration, error contract, decimal money, initial ledger schema, app shell, CI | Strict static checks; empty PostgreSQL upgrade/downgrade cycle; live health/readiness; backend unit/integration tests; Flutter format/analyze/unit/widget gates and debug builds; container smoke test |
 | 1 — Identity and accounts | Registration, login/refresh/logout, account lifecycle, balance read models | Ownership tests, token rotation/reuse detection, account concurrency, local cache |
 | 2 — Core ledger | Expense and income create/edit-draft/post/reverse flows, categories and tags | Posted immutability, balance correctness, idempotent offline retry |
 | 3 — Transfers and corrections | Same/cross-currency transfers, fees, reconciliation, Keep Total Fixed | Atomic pairs, stale-preview protection, neutral analytics treatment |

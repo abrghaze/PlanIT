@@ -2,10 +2,10 @@ import httpx
 from app.core.config import Settings
 from app.domain.errors import DomainError
 from app.main import create_app
-from fastapi import Query
+from fastapi import FastAPI, Query
 
 
-def _test_app():  # type: ignore[no-untyped-def]
+def _test_app() -> FastAPI:
     app = create_app(Settings(app_env="test", debug=False))
 
     @app.get("/test/domain-error")
@@ -87,3 +87,23 @@ async def test_untrusted_request_id_is_replaced() -> None:
     assert response.status_code == 200
     assert response.headers["X-Request-ID"] != "contains spaces and is not trusted"
     assert len(response.headers["X-Request-ID"]) == 36
+
+
+async def test_framework_404_uses_stable_error_envelope() -> None:
+    transport = httpx.ASGITransport(app=_test_app())
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/does-not-exist",
+            headers={"X-Request-ID": "missing-route-test"},
+        )
+
+    assert response.status_code == 404
+    assert response.headers["X-Request-ID"] == "missing-route-test"
+    assert response.json() == {
+        "error": {
+            "code": "NOT_FOUND",
+            "message": "The requested resource was not found.",
+            "details": {},
+            "request_id": "missing-route-test",
+        }
+    }

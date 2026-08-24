@@ -10,6 +10,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -46,10 +47,22 @@ class AccountModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
             name="type_valid",
         ),
         CheckConstraint("status IN ('ACTIVE','ARCHIVED','CLOSED')", name="status_valid"),
+        CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint(
+            "allow_negative OR opening_balance >= 0",
+            name="opening_balance_respects_negative_policy",
+        ),
         CheckConstraint(
             "(status <> 'ARCHIVED' OR archived_at IS NOT NULL) AND "
             "(status <> 'CLOSED' OR closed_at IS NOT NULL)",
             name="lifecycle_timestamp_present",
+        ),
+        UniqueConstraint("id", "user_id", name="uq_accounts_id_user"),
+        UniqueConstraint(
+            "id",
+            "user_id",
+            "currency",
+            name="uq_accounts_id_user_currency",
         ),
         Index("ix_accounts_user_status_order", "user_id", "status", "sort_order"),
     )
@@ -78,6 +91,7 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name="currency_format"),
         CheckConstraint("effect IN ('INFLOW','OUTFLOW')", name="effect_valid"),
         CheckConstraint("status IN ('DRAFT','POSTED','REVERSED','VOIDED')", name="status_valid"),
+        CheckConstraint("version > 0", name="version_positive"),
         CheckConstraint(
             "type IN ("
             "'EXPENSE','INCOME','TRANSFER_OUT','TRANSFER_IN',"
@@ -85,6 +99,57 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
             "'DEBT_REPAYMENT_IN','DEBT_REPAYMENT_OUT','RECONCILIATION_ADJUSTMENT','REVERSAL'"
             ")",
             name="type_valid",
+        ),
+        CheckConstraint(
+            "(type IN ('EXPENSE','TRANSFER_OUT','TRANSFER_FEE','LOAN_PRINCIPAL_OUT',"
+            "'DEBT_REPAYMENT_OUT') AND effect = 'OUTFLOW') OR "
+            "(type IN ('INCOME','TRANSFER_IN','REFUND','LOAN_PRINCIPAL_IN',"
+            "'DEBT_REPAYMENT_IN') AND effect = 'INFLOW') OR "
+            "type IN ('RECONCILIATION_ADJUSTMENT','REVERSAL')",
+            name="type_effect_coherent",
+        ),
+        CheckConstraint(
+            "(type = 'REVERSAL') = (reversal_of_id IS NOT NULL)",
+            name="reversal_link_coherent",
+        ),
+        CheckConstraint(
+            "parent_transaction_id IS NULL OR parent_transaction_id <> id",
+            name="parent_not_self",
+        ),
+        CheckConstraint(
+            "reversal_of_id IS NULL OR reversal_of_id <> id",
+            name="reversal_not_self",
+        ),
+        ForeignKeyConstraint(
+            ("account_id", "user_id", "currency"),
+            ("accounts.id", "accounts.user_id", "accounts.currency"),
+            name="fk_transactions_account_owner_currency",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("parent_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_transactions_parent_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("reversal_of_id", "user_id", "account_id", "currency"),
+            (
+                "transactions.id",
+                "transactions.user_id",
+                "transactions.account_id",
+                "transactions.currency",
+            ),
+            name="fk_transactions_reversal_owner_account_currency",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("id", "user_id", name="uq_transactions_id_user"),
+        UniqueConstraint(
+            "id",
+            "user_id",
+            "account_id",
+            "currency",
+            name="uq_transactions_id_user_account_currency",
         ),
         UniqueConstraint(
             "user_id", "client_operation_id", name="uq_transactions_user_client_operation"
@@ -98,9 +163,7 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    account_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
-    )
+    account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     type: Mapped[str] = mapped_column(String(40), nullable=False)
     effect: Mapped[str] = mapped_column(String(16), nullable=False)
     amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
@@ -108,12 +171,8 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default=TransactionStatus.DRAFT)
     note: Mapped[str | None] = mapped_column(Text)
-    parent_transaction_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("transactions.id", ondelete="RESTRICT")
-    )
-    reversal_of_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("transactions.id", ondelete="RESTRICT"), unique=True
-    )
+    parent_transaction_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    reversal_of_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), unique=True)
     client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
@@ -126,6 +185,12 @@ class TransferModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("fx_rate IS NULL OR fx_rate > 0", name="fx_rate_positive"),
         CheckConstraint(
             "source_transaction_id <> destination_transaction_id", name="transactions_different"
+        ),
+        CheckConstraint(
+            "fee_transaction_id IS NULL OR "
+            "(fee_transaction_id <> source_transaction_id AND "
+            "fee_transaction_id <> destination_transaction_id)",
+            name="fee_transaction_different",
         ),
     )
 

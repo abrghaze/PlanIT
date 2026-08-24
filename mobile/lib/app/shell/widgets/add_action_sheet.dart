@@ -7,11 +7,31 @@ class AddActionSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = <({IconData icon, String title, String subtitle})>[
-      (icon: Icons.arrow_upward_rounded, title: 'Expense', subtitle: 'Record money spent'),
-      (icon: Icons.arrow_downward_rounded, title: 'Income', subtitle: 'Record genuine income'),
-      (icon: Icons.swap_horiz_rounded, title: 'Transfer', subtitle: 'Move money between accounts'),
-      (icon: Icons.people_alt_outlined, title: 'Debt', subtitle: 'Existing, lend now, or borrow now'),
-      (icon: Icons.balance_rounded, title: 'Reconcile', subtitle: 'Match an account to its real balance'),
+      (
+        icon: Icons.arrow_upward_rounded,
+        title: 'Expense',
+        subtitle: 'Record money spent',
+      ),
+      (
+        icon: Icons.arrow_downward_rounded,
+        title: 'Income',
+        subtitle: 'Record genuine income',
+      ),
+      (
+        icon: Icons.swap_horiz_rounded,
+        title: 'Transfer',
+        subtitle: 'Move money between accounts',
+      ),
+      (
+        icon: Icons.people_alt_outlined,
+        title: 'Debt',
+        subtitle: 'Existing, lend now, or borrow now',
+      ),
+      (
+        icon: Icons.balance_rounded,
+        title: 'Reconcile',
+        subtitle: 'Match an account to its real balance',
+      ),
     ];
 
     return Padding(
@@ -25,7 +45,10 @@ class AddActionSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Add financial activity', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'Add financial activity',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: PlanItSpacing.xs),
           Text(
             'Each action has its own review step so the balance and dashboard impact are clear.',

@@ -4,13 +4,17 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-## Architecture
+> **Implementation status:** this repository is at Milestone 0. It contains the
+> tested foundation and application shell, not the user-facing finance features,
+> authentication endpoints, or mobile offline database described by later milestones.
+
+## Approved target architecture
 
 - Flutter mobile app using Riverpod, go_router, Dio, Drift/SQLite, and decimal-safe money values.
 - FastAPI modular monolith with explicit domain/application/persistence boundaries.
 - PostgreSQL as the authoritative financial store.
 - S3-compatible private object storage behind a provider-neutral adapter.
-- Offline outbox plus idempotency keys for retry-safe financial writes.
+- Offline outbox plus server idempotency keys for retry-safe financial writes.
 
 ## Repository layout
 

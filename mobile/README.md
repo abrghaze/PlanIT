@@ -1,14 +1,19 @@
 # PlanIT mobile
 
-This directory contains the Flutter application shell, design system, navigation, and shared domain primitives.
+This directory contains the Flutter application shell, Android/iOS/web runners, design system, navigation, and shared domain primitives. CI pins Flutter 3.47.1, project metadata records that SDK revision, and the committed lockfile pins package resolution.
 
-Flutter is not installed in the current workstation environment, so native Android/iOS runner files have not been generated. After installing current Flutter stable, run once from this directory:
+After installing Flutter 3.47.1 and the target platform toolchain, run:
 
 ```powershell
-flutter create --org com.planit --project-name planit_mobile --platforms android,ios .
-flutter pub get
-flutter analyze
-flutter test
+flutter pub get --enforce-lockfile
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --no-pub
+dart run build_runner build
+flutter test --no-pub
+flutter build apk --debug --no-pub
+flutter run --dart-define=PLANIT_API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
-The generated platform projects must then be reviewed for signing, secure-storage requirements, Android backup exclusions, minimum OS versions, and release flavors before committing.
+Android network permission applies to every build type, and auto-backup is disabled so encrypted preferences are not restored without their Keystore keys. iOS Keychain entitlements are committed for debug/profile and release builds. Release signing credentials are intentionally not stored in the repository; configure them through the release environment before producing a signed artifact.
+
+The Gradle distribution checksum is pinned, and CI validates the committed wrapper JAR before executing it.

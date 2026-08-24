@@ -19,19 +19,23 @@ final GoRouter planItRouter = GoRouter(
       routes: <RouteBase>[
         GoRoute(
           path: '/home',
-          pageBuilder: (context, state) => const NoTransitionPage(child: HomeScreen()),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: HomeScreen()),
         ),
         GoRoute(
           path: '/activity',
-          pageBuilder: (context, state) => const NoTransitionPage(child: ActivityScreen()),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ActivityScreen()),
         ),
         GoRoute(
           path: '/analytics',
-          pageBuilder: (context, state) => const NoTransitionPage(child: AnalyticsScreen()),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: AnalyticsScreen()),
         ),
         GoRoute(
           path: '/more',
-          pageBuilder: (context, state) => const NoTransitionPage(child: MoreScreen()),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: MoreScreen()),
         ),
       ],
     ),

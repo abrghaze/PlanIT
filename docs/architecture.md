@@ -1,5 +1,13 @@
 # PlanIT architecture
 
+This document describes the approved target architecture. At Milestone 0, the
+backend implements configuration, request/error handling, PostgreSQL session
+ownership, money/ledger domain primitives, the foundation schema, audit helpers,
+and the idempotency transaction coordinator. The mobile app implements its shell,
+navigation, theme, compile-time API configuration, decimal-safe money, and sync
+status vocabulary. Authentication, feature endpoints, Drift tables, the offline
+outbox, and synchronization workers belong to later milestones.
+
 ## Source-of-truth order
 
 1. `plans/PlanIT_Personal_Finance_App_Product_Spec_v0.2.docx` defines business intent.
@@ -23,7 +31,7 @@ Flutter app
                          PostgreSQL + private S3-compatible storage
 ```
 
-PostgreSQL is authoritative for synchronized financial history. Drift is a local projection and queue. Cached aggregates are disposable read models.
+PostgreSQL will be authoritative for synchronized financial history. Drift will be a local projection and queue. Cached aggregates will be disposable read models.
 
 ## Backend boundaries
 

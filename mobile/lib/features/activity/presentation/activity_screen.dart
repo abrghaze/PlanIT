@@ -11,9 +11,17 @@ class ActivityScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Activity', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Activity',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: PlanItSpacing.md),
-          const SearchBar(leading: Icon(Icons.search), hintText: 'Search transactions'),
+          const SearchBar(
+            leading: Icon(Icons.search),
+            hintText: 'Search transactions',
+          ),
           const Spacer(),
           const Center(child: Text('Transactions will appear here.')),
           const Spacer(),

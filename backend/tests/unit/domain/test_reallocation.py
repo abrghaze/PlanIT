@@ -61,3 +61,10 @@ def test_keep_total_fixed_rejects_stale_total() -> None:
             requested_balances={},
         )
     assert error.value.code == "STALE_BALANCE"
+
+
+def test_reallocation_rejects_non_positive_source_version() -> None:
+    with pytest.raises(DomainError) as error:
+        AccountPosition(uuid4(), Money.of("1", "MAD"), False, 0)
+
+    assert error.value.code == "INVALID_VERSION"

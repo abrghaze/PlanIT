@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
-from app.domain.errors import CurrencyMismatchError
+from app.domain.errors import CurrencyMismatchError, DomainError
 from app.domain.money import Money
 
 
@@ -27,17 +27,25 @@ def preview_reconciliation(
     actual_balance: Money,
     effective_at: datetime,
 ) -> ReconciliationPreview:
+    if account_version <= 0:
+        raise DomainError("INVALID_VERSION", "Account version must be positive.")
+    if effective_at.tzinfo is None or effective_at.utcoffset() is None:
+        raise DomainError(
+            "INVALID_TIMESTAMP", "Reconciliation effective time must include a timezone."
+        )
+    normalized_effective_at = effective_at.astimezone(UTC)
     if calculated_balance.currency != actual_balance.currency:
         raise CurrencyMismatchError(calculated_balance.currency, actual_balance.currency)
     delta = actual_balance - calculated_balance
     source = (
-        f"{account_id}:{account_version}:{calculated_balance.to_api()}:{effective_at.isoformat()}"
+        f"{account_id}:{account_version}:{calculated_balance.to_api()}:"
+        f"{normalized_effective_at.isoformat()}"
     )
     return ReconciliationPreview(
         account_id=account_id,
         calculated_balance=calculated_balance,
         actual_balance=actual_balance,
         delta=delta,
-        effective_at=effective_at,
+        effective_at=normalized_effective_at,
         source_fingerprint=hashlib.sha256(source.encode()).hexdigest(),
     )

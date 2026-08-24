@@ -18,8 +18,11 @@ abstract final class PlanItTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark ? PlanItColors.darkCanvas : PlanItColors.canvas,
-      textTheme: Typography.material2021(platform: TargetPlatform.android).black.apply(
+      scaffoldBackgroundColor: isDark
+          ? PlanItColors.darkCanvas
+          : PlanItColors.canvas,
+      textTheme: Typography.material2021(platform: TargetPlatform.android).black
+          .apply(
             bodyColor: isDark ? Colors.white : PlanItColors.ink,
             displayColor: isDark ? Colors.white : PlanItColors.ink,
           ),
@@ -29,13 +32,17 @@ abstract final class PlanItTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(PlanItRadius.md),
-          side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.55)),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
         elevation: 0,
-        backgroundColor: isDark ? PlanItColors.darkSurface : PlanItColors.surface,
+        backgroundColor: isDark
+            ? PlanItColors.darkSurface
+            : PlanItColors.surface,
         indicatorColor: colorScheme.primaryContainer,
         labelTextStyle: WidgetStatePropertyAll(
           const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),

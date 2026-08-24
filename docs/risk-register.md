@@ -12,4 +12,4 @@
 | Optimistic offline presentation | User mistakes pending writes for posted money | Display provisional effects separately until canonical acknowledgement |
 | Sensitive financial data in logs/media | Privacy and security breach | Redacted structured logs, private buckets, short-lived signed URLs |
 | Archived MinIO upstream | Unmaintained local dependency | Provider-neutral S3 adapter; active Garage release for local development |
-| Mobile SDK absent on this workstation | Native build errors cannot be observed locally | CI installs Flutter stable; generate/review native runners before feature work |
+| Android SDK absent on this workstation | An Android APK cannot be compiled locally | CI pins Flutter 3.47.1 and builds the debug APK; local Flutter analysis, widget tests, and web compilation cover platform-neutral startup |
