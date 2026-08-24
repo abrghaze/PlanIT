@@ -1,0 +1,54 @@
+name: planit
+
+services:
+  api:
+    build:
+      context: ../backend
+    environment:
+      PLANIT_APP_ENV: local
+      PLANIT_DEBUG: "false"
+      PLANIT_DATABASE_URL: postgresql+asyncpg://planit:planit_dev_only@postgres:5432/planit
+      PLANIT_ACCESS_TOKEN_SECRET: local-compose-access-secret-change-before-deploying
+      PLANIT_REFRESH_TOKEN_PEPPER: local-compose-refresh-secret-change-before-deploying
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: planit
+      POSTGRES_USER: planit
+      POSTGRES_PASSWORD: planit_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - planit_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planit -d planit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    profiles: ["media"]
+    command: ["/garage", "-c", "/etc/garage.toml", "server"]
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - planit_garage_meta:/var/lib/garage/meta
+      - planit_garage_data:/var/lib/garage/data
+    restart: unless-stopped
+
+volumes:
+  planit_postgres:
+  planit_garage_meta:
+  planit_garage_data:

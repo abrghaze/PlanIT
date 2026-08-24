@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "planit-backend"
+version = "0.1.0"
+description = "PlanIT personal-finance API"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "alembic>=1.14,<2",
+  "asyncpg>=0.30,<1",
+  "fastapi>=0.136,<1",
+  "pydantic-settings>=2.8,<3",
+  "sqlalchemy[asyncio]>=2.0.38,<3",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+  "mypy>=1.15,<2",
+  "pytest>=9,<10",
+  "pytest-asyncio>=0.25,<2",
+  "ruff>=0.11,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*.py" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+exclude = ["alembic/versions"]
+
+[[tool.mypy.overrides]]
+module = ["asyncpg.*"]
+ignore_missing_imports = true
