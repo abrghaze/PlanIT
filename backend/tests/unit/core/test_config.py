@@ -22,6 +22,7 @@ def test_deployment_rejects_a_retained_local_secret() -> None:
             debug=False,
             database_url="postgresql+asyncpg://planit:real@database.example/planit",
             access_token_secret="a" * 32,
+            refresh_token_pepper="local-only-different-refresh-token-secret",
         )
 
 
