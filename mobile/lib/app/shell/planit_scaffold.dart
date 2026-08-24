@@ -8,12 +8,18 @@ class PlanItScaffold extends StatelessWidget {
   final String location;
   final Widget child;
 
-  int get _selectedIndex => switch (location) {
-        String path when path.startsWith('/activity') => 1,
-        String path when path.startsWith('/analytics') => 3,
-        String path when path.startsWith('/more') => 4,
-        _ => 0,
-      };
+  int get _selectedIndex {
+    if (location.startsWith('/activity')) {
+      return 1;
+    }
+    if (location.startsWith('/analytics')) {
+      return 3;
+    }
+    if (location.startsWith('/more')) {
+      return 4;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
