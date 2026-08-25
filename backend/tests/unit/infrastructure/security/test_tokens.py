@@ -30,8 +30,26 @@ def test_access_token_round_trip_and_tamper_rejection() -> None:
     assert claims.session_id == session_id
     assert claims.expires_at == token.expires_at.replace(microsecond=0)
 
+    header, payload, signature = token.value.split(".")
+    replacement = "A" if signature[0] != "A" else "B"
+    tampered = ".".join((header, payload, f"{replacement}{signature[1:]}"))
     with pytest.raises(DomainError) as error:
-        service.decode_access_token(f"{token.value[:-1]}x")
+        service.decode_access_token(tampered)
+    assert error.value.code == "INVALID_CREDENTIALS"
+
+
+def test_non_canonical_signature_encoding_is_rejected() -> None:
+    service = _service()
+    token = service.issue_access_token(user_id=uuid4(), session_id=uuid4())
+    header, payload, signature = token.value.split(".")
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    final_index = alphabet.index(signature[-1])
+
+    assert final_index % 4 == 0
+    non_canonical = ".".join((header, payload, f"{signature[:-1]}{alphabet[final_index + 1]}"))
+
+    with pytest.raises(DomainError) as error:
+        service.decode_access_token(non_canonical)
     assert error.value.code == "INVALID_CREDENTIALS"
 
 

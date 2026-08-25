@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import hmac
 import secrets
@@ -13,6 +15,29 @@ from jwt import InvalidTokenError
 
 from app.core.config import Settings
 from app.domain.errors import DomainError
+
+
+def _has_canonical_compact_encoding(token: str) -> bool:
+    segments = token.split(".")
+    if len(segments) != 3 or any(not segment for segment in segments):
+        return False
+
+    for segment in segments:
+        try:
+            encoded = segment.encode("ascii")
+            decoded = base64.b64decode(
+                encoded + (b"=" * (-len(encoded) % 4)),
+                altchars=b"-_",
+                validate=True,
+            )
+        except (UnicodeEncodeError, binascii.Error, ValueError):
+            return False
+
+        canonical = base64.urlsafe_b64encode(decoded).rstrip(b"=")
+        if canonical != encoded:
+            return False
+
+    return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +94,8 @@ class TokenService:
 
     def decode_access_token(self, token: str) -> AccessTokenClaims:
         try:
+            if not _has_canonical_compact_encoding(token):
+                raise InvalidTokenError("JWT compact encoding is not canonical")
             payload = jwt.decode(
                 token,
                 self._access_secret,
