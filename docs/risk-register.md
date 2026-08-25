@@ -10,6 +10,8 @@
 | Missing/incorrect FX rates | Misleading consolidated wealth | User-approved effective rates and explicit partial-total warnings |
 | Refund/shared-expense interaction | Recovered amount exceeds the remaining purchase | Lock source, refunds, and shares; reject until reviewed together |
 | Optimistic offline presentation | User mistakes pending writes for posted money | Display provisional effects separately until canonical acknowledgement |
+| Outbox dependency reordering | A post/reversal reaches the server before its prerequisite draft | One owner-ordered queue, atomic local entity/outbox writes, deterministic creation timestamps |
+| Permanent financial sync rejection | Endless retries hide a version or validation conflict | Park 404/409/422 operations as visible conflicts; retain payload/operation ID for review |
 | Sensitive financial data in logs/media | Privacy and security breach | Redacted structured logs, private buckets, short-lived signed URLs |
 | Credential stuffing or account enumeration | Account takeover and privacy leakage | Generic login failures, Argon2id verification including dummy hashes, persistent keyed throttling |
 | Refresh-token theft or replay | Long-lived unauthorized access | Opaque hashed rotating tokens, replacement-chain replay detection and revocation, auditable session events |

@@ -1,13 +1,13 @@
 # PlanIT architecture
 
-This document describes the approved target architecture. Through Milestone 1,
+This document describes the approved target architecture. Through Milestone 2,
 the backend implements configuration, request/error handling, identity and rotating
 sessions, authenticated ownership, account lifecycle/balance use cases, PostgreSQL
 repositories, audit helpers, and the idempotency transaction coordinator. The
 mobile app implements its shell, secure session storage, registration/sign-in,
-account management, an owner-scoped Drift projection, compile-time API
-configuration, and exact money values. The transactional offline outbox and
-financial synchronization workers begin with Milestone 2 ledger writes.
+account and core-ledger management, an owner-scoped Drift v2 projection,
+compile-time API configuration, exact money values, and an ordered transactional
+outbox for expense/income create, edit, post, and reversal operations.
 
 ## Source-of-truth order
 
@@ -33,7 +33,7 @@ Flutter app
 ```
 
 PostgreSQL is authoritative for synchronized financial history. Drift is a local,
-owner-scoped projection and will also host the outbox from Milestone 2 onward.
+owner-scoped projection and hosts the Milestone 2 outbox.
 Cached aggregates are disposable read models; credentials are never stored there.
 
 ## Backend boundaries
@@ -64,6 +64,14 @@ The UI reads local data immediately. Server-acknowledged balances and provisiona
 5. The domain operation, audit event, and idempotency result commit atomically.
 6. A retry with the same key/body returns the stored canonical result. The same key with a different body returns `IDEMPOTENCY_CONFLICT`.
 7. The mobile client replaces provisional state with the canonical response and marks the outbox row acknowledged.
+
+Outbox rows are processed in creation order so a queued post cannot overtake its
+draft creation. Retryable failures retain the same operation UUID and use bounded
+exponential backoff. Financial 404/409/422 responses are parked as visible
+conflicts for review rather than retried with a newly generated identity. Cached
+account balances refresh only after canonical server acknowledgment. A user may
+retry the same operation ID after repairing the cause, or explicitly discard the
+local operation and reload canonical server state.
 
 ## Security and privacy
 

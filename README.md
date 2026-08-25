@@ -4,10 +4,10 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.2.0` completes Milestone 1. The tested
-> application now includes identity/session security, owner-scoped account
-> lifecycle APIs and balance read models, plus a secure mobile sign-in flow and
-> owner-isolated Drift account cache. Core transaction entry begins in Milestone 2.
+> **Implementation status:** release `0.3.0` completes Milestone 2. The tested
+> application now supports owner-scoped expense/income drafts, posting and linked
+> reversals, seeded/custom categories, tags, balance-safe idempotent APIs, and a
+> transactional mobile outbox with visible pending/retry/conflict states.
 
 ## Approved target architecture
 
@@ -29,15 +29,18 @@ plans/     Product specification and technical blueprint
 
 ## Current milestone
 
-Milestones 0 and 1 are complete. The current release provides:
+Milestones 0 through 2 are complete. The current release provides:
 
 - Argon2id registration/login and short-lived JWT access tokens.
 - Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
 - Authenticated account create/list/read/update/balance endpoints with server-derived ownership, idempotent creation, optimistic concurrency, lifecycle policies, and audit events.
 - Ledger-derived account balances and database enforcement of opening-field immutability after posted activity.
 - Flutter registration/sign-in/logout, secure OS token storage, owner-scoped Drift caching, offline cache reads, exact four-decimal money, and account management screens.
+- Expense and income draft/edit/post/reverse APIs with row locking, negative-balance checks, optimistic concurrency, audit events, and database-enforced posted immutability.
+- Per-user seeded/custom categories, independent transaction tags, Activity search/filter/detail screens, and category/tag settings.
+- A Drift v2 ledger projection and ordered transactional outbox. Offline entries appear immediately, retry with stable operation UUIDs, and never alter displayed account balances before server acknowledgment.
 
-Milestone 2 adds draft/post/reverse expense and income workflows on top of this identity and account foundation.
+Milestone 3 adds same/cross-currency transfers, fees, reconciliation, and Keep Total Fixed reallocation.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.

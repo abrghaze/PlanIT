@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import Select, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.ledger import AccountModel, TransactionModel
@@ -81,7 +81,9 @@ class AccountRepository:
         return self._to_snapshot(account, balance, as_of)
 
     @staticmethod
-    def _snapshot_statement(*, user_id: UUID, as_of: datetime):
+    def _snapshot_statement(
+        *, user_id: UUID, as_of: datetime
+    ) -> Select[tuple[AccountModel, Decimal]]:
         signed_amount = case(
             (TransactionModel.effect == "INFLOW", TransactionModel.amount),
             else_=-TransactionModel.amount,

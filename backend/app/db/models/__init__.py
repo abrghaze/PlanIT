@@ -5,10 +5,13 @@ from app.db.models.identity import AuthThrottleModel, RefreshSessionModel, UserM
 from app.db.models.ledger import (
     AccountModel,
     BalanceReconciliationModel,
+    CategoryModel,
     ExchangeRateModel,
     ReallocationLineModel,
     ReallocationSessionModel,
+    TagModel,
     TransactionModel,
+    TransactionTagModel,
     TransferModel,
 )
 
@@ -17,12 +20,15 @@ __all__ = [
     "AuditEventModel",
     "AuthThrottleModel",
     "BalanceReconciliationModel",
+    "CategoryModel",
     "ExchangeRateModel",
     "IdempotencyKeyModel",
     "ReallocationLineModel",
     "ReallocationSessionModel",
     "RefreshSessionModel",
+    "TagModel",
     "TransactionModel",
+    "TransactionTagModel",
     "TransferModel",
     "UserModel",
 ]

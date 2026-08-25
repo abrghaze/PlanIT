@@ -1,8 +1,8 @@
 # PlanIT mobile
 
 This directory contains the Flutter application, Android/iOS/web runners, design
-system, identity and account features, secure session adapter, and owner-scoped
-Drift account cache. CI pins Flutter 3.47.1, project metadata records that SDK
+system, identity/account/core-ledger features, secure session adapter, and
+owner-scoped Drift cache/outbox. CI pins Flutter 3.47.1, project metadata records that SDK
 revision, and the committed lockfile pins package resolution.
 
 After installing Flutter 3.47.1 and the target platform toolchain, run:
@@ -22,7 +22,9 @@ Android network permission applies to every build type, and auto-backup is disab
 The Gradle distribution checksum is pinned, and CI validates the committed wrapper JAR before executing it.
 
 Access and refresh tokens are stored only through `flutter_secure_storage`.
-Account projections contain no credentials and are partitioned by authenticated
-owner. Cached accounts remain readable when the API is unavailable; writes require
-a fresh server session. The transactional offline outbox is introduced with
-Milestone 2 financial writes.
+Account and transaction projections contain no credentials and are partitioned by
+authenticated owner. Cached data remains readable when the API is unavailable.
+Expense/income entry writes the local draft and one or two ordered outbox rows in
+one Drift transaction. Stable operation UUIDs survive retries; pending, retry, and
+conflict states remain visible; conflicts can be retried or explicitly discarded
+before canonical state is reloaded. Cached balances change only after canonical posting.

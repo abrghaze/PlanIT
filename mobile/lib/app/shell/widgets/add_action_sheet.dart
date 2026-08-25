@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 
 class AddActionSheet extends StatelessWidget {
@@ -6,33 +7,39 @@ class AddActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = <({IconData icon, String title, String subtitle})>[
-      (
-        icon: Icons.arrow_upward_rounded,
-        title: 'Expense',
-        subtitle: 'Record money spent',
-      ),
-      (
-        icon: Icons.arrow_downward_rounded,
-        title: 'Income',
-        subtitle: 'Record genuine income',
-      ),
-      (
-        icon: Icons.swap_horiz_rounded,
-        title: 'Transfer',
-        subtitle: 'Move money between accounts',
-      ),
-      (
-        icon: Icons.people_alt_outlined,
-        title: 'Debt',
-        subtitle: 'Existing, lend now, or borrow now',
-      ),
-      (
-        icon: Icons.balance_rounded,
-        title: 'Reconcile',
-        subtitle: 'Match an account to its real balance',
-      ),
-    ];
+    final actions =
+        <({IconData icon, String title, String subtitle, String? route})>[
+          (
+            icon: Icons.arrow_upward_rounded,
+            title: 'Expense',
+            subtitle: 'Record money spent',
+            route: '/transactions/new?type=EXPENSE',
+          ),
+          (
+            icon: Icons.arrow_downward_rounded,
+            title: 'Income',
+            subtitle: 'Record genuine income',
+            route: '/transactions/new?type=INCOME',
+          ),
+          (
+            icon: Icons.swap_horiz_rounded,
+            title: 'Transfer',
+            subtitle: 'Move money between accounts',
+            route: null,
+          ),
+          (
+            icon: Icons.people_alt_outlined,
+            title: 'Debt',
+            subtitle: 'Existing, lend now, or borrow now',
+            route: null,
+          ),
+          (
+            icon: Icons.balance_rounded,
+            title: 'Reconcile',
+            subtitle: 'Match an account to its real balance',
+            route: null,
+          ),
+        ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -61,8 +68,17 @@ class AddActionSheet extends StatelessWidget {
               leading: CircleAvatar(child: Icon(action.icon)),
               title: Text(action.title),
               subtitle: Text(action.subtitle),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).pop(),
+              trailing: action.route == null
+                  ? const Text('Later')
+                  : const Icon(Icons.chevron_right_rounded),
+              enabled: action.route != null,
+              onTap: action.route == null
+                  ? null
+                  : () {
+                      final router = GoRouter.of(context);
+                      Navigator.of(context).pop();
+                      router.push(action.route!);
+                    },
             ),
         ],
       ),

@@ -9,6 +9,10 @@ import 'package:planit_mobile/features/auth/presentation/register_screen.dart';
 import 'package:planit_mobile/features/auth/presentation/sign_in_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
+import 'package:planit_mobile/features/transactions/domain/transaction.dart';
+import 'package:planit_mobile/features/transactions/presentation/catalog_screen.dart';
+import 'package:planit_mobile/features/transactions/presentation/transaction_detail_screen.dart';
+import 'package:planit_mobile/features/transactions/presentation/transaction_form_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -44,6 +48,30 @@ final GoRouter authenticatedRouter = GoRouter(
               AccountFormScreen(accountId: state.pathParameters['accountId']),
         ),
       ],
+    ),
+    GoRoute(
+      path: '/transactions/new',
+      builder: (context, state) => TransactionFormScreen(
+        initialType: state.uri.queryParameters['type'] == 'INCOME'
+            ? TransactionType.income
+            : TransactionType.expense,
+      ),
+    ),
+    GoRoute(
+      path: '/transactions/:transactionId',
+      builder: (context, state) => TransactionDetailScreen(
+        transactionId: state.pathParameters['transactionId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/transactions/:transactionId/edit',
+      builder: (context, state) => TransactionFormScreen(
+        transactionId: state.pathParameters['transactionId'],
+      ),
+    ),
+    GoRoute(
+      path: '/catalog',
+      builder: (context, state) => const CatalogScreen(),
     ),
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget child) {

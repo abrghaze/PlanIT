@@ -2,7 +2,7 @@
 
 Each milestone must leave the repository runnable and may advance only after its invariants, migration, API contract, offline behavior, and tests agree.
 
-**Delivery status:** Milestones 0 and 1 are complete in release `0.2.0`.
+**Delivery status:** Milestones 0 through 2 are complete in release `0.3.0`.
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
@@ -16,4 +16,4 @@ Each milestone must leave the repository runnable and may advance only after its
 | 7 — Planning | Recurring commitments, subscriptions, savings goals and reminders | Deduplicated occurrences, reliable progress and due-state handling |
 | 8 — Advanced and release | OCR/bank adapter seams, anomaly insights, accessibility, performance, privacy export/deletion | Threat review, backup/restore drill, observability, store-ready builds |
 
-The next implementation slice is Milestone 2. Identity now precedes every owned API operation, and accounts are established as the prerequisite aggregate for balance-affecting ledger writes. Milestone 2 will add expense and income draft/post/reverse flows plus the transactional mobile outbox.
+The next implementation slice is Milestone 3. The core ledger now supplies immutable posted expense/income movements, linked reversals, account row locking, and retry-safe mobile operation delivery. Transfers and corrections can build on that posting boundary without creating a second balance model.

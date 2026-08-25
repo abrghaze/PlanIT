@@ -6,9 +6,15 @@ import 'package:planit_mobile/core/auth/application/providers.dart';
 import 'package:planit_mobile/core/auth/data/auth_repository.dart';
 import 'package:planit_mobile/core/auth/domain/auth_session.dart';
 import 'package:planit_mobile/core/auth/domain/auth_user.dart';
+import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/data/accounts_repository.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/transactions/application/providers.dart';
+import 'package:planit_mobile/features/transactions/data/catalog_repository.dart';
+import 'package:planit_mobile/features/transactions/data/transactions_repository.dart';
+import 'package:planit_mobile/features/transactions/domain/catalog.dart';
+import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 void main() {
   testWidgets('sign-in unlocks the owner-scoped application shell', (
@@ -16,12 +22,18 @@ void main() {
   ) async {
     final authRepository = _FakeAuthRepository(_session());
     final accountsRepository = _FakeAccountsRepository();
+    final transactionsRepository = _FakeTransactionsRepository();
+    final catalogRepository = _FakeCatalogRepository();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(authRepository),
           accountsRepositoryProvider.overrideWithValue(accountsRepository),
+          transactionsRepositoryProvider.overrideWithValue(
+            transactionsRepository,
+          ),
+          catalogRepositoryProvider.overrideWithValue(catalogRepository),
         ],
         child: const PlanItApp(),
       ),
@@ -51,6 +63,178 @@ void main() {
 
     expect(find.text('Search transactions'), findsOneWidget);
   });
+
+  testWidgets('Add flow saves an uncategorized draft', (
+    WidgetTester tester,
+  ) async {
+    final authRepository = _FakeAuthRepository(
+      _session(),
+      restoreSession: true,
+    );
+    final accountsRepository = _FakeAccountsRepository(<Account>[_account()]);
+    final transactionsRepository = _FakeTransactionsRepository();
+    final catalogRepository = _FakeCatalogRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(authRepository),
+          accountsRepositoryProvider.overrideWithValue(accountsRepository),
+          transactionsRepositoryProvider.overrideWithValue(
+            transactionsRepository,
+          ),
+          catalogRepositoryProvider.overrideWithValue(catalogRepository),
+        ],
+        child: const PlanItApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Add'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Expense'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add transaction'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Amount'),
+      '12.5000',
+    );
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Save draft'),
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Save draft'));
+    await tester.pumpAndSettle();
+
+    expect(transactionsRepository.createCount, 1);
+    expect(transactionsRepository.lastDraft?.categoryId, isNull);
+    expect(transactionsRepository.lastPostAfterCreate, isFalse);
+  });
+}
+
+final class _FakeTransactionsRepository implements TransactionsRepository {
+  int createCount = 0;
+  TransactionDraft? lastDraft;
+  bool? lastPostAfterCreate;
+
+  @override
+  Future<void> discardPending(LedgerTransaction transaction) async {}
+
+  @override
+  Future<void> queueCreate({
+    required String ownerId,
+    required TransactionDraft draft,
+    required bool postAfterCreate,
+    required String? postOperationId,
+  }) async {
+    createCount += 1;
+    lastDraft = draft;
+    lastPostAfterCreate = postAfterCreate;
+  }
+
+  @override
+  Future<void> queuePost({
+    required LedgerTransaction current,
+    required String operationId,
+  }) async {}
+
+  @override
+  Future<void> queueReversal({
+    required LedgerTransaction current,
+    required TransactionReversalDraft reversal,
+  }) async {}
+
+  @override
+  Future<void> queueUpdate({
+    required LedgerTransaction current,
+    required TransactionEdit edit,
+    required String operationId,
+  }) async {}
+
+  @override
+  Future<void> refresh({
+    required String ownerId,
+    required String accessToken,
+  }) async {}
+
+  @override
+  Future<TransactionSyncResult> synchronize({
+    required String ownerId,
+    required String accessToken,
+    bool force = false,
+  }) async {
+    return const TransactionSyncResult(processed: 0, blocked: false);
+  }
+
+  @override
+  Stream<List<LedgerTransaction>> watch(String ownerId) {
+    return Stream<List<LedgerTransaction>>.value(const <LedgerTransaction>[]);
+  }
+
+  @override
+  Stream<int> watchPendingCount(String ownerId) => Stream<int>.value(0);
+}
+
+final class _FakeCatalogRepository implements CatalogRepository {
+  @override
+  Future<TransactionCategory> createCategory({
+    required String ownerId,
+    required String accessToken,
+    required String operationId,
+    required CategoryDraft draft,
+  }) {
+    throw UnsupportedError('Not used by this test.');
+  }
+
+  @override
+  Future<TransactionTag> createTag({
+    required String ownerId,
+    required String accessToken,
+    required String operationId,
+    required TagDraft draft,
+  }) {
+    throw UnsupportedError('Not used by this test.');
+  }
+
+  @override
+  Future<void> refresh({
+    required String ownerId,
+    required String accessToken,
+  }) async {}
+
+  @override
+  Future<void> setCategoryArchived({
+    required String ownerId,
+    required String accessToken,
+    required String operationId,
+    required TransactionCategory category,
+    required bool archived,
+  }) async {}
+
+  @override
+  Future<void> setTagArchived({
+    required String ownerId,
+    required String accessToken,
+    required String operationId,
+    required TransactionTag tag,
+    required bool archived,
+  }) async {}
+
+  @override
+  Stream<List<TransactionCategory>> watchCategories(String ownerId) {
+    return Stream<List<TransactionCategory>>.value(
+      const <TransactionCategory>[],
+    );
+  }
+
+  @override
+  Stream<List<TransactionTag>> watchTags(String ownerId) {
+    return Stream<List<TransactionTag>>.value(const <TransactionTag>[]);
+  }
 }
 
 AuthSession _session() {
@@ -74,9 +258,10 @@ AuthSession _session() {
 }
 
 final class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository(this.session);
+  _FakeAuthRepository(this.session, {this.restoreSession = false});
 
   final AuthSession session;
+  final bool restoreSession;
   int loginCount = 0;
 
   @override
@@ -105,11 +290,17 @@ final class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<AuthRestoreResult> restore() async {
-    return const AuthRestoreResult(session: null, offline: false);
+    return AuthRestoreResult(
+      session: restoreSession ? session : null,
+      offline: false,
+    );
   }
 }
 
 final class _FakeAccountsRepository implements AccountsRepository {
+  _FakeAccountsRepository([this.accounts = const <Account>[]]);
+
+  final List<Account> accounts;
   int refreshCount = 0;
 
   @override
@@ -123,7 +314,7 @@ final class _FakeAccountsRepository implements AccountsRepository {
   }
 
   @override
-  Future<List<Account>> read(String ownerId) async => const <Account>[];
+  Future<List<Account>> read(String ownerId) async => accounts;
 
   @override
   Future<void> refresh({
@@ -145,6 +336,30 @@ final class _FakeAccountsRepository implements AccountsRepository {
 
   @override
   Stream<List<Account>> watch(String ownerId) {
-    return Stream<List<Account>>.value(const <Account>[]);
+    return Stream<List<Account>>.value(accounts);
   }
+}
+
+Account _account() {
+  final now = DateTime.now().toUtc();
+  return Account(
+    id: 'account-a',
+    ownerId: 'owner-a',
+    name: 'Wallet',
+    type: AccountType.cash,
+    currency: 'MAD',
+    openingBalance: Money.parse('100.0000', 'MAD'),
+    calculatedBalance: Money.parse('100.0000', 'MAD'),
+    balanceAsOf: now,
+    openedAt: now.subtract(const Duration(days: 1)),
+    includeInTotal: true,
+    allowNegative: false,
+    status: AccountStatus.active,
+    sortOrder: 0,
+    archivedAt: null,
+    closedAt: null,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+  );
 }

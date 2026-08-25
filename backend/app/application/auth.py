@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.audit import add_audit_event
+from app.application.catalog import add_default_categories
 from app.core.config import Settings
 from app.db.models.identity import AuthThrottleModel, RefreshSessionModel, UserModel
 from app.domain.errors import DomainError
@@ -82,6 +83,7 @@ class AuthService:
                 )
                 self._repository.add_user(user)
                 await self._session.flush()
+                add_default_categories(self._session, user_id=user.id)
                 refresh_session, refresh_token = self._new_refresh_session(
                     user_id=user.id,
                     device_label=normalized_device,

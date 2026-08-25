@@ -34,6 +34,15 @@ This document converts open questions in the product specification into safe ini
 - Posted balance-affecting fields are immutable.
 - Correction creates a linked reversal and optional replacement. Metadata explicitly designated as non-financial may be versioned in place.
 - Balance at time `T` equals opening balance plus posted movement effects whose effective time is at or before `T`.
+- Milestone 2 creates expense/income records as drafts. A separate idempotent post operation validates an active owned account, matching currency, compatible active category, active tags, account opening time, and negative-balance policy under an account row lock.
+- Reversal creates one posted opposite-effect `REVERSAL`, preserves the original category and tags, marks the original `REVERSED`, increments the account version, and commits both changes plus audit/idempotency state atomically. Reversals cannot target reversals.
+
+## Categories and tags
+
+- Registration creates deterministic per-user expense and income defaults; existing users receive the same defaults in the Milestone 2 migration.
+- Category names are unique among active rows per user. Categories are `EXPENSE`, `INCOME`, or `BOTH`; parent categories must accept the child kind, hierarchy cycles are rejected, and kind changes cannot contradict posted history.
+- A category is required at posting but may be omitted while a draft is incomplete. Archived categories and tags remain readable in history but cannot be used for a new post.
+- Tags add independent context and do not replace or modify category classification. A transaction accepts at most 20 unique active tags.
 
 ## Transfers and reallocation
 

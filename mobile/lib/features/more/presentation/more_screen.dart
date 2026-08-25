@@ -17,6 +17,11 @@ class MoreScreen extends ConsumerWidget {
         label: 'Accounts',
         onTap: () => context.push('/accounts'),
       ),
+      (
+        icon: Icons.category_outlined,
+        label: 'Categories & tags',
+        onTap: () => context.push('/catalog'),
+      ),
       (icon: Icons.people_alt_outlined, label: 'People & debts', onTap: null),
       (icon: Icons.storefront_outlined, label: 'Shops', onTap: null),
       (icon: Icons.inventory_2_outlined, label: 'Products', onTap: null),
@@ -83,7 +88,7 @@ class MoreScreen extends ConsumerWidget {
                     builder: (context) => AlertDialog(
                       title: const Text('Sign out?'),
                       content: const Text(
-                        'Secure tokens and this user’s local account cache will be removed from this device.',
+                        "Secure tokens and this user's local financial cache will be removed from this device.",
                       ),
                       actions: <Widget>[
                         TextButton(
