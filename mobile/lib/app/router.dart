@@ -1,17 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/app/shell/planit_scaffold.dart';
+import 'package:planit_mobile/features/accounts/presentation/account_form_screen.dart';
+import 'package:planit_mobile/features/accounts/presentation/accounts_screen.dart';
 import 'package:planit_mobile/features/activity/presentation/activity_screen.dart';
 import 'package:planit_mobile/features/analytics/presentation/analytics_screen.dart';
+import 'package:planit_mobile/features/auth/presentation/register_screen.dart';
+import 'package:planit_mobile/features/auth/presentation/sign_in_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-final GoRouter planItRouter = GoRouter(
+final GoRouter publicRouter = GoRouter(
+  initialLocation: '/sign-in',
+  routes: <RouteBase>[
+    GoRoute(
+      path: '/sign-in',
+      builder: (context, state) => const SignInScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
+  ],
+);
+
+final GoRouter authenticatedRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/home',
   routes: <RouteBase>[
+    GoRoute(
+      path: '/accounts',
+      builder: (context, state) => const AccountsScreen(),
+      routes: <RouteBase>[
+        GoRoute(
+          path: 'new',
+          builder: (context, state) => const AccountFormScreen(),
+        ),
+        GoRoute(
+          path: ':accountId/edit',
+          builder: (context, state) =>
+              AccountFormScreen(accountId: state.pathParameters['accountId']),
+        ),
+      ],
+    ),
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget child) {
         return PlanItScaffold(location: state.uri.path, child: child);

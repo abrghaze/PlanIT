@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import (
@@ -22,25 +21,17 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UuidPrimaryKeyMixin
+from app.domain.accounts.enums import AccountType
 from app.domain.ledger.enums import AccountStatus, TransactionStatus
 
 MONEY = Numeric(19, 4, asdecimal=True)
 FX_RATE = Numeric(30, 12, asdecimal=True)
 
 
-class AccountType(StrEnum):
-    BANK = "BANK"
-    CASH = "CASH"
-    SAVINGS = "SAVINGS"
-    CARD = "CARD"
-    PREPAID = "PREPAID"
-    INVESTMENT = "INVESTMENT"
-    OTHER = "OTHER"
-
-
 class AccountModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "accounts"
     __table_args__ = (
+        CheckConstraint("length(btrim(name)) BETWEEN 1 AND 120", name="name_not_blank"),
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name="currency_format"),
         CheckConstraint(
             "type IN ('BANK','CASH','SAVINGS','CARD','PREPAID','INVESTMENT','OTHER')",
@@ -48,6 +39,7 @@ class AccountModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         ),
         CheckConstraint("status IN ('ACTIVE','ARCHIVED','CLOSED')", name="status_valid"),
         CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint("sort_order >= 0", name="sort_order_non_negative"),
         CheckConstraint(
             "allow_negative OR opening_balance >= 0",
             name="opening_balance_respects_negative_policy",

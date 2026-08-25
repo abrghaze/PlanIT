@@ -8,6 +8,11 @@ final class ApiClient {
 
   Dio get raw => _dio;
 
+  String url(String path) {
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return '${_dio.options.baseUrl}$normalizedPath';
+  }
+
   static Dio _buildDio() {
     return Dio(
       BaseOptions(

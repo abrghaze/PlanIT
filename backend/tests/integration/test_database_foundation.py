@@ -8,7 +8,7 @@ from app.core.config import Settings
 from app.db.models.identity import UserModel
 from app.db.models.ledger import AccountModel, TransactionModel
 from app.main import create_app
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -105,7 +105,7 @@ async def test_migration_head_readiness_decimal_and_timezone_round_trip(
         async with db_session_factory() as session:
             stored = await session.get(TransactionModel, transaction_id)
 
-        assert current_revision == "20260824_0002"
+        assert current_revision == "20260825_0003"
         assert stored is not None
         assert stored.amount == Decimal("0.1000")
         assert isinstance(stored.amount, Decimal)
@@ -246,6 +246,15 @@ async def test_critical_constraints_and_transaction_atomicity(
                             client_operation_id=uuid4(),
                             version=1,
                         )
+                    )
+
+        async with db_session_factory() as session:
+            with pytest.raises(IntegrityError, match="immutable after posting"):
+                async with session.begin():
+                    await session.execute(
+                        update(AccountModel)
+                        .where(AccountModel.id == account_id)
+                        .values(opening_balance=Decimal("99.0000"))
                     )
 
         async with db_session_factory() as session:

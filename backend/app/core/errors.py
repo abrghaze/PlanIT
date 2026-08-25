@@ -15,11 +15,24 @@ from app.domain.errors import DomainError
 logger = logging.getLogger("planit.errors")
 
 _CONFLICT_CODES = {
+    "ACCOUNT_HAS_ACTIVITY",
+    "ACCOUNT_ID_CONFLICT",
+    "ACCOUNT_READ_ONLY",
     "CURRENCY_MISMATCH",
+    "EMAIL_ALREADY_REGISTERED",
     "IDEMPOTENCY_CONFLICT",
     "NEGATIVE_BALANCE_NOT_ALLOWED",
     "STALE_BALANCE",
     "VERSION_CONFLICT",
+}
+
+_DOMAIN_STATUS_CODES = {
+    "ACCOUNT_NOT_FOUND": 404,
+    "AUTH_RATE_LIMITED": 429,
+    "INVALID_CREDENTIALS": 401,
+    "INVALID_REFRESH_TOKEN": 401,
+    "TOKEN_REUSE_DETECTED": 401,
+    **{code: 409 for code in _CONFLICT_CODES},
 }
 
 _HTTP_ERROR_CONTRACTS = {
@@ -81,7 +94,7 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:
         return _response(
             request,
-            status_code=409 if exc.code in _CONFLICT_CODES else 422,
+            status_code=_DOMAIN_STATUS_CODES.get(exc.code, 422),
             code=exc.code,
             message=exc.message,
             details=exc.details,

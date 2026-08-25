@@ -27,7 +27,7 @@ def register_middleware(app: FastAPI, *, allowed_origins: list[str]) -> None:
                 "If-Match",
                 "X-Request-ID",
             ],
-            expose_headers=["ETag", "X-Request-ID"],
+            expose_headers=["ETag", "Idempotency-Replayed", "X-Request-ID"],
         )
 
     @app.middleware("http")

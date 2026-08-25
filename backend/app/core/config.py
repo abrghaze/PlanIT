@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "PlanIT API"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
     app_env: Literal["local", "test", "staging", "production"] = "local"
     debug: bool = True
     api_prefix: str = "/api/v1"
@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     refresh_token_pepper: SecretStr = SecretStr("local-only-different-refresh-token-secret")
     access_token_ttl_minutes: int = Field(default=15, gt=0)
     refresh_token_ttl_days: int = Field(default=30, gt=0)
+    jwt_issuer: str = Field(default="planit-api", min_length=1, max_length=120)
+    jwt_audience: str = Field(default="planit-mobile", min_length=1, max_length=120)
+    login_max_attempts: int = Field(default=5, ge=2, le=20)
+    login_window_minutes: int = Field(default=15, gt=0, le=1440)
+    login_lockout_minutes: int = Field(default=15, gt=0, le=1440)
     s3_endpoint_url: str | None = None
     s3_region: str = "auto"
     s3_bucket: str = "planit-private"

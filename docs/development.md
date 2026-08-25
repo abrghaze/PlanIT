@@ -86,8 +86,10 @@ flutter run --dart-define=PLANIT_API_BASE_URL=http://10.0.2.2:8000/api/v1
 
 Use `127.0.0.1` for an iOS simulator and the development machine's LAN address for a physical device as appropriate.
 
-`pubspec.lock` is committed and CI pins Flutter 3.47.1. Code generation currently
-has no committed outputs because Milestone 0 has not introduced Drift tables.
+`pubspec.lock` is committed and CI pins Flutter 3.47.1. Drift's generated
+`app_database.g.dart` is also committed; `dart run build_runner build` must leave
+the worktree unchanged. The web runner includes dependency-matched
+`drift_worker.js` and `sqlite3.wasm` assets for the local account projection.
 
 ## Environment policy
 

@@ -4,9 +4,10 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** this repository is at Milestone 0. It contains the
-> tested foundation and application shell, not the user-facing finance features,
-> authentication endpoints, or mobile offline database described by later milestones.
+> **Implementation status:** release `0.2.0` completes Milestone 1. The tested
+> application now includes identity/session security, owner-scoped account
+> lifecycle APIs and balance read models, plus a secure mobile sign-in flow and
+> owner-isolated Drift account cache. Core transaction entry begins in Milestone 2.
 
 ## Approved target architecture
 
@@ -28,7 +29,15 @@ plans/     Product specification and technical blueprint
 
 ## Current milestone
 
-Milestone 0 establishes the architecture, development environment, money primitives, error contract, database foundation, mobile shell, and automated tests. Feature work then proceeds in ledger dependency order.
+Milestones 0 and 1 are complete. The current release provides:
+
+- Argon2id registration/login and short-lived JWT access tokens.
+- Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
+- Authenticated account create/list/read/update/balance endpoints with server-derived ownership, idempotent creation, optimistic concurrency, lifecycle policies, and audit events.
+- Ledger-derived account balances and database enforcement of opening-field immutability after posted activity.
+- Flutter registration/sign-in/logout, secure OS token storage, owner-scoped Drift caching, offline cache reads, exact four-decimal money, and account management screens.
+
+Milestone 2 adds draft/post/reverse expense and income workflows on top of this identity and account foundation.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.

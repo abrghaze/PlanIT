@@ -4,7 +4,17 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Text, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UuidPrimaryKeyMixin
@@ -37,13 +47,27 @@ class UserModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
 class RefreshSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "refresh_sessions"
     __table_args__ = (
+        CheckConstraint("expires_at > created_at", name="expiry_after_creation"),
+        CheckConstraint(
+            "replaced_by_id IS NULL OR revoked_at IS NOT NULL",
+            name="replacement_requires_revocation",
+        ),
+        CheckConstraint(
+            "NOT compromised OR revoked_at IS NOT NULL",
+            name="compromise_requires_revocation",
+        ),
+        CheckConstraint(
+            "replaced_by_id IS NULL OR replaced_by_id <> id",
+            name="replacement_not_self",
+        ),
+        CheckConstraint("token_hash ~ '^[0-9a-f]{64}$'", name="token_hash_format"),
         Index("ix_refresh_sessions_user_active", "user_id", "revoked_at", "expires_at"),
     )
 
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     device_label: Mapped[str | None] = mapped_column(String(160))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -51,3 +75,18 @@ class RefreshSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         Uuid(as_uuid=True), ForeignKey("refresh_sessions.id", ondelete="SET NULL")
     )
     compromised: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class AuthThrottleModel(TimestampMixin, Base):
+    """Privacy-preserving, PostgreSQL-backed login throttling state."""
+
+    __tablename__ = "auth_throttles"
+    __table_args__ = (
+        CheckConstraint("failure_count >= 0", name="failure_count_non_negative"),
+        Index("ix_auth_throttles_blocked_until", "blocked_until"),
+    )
+
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    blocked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

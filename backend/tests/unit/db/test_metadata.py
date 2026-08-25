@@ -5,6 +5,7 @@ from sqlalchemy.schema import CreateTable
 
 EXPECTED_TABLES = {
     "accounts",
+    "auth_throttles",
     "audit_events",
     "balance_reconciliations",
     "exchange_rates",
@@ -18,11 +19,11 @@ EXPECTED_TABLES = {
 }
 
 
-def test_foundation_metadata_is_complete() -> None:
+def test_migrated_metadata_is_complete() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 
-def test_every_foundation_table_compiles_for_postgresql() -> None:
+def test_every_table_compiles_for_postgresql() -> None:
     dialect = postgresql.dialect()
 
     for table in Base.metadata.sorted_tables:

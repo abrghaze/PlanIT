@@ -4,13 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "planit-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "PlanIT personal-finance API"
 requires-python = ">=3.11,<3.13"
 dependencies = [
   "alembic>=1.14,<2",
+  "argon2-cffi>=23.1,<26",
   "asyncpg>=0.30,<1",
+  "email-validator>=2.2,<3",
   "fastapi>=0.136,<1",
+  "PyJWT>=2.10,<3",
   "pydantic-settings>=2.8,<3",
   "sqlalchemy[asyncio]>=2.0.38,<3",
   "uvicorn[standard]>=0.34,<1",

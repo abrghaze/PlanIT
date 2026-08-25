@@ -2,9 +2,9 @@
 
 PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPTZ` in UTC, and money is `NUMERIC(19,4)`. Every user-owned aggregate has an ownership path that can be checked server-side. Posted financial history is append-oriented.
 
-The identity/control and ledger/account tables below are present in the Milestone 0
-foundation. Catalog, purchase detail, debts/sharing, automation, goals, and media
-tables describe the approved later-milestone schema and are not migrated yet.
+The identity/control and ledger/account tables below are present through Milestone 1.
+Catalog, purchase detail, debts/sharing, automation, goals, and media tables describe
+the approved later-milestone schema and are not migrated yet.
 
 ## Identity and control
 
@@ -12,6 +12,7 @@ tables describe the approved later-milestone schema and are not migrated yet.
 |---|---|---|
 | `users` | Identity and preferences | unique normalized email, display name, base currency, IANA timezone, status |
 | `refresh_sessions` | Rotating sessions | hashed opaque token, device label, expiry/revocation, replacement link |
+| `auth_throttles` | Persistent login abuse control | private keyed identifier hash, failure window/count, lockout expiry |
 | `idempotency_keys` | Retry-safe writes | unique `(user_id, scope, key)`, request hash, stored status/body, expiry |
 | `audit_events` | Security/business trace | actor, entity reference, action, redacted before/after JSON, request/operation IDs |
 
@@ -27,7 +28,7 @@ tables describe the approved later-milestone schema and are not migrated yet.
 | `reallocation_lines` | Per-account audit | composite key `(session_id, account_id)`, before/target/delta |
 | `exchange_rates` | Approved conversion facts | base/quote, positive rate, effective time, source; unique scoped pair/time |
 
-At Milestone 0, `transactions` is indexed by `(user_id, occurred_at, id)`,
+`transactions` is indexed by `(user_id, occurred_at, id)`,
 `(account_id, occurred_at, id)`, parent, and reversal. The unique
 `(user_id, client_operation_id)` constraint supplies the retry-safety lookup.
 Category and merchant-location indexes are added with those later schema columns.
@@ -36,6 +37,10 @@ reversal links, and positive entity versions. Transaction-spanning totals are
 enforced under row locks in application services. Composite foreign keys prevent a
 transaction from naming an account owned by another user or using a different
 currency; a reversal is constrained to its original user, account, and currency.
+Account balances are read models derived from the immutable opening balance plus
+posted/reversed movement effects through the requested `as_of` timestamp. A
+PostgreSQL trigger blocks changes to opening balance, currency, or opening time
+after posted/reversed activity even if a write bypasses the application service.
 
 ## Catalog and purchase detail
 
