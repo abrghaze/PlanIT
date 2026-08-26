@@ -1,40 +1,112 @@
 import 'package:planit_mobile/core/money/money.dart';
 
-enum TransactionType { expense, income, reversal }
+enum TransactionType {
+  expense,
+  income,
+  transferOut,
+  transferIn,
+  transferFee,
+  refund,
+  loanPrincipalOut,
+  loanPrincipalIn,
+  debtRepaymentIn,
+  debtRepaymentOut,
+  reconciliationAdjustment,
+  reversal,
+  unknown,
+}
 
 extension TransactionTypeContract on TransactionType {
-  String get apiValue => name.toUpperCase();
+  String get apiValue => switch (this) {
+    TransactionType.expense => 'EXPENSE',
+    TransactionType.income => 'INCOME',
+    TransactionType.transferOut => 'TRANSFER_OUT',
+    TransactionType.transferIn => 'TRANSFER_IN',
+    TransactionType.transferFee => 'TRANSFER_FEE',
+    TransactionType.refund => 'REFUND',
+    TransactionType.loanPrincipalOut => 'LOAN_PRINCIPAL_OUT',
+    TransactionType.loanPrincipalIn => 'LOAN_PRINCIPAL_IN',
+    TransactionType.debtRepaymentIn => 'DEBT_REPAYMENT_IN',
+    TransactionType.debtRepaymentOut => 'DEBT_REPAYMENT_OUT',
+    TransactionType.reconciliationAdjustment => 'RECONCILIATION_ADJUSTMENT',
+    TransactionType.reversal => 'REVERSAL',
+    TransactionType.unknown => 'UNKNOWN',
+  };
 
   String get label => switch (this) {
     TransactionType.expense => 'Expense',
     TransactionType.income => 'Income',
+    TransactionType.transferOut => 'Transfer sent',
+    TransactionType.transferIn => 'Transfer received',
+    TransactionType.transferFee => 'Transfer fee',
+    TransactionType.refund => 'Refund',
+    TransactionType.loanPrincipalOut => 'Loan principal sent',
+    TransactionType.loanPrincipalIn => 'Loan principal received',
+    TransactionType.debtRepaymentIn => 'Debt repayment received',
+    TransactionType.debtRepaymentOut => 'Debt repayment sent',
+    TransactionType.reconciliationAdjustment => 'Balance adjustment',
     TransactionType.reversal => 'Reversal',
+    TransactionType.unknown => 'Unknown transaction',
   };
 
+  bool get supportsGenericReversal =>
+      this == TransactionType.expense || this == TransactionType.income;
+
+  bool get isTransfer =>
+      this == TransactionType.transferOut ||
+      this == TransactionType.transferIn ||
+      this == TransactionType.transferFee;
+
+  bool get isSpending =>
+      this == TransactionType.expense || this == TransactionType.transferFee;
+
+  bool get isIncome => this == TransactionType.income;
+
   static TransactionType fromApi(String value) {
-    return TransactionType.values.firstWhere(
-      (type) => type.apiValue == value,
-      orElse: () => TransactionType.reversal,
-    );
+    return switch (value) {
+      'EXPENSE' => TransactionType.expense,
+      'INCOME' => TransactionType.income,
+      'TRANSFER_OUT' => TransactionType.transferOut,
+      'TRANSFER_IN' => TransactionType.transferIn,
+      'TRANSFER_FEE' => TransactionType.transferFee,
+      'REFUND' => TransactionType.refund,
+      'LOAN_PRINCIPAL_OUT' => TransactionType.loanPrincipalOut,
+      'LOAN_PRINCIPAL_IN' => TransactionType.loanPrincipalIn,
+      'DEBT_REPAYMENT_IN' => TransactionType.debtRepaymentIn,
+      'DEBT_REPAYMENT_OUT' => TransactionType.debtRepaymentOut,
+      'RECONCILIATION_ADJUSTMENT' => TransactionType.reconciliationAdjustment,
+      'REVERSAL' => TransactionType.reversal,
+      _ => TransactionType.unknown,
+    };
   }
 }
 
 enum TransactionEffect { inflow, outflow }
 
 extension TransactionEffectContract on TransactionEffect {
-  String get apiValue => name.toUpperCase();
+  String get apiValue => switch (this) {
+    TransactionEffect.inflow => 'INFLOW',
+    TransactionEffect.outflow => 'OUTFLOW',
+  };
 
   static TransactionEffect fromApi(String value) {
-    return value == 'INFLOW'
-        ? TransactionEffect.inflow
-        : TransactionEffect.outflow;
+    return switch (value) {
+      'INFLOW' => TransactionEffect.inflow,
+      'OUTFLOW' => TransactionEffect.outflow,
+      _ => throw FormatException('Unknown transaction effect: $value'),
+    };
   }
 }
 
 enum TransactionStatus { draft, posted, reversed, voided }
 
 extension TransactionStatusContract on TransactionStatus {
-  String get apiValue => name.toUpperCase();
+  String get apiValue => switch (this) {
+    TransactionStatus.draft => 'DRAFT',
+    TransactionStatus.posted => 'POSTED',
+    TransactionStatus.reversed => 'REVERSED',
+    TransactionStatus.voided => 'VOIDED',
+  };
 
   String get label => switch (this) {
     TransactionStatus.draft => 'Draft',
@@ -44,10 +116,13 @@ extension TransactionStatusContract on TransactionStatus {
   };
 
   static TransactionStatus fromApi(String value) {
-    return TransactionStatus.values.firstWhere(
-      (status) => status.apiValue == value,
-      orElse: () => TransactionStatus.draft,
-    );
+    return switch (value) {
+      'DRAFT' => TransactionStatus.draft,
+      'POSTED' => TransactionStatus.posted,
+      'REVERSED' => TransactionStatus.reversed,
+      'VOIDED' => TransactionStatus.voided,
+      _ => throw FormatException('Unknown transaction status: $value'),
+    };
   }
 }
 
@@ -244,9 +319,7 @@ final class TransactionDraft {
       ownerId: ownerId,
       accountId: accountId,
       type: type,
-      effect: type == TransactionType.expense
-          ? TransactionEffect.outflow
-          : TransactionEffect.inflow,
+      effect: _genericTransactionEffect(type),
       amount: amount,
       occurredAt: occurredAt.toUtc(),
       status: TransactionStatus.draft,
@@ -315,9 +388,7 @@ final class TransactionEdit {
       ownerId: current.ownerId,
       accountId: accountId,
       type: type,
-      effect: type == TransactionType.expense
-          ? TransactionEffect.outflow
-          : TransactionEffect.inflow,
+      effect: _genericTransactionEffect(type),
       amount: amount,
       occurredAt: occurredAt.toUtc(),
       status: TransactionStatus.draft,
@@ -336,6 +407,16 @@ final class TransactionEdit {
       lastSyncError: null,
     );
   }
+}
+
+TransactionEffect _genericTransactionEffect(TransactionType type) {
+  return switch (type) {
+    TransactionType.expense => TransactionEffect.outflow,
+    TransactionType.income => TransactionEffect.inflow,
+    _ => throw StateError(
+      '${type.label} cannot be created through the generic transaction flow.',
+    ),
+  };
 }
 
 final class TransactionReversalDraft {

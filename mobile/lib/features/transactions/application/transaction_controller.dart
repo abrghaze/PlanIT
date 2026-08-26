@@ -47,7 +47,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
             accessToken: session.accessToken,
             force: force,
           );
-      if (!sync.blocked) {
+      if (!sync.blocked || sync.processed > 0) {
         await Future.wait<void>(<Future<void>>[
           ref
               .read(transactionsRepositoryProvider)

@@ -8,7 +8,7 @@ import 'package:planit_mobile/features/transactions/application/transaction_cont
 import 'package:planit_mobile/features/transactions/domain/catalog.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
-enum _ActivityFilter { all, expenses, income, drafts }
+enum _ActivityFilter { all, expenses, income, transfers, drafts }
 
 class ActivityScreen extends ConsumerStatefulWidget {
   const ActivityScreen({super.key});
@@ -61,22 +61,10 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                         Badge(
                           label: Text('$pending'),
                           child: IconButton(
-                            tooltip: 'Synchronize pending activity',
-                            onPressed: action.syncing
-                                ? null
-                                : () => ref
-                                      .read(
-                                        transactionControllerProvider.notifier,
-                                      )
-                                      .refresh(force: true),
-                            icon: action.syncing
-                                ? const SizedBox.square(
-                                    dimension: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.sync_rounded),
+                            tooltip: 'Review pending operations',
+                            onPressed: () =>
+                                context.push('/pending-operations'),
+                            icon: const Icon(Icons.cloud_upload_outlined),
                           ),
                         ),
                     ],
@@ -104,6 +92,10 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                         ButtonSegment<_ActivityFilter>(
                           value: _ActivityFilter.income,
                           label: Text('Income'),
+                        ),
+                        ButtonSegment<_ActivityFilter>(
+                          value: _ActivityFilter.transfers,
+                          label: Text('Transfers'),
                         ),
                         ButtonSegment<_ActivityFilter>(
                           value: _ActivityFilter.drafts,
@@ -178,6 +170,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
             _ActivityFilter.all => true,
             _ActivityFilter.expenses => value.type == TransactionType.expense,
             _ActivityFilter.income => value.type == TransactionType.income,
+            _ActivityFilter.transfers => value.type.isTransfer,
             _ActivityFilter.drafts => value.status == TransactionStatus.draft,
           };
           if (!matchesFilter || normalizedQuery.isEmpty) {
@@ -216,7 +209,10 @@ class _TransactionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inflow = transaction.effect == TransactionEffect.inflow;
-    final color = inflow
+    final neutral = !transaction.type.isSpending && !transaction.type.isIncome;
+    final color = neutral
+        ? Theme.of(context).colorScheme.primary
+        : inflow
         ? Colors.green.shade700
         : Theme.of(context).colorScheme.error;
     return Card(
@@ -230,12 +226,7 @@ class _TransactionCard extends StatelessWidget {
             children: <Widget>[
               CircleAvatar(
                 backgroundColor: color.withValues(alpha: 0.12),
-                child: Icon(
-                  inflow
-                      ? Icons.arrow_downward_rounded
-                      : Icons.arrow_upward_rounded,
-                  color: color,
-                ),
+                child: Icon(_iconFor(transaction), color: color),
               ),
               const SizedBox(width: PlanItSpacing.md),
               Expanded(
@@ -283,6 +274,20 @@ class _TransactionCard extends StatelessWidget {
     final local = value.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
         '${local.day.toString().padLeft(2, '0')}';
+  }
+
+  static IconData _iconFor(LedgerTransaction transaction) {
+    return switch (transaction.type) {
+      TransactionType.transferOut ||
+      TransactionType.transferIn => Icons.swap_horiz_rounded,
+      TransactionType.transferFee => Icons.receipt_long_outlined,
+      TransactionType.reconciliationAdjustment => Icons.fact_check_outlined,
+      TransactionType.reversal => Icons.undo_rounded,
+      _ =>
+        transaction.effect == TransactionEffect.inflow
+            ? Icons.arrow_downward_rounded
+            : Icons.arrow_upward_rounded,
+    };
   }
 }
 

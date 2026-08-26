@@ -52,11 +52,13 @@ This document converts open questions in the product specification into safe ini
 - Keep Total Fixed is same-currency only in V1. The user explicitly selects participating accounts and a balancing account, reviews the result, then commits.
 - Commit creates one internal transfer pair between the balancing account and each changed non-balancing account plus immutable session/line audit records.
 - Preview includes a version/fingerprint of source balances. Commit fails with `STALE_BALANCE` if they changed.
+- Transfer, reconciliation, and reallocation commits retain durable idempotency results and return only server-canonical movements; offline clients do not project balances before acknowledgment.
 
 ## Reconciliation
 
 - Reconciliation compares the calculated ledger balance with a user-entered real balance at an effective time.
 - `delta = actual - calculated`; commit creates exactly one adjustment movement plus one reconciliation and audit record.
+- A historical reconciliation is rejected if applying its delta would violate the account's current negative-balance policy.
 - Reconciliation is excluded from normal income/spending unless a later auditable reclassification identifies its real cause.
 
 ## Debts and shared expenses

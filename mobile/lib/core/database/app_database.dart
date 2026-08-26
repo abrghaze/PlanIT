@@ -300,6 +300,10 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<void> queueOutboxOperation(OutboxOperationsCompanion operation) {
+    return into(outboxOperations).insert(operation);
+  }
+
   Future<void> mergeRemoteTransactions({
     required String ownerId,
     required List<CachedTransactionsCompanion> transactionRows,
@@ -351,16 +355,29 @@ class AppDatabase extends _$AppDatabase {
     return query.watchSingle().map((row) => row.read(count) ?? 0);
   }
 
+  Stream<List<OutboxOperation>> watchOutboxOperations(String ownerId) {
+    final query = select(outboxOperations)
+      ..where((row) => row.ownerId.equals(ownerId))
+      ..orderBy(<OrderClauseGenerator<OutboxOperations>>[
+        (row) => OrderingTerm.asc(row.createdAt),
+        (row) => OrderingTerm.asc(row.id),
+      ]);
+    return query.watch();
+  }
+
   Future<void> markOperationSending(OutboxOperation operation) {
     return transaction(() async {
-      await (update(
-        outboxOperations,
-      )..where((row) => row.id.equals(operation.id))).write(
-        OutboxOperationsCompanion(
-          state: const Value('SENDING'),
-          updatedAt: Value(DateTime.now().toUtc()),
-        ),
-      );
+      await (update(outboxOperations)..where(
+            (row) =>
+                row.id.equals(operation.id) &
+                row.ownerId.equals(operation.ownerId),
+          ))
+          .write(
+            OutboxOperationsCompanion(
+              state: const Value('SENDING'),
+              updatedAt: Value(DateTime.now().toUtc()),
+            ),
+          );
       await (update(cachedTransactions)..where(
             (row) =>
                 row.id.equals(operation.entityId) &
@@ -382,17 +399,20 @@ class AppDatabase extends _$AppDatabase {
     required bool conflict,
   }) {
     return transaction(() async {
-      await (update(
-        outboxOperations,
-      )..where((row) => row.id.equals(operation.id))).write(
-        OutboxOperationsCompanion(
-          state: Value(conflict ? 'CONFLICT' : 'RETRY'),
-          attemptCount: Value(operation.attemptCount + 1),
-          nextAttemptAt: Value(nextAttemptAt),
-          lastError: Value(error),
-          updatedAt: Value(DateTime.now().toUtc()),
-        ),
-      );
+      await (update(outboxOperations)..where(
+            (row) =>
+                row.id.equals(operation.id) &
+                row.ownerId.equals(operation.ownerId),
+          ))
+          .write(
+            OutboxOperationsCompanion(
+              state: Value(conflict ? 'CONFLICT' : 'RETRY'),
+              attemptCount: Value(operation.attemptCount + 1),
+              nextAttemptAt: Value(nextAttemptAt),
+              lastError: Value(error),
+              updatedAt: Value(DateTime.now().toUtc()),
+            ),
+          );
       await (update(cachedTransactions)..where(
             (row) =>
                 row.id.equals(operation.entityId) &
@@ -409,27 +429,38 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> acknowledgeOperation({
     required OutboxOperation operation,
-    required CachedTransactionsCompanion canonicalRow,
-    required List<String> tagIds,
-    CachedTransactionsCompanion? secondaryRow,
-    List<String> secondaryTagIds = const <String>[],
+    required List<CachedTransactionsCompanion> canonicalRows,
+    required Map<String, List<String>> tagIdsByTransaction,
   }) {
     return transaction(() async {
-      await (delete(
-        outboxOperations,
-      )..where((row) => row.id.equals(operation.id))).go();
-      await into(cachedTransactions).insertOnConflictUpdate(canonicalRow);
-      await _replaceTransactionTags(
-        operation.ownerId,
-        operation.entityId,
-        tagIds,
-      );
-      if (secondaryRow != null) {
-        await into(cachedTransactions).insertOnConflictUpdate(secondaryRow);
+      final deleted =
+          await (delete(outboxOperations)..where(
+                (row) =>
+                    row.id.equals(operation.id) &
+                    row.ownerId.equals(operation.ownerId) &
+                    row.entityId.equals(operation.entityId),
+              ))
+              .go();
+      if (deleted != 1) {
+        throw StateError('The acknowledged outbox operation no longer exists.');
+      }
+      for (final row in canonicalRows) {
+        if (!row.id.present || !row.ownerId.present) {
+          throw ArgumentError(
+            'Canonical transaction rows must include an ID and owner.',
+          );
+        }
+        final transactionId = row.id.value;
+        if (row.ownerId.value != operation.ownerId) {
+          throw ArgumentError(
+            'Canonical transactions must belong to the operation owner.',
+          );
+        }
+        await into(cachedTransactions).insertOnConflictUpdate(row);
         await _replaceTransactionTags(
           operation.ownerId,
-          secondaryRow.id.value,
-          secondaryTagIds,
+          transactionId,
+          tagIdsByTransaction[transactionId] ?? const <String>[],
         );
       }
       final next = await _nextEntityOperation(
@@ -451,6 +482,20 @@ class AppDatabase extends _$AppDatabase {
             );
       }
     });
+  }
+
+  Future<void> discardOutboxOperation({
+    required String ownerId,
+    required String operationId,
+    required String entityId,
+  }) async {
+    await (delete(outboxOperations)..where(
+          (row) =>
+              row.id.equals(operationId) &
+              row.ownerId.equals(ownerId) &
+              row.entityId.equals(entityId),
+        ))
+        .go();
   }
 
   Future<void> discardEntityOperations({

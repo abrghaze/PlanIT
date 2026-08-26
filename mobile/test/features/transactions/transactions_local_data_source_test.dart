@@ -42,12 +42,14 @@ void main() {
 
     await local.acknowledge(
       operation: create!,
-      canonical: _canonical(
-        id: 'transaction-1',
-        clientOperationId: 'operation-create',
-        status: TransactionStatus.draft,
-        version: 1,
-      ),
+      transactions: <LedgerTransaction>[
+        _canonical(
+          id: 'transaction-1',
+          clientOperationId: 'operation-create',
+          status: TransactionStatus.draft,
+          version: 1,
+        ),
+      ],
     );
     final post = await local.readNextOperation('owner-a', force: true);
     expect(post?.id, 'operation-post');
@@ -55,12 +57,14 @@ void main() {
 
     await local.acknowledge(
       operation: post!,
-      canonical: _canonical(
-        id: 'transaction-1',
-        clientOperationId: 'operation-create',
-        status: TransactionStatus.posted,
-        version: 2,
-      ),
+      transactions: <LedgerTransaction>[
+        _canonical(
+          id: 'transaction-1',
+          clientOperationId: 'operation-create',
+          status: TransactionStatus.posted,
+          version: 2,
+        ),
+      ],
     );
     final posted = (await local.watch('owner-a').first).single;
     expect(posted.status, TransactionStatus.posted);
@@ -165,6 +169,148 @@ void main() {
       expect(await local.watch('owner-a').first, isEmpty);
     },
   );
+
+  test(
+    'specialized operation keeps its identity and exposes typed retry state',
+    () async {
+      await local.queueFinancialOperation(
+        ownerId: 'owner-a',
+        operationId: 'operation-transfer',
+        entityId: 'transfer-1',
+        type: OutboxOperationType.transferCommit,
+        payload: const <String, Object?>{
+          'id': 'transfer-1',
+          'client_operation_id': 'operation-transfer',
+        },
+      );
+
+      final pending =
+          (await local.watchPendingOperations('owner-a').first).single;
+      expect(pending.state, OutboxOperationState.pending);
+      expect(pending.label, 'Transfer');
+      expect(pending.stateLabel, 'Pending');
+
+      await local.markFailure(
+        operation: pending,
+        error: 'Offline',
+        conflict: false,
+      );
+
+      final retry =
+          (await local.watchPendingOperations('owner-a').first).single;
+      expect(retry.id, pending.id);
+      expect(retry.state, OutboxOperationState.retry);
+      expect(retry.attemptCount, 1);
+      expect(retry.payload, pending.payload);
+      expect(
+        (await local.readNextOperation('owner-a', force: true))?.id,
+        pending.id,
+      );
+
+      await local.discardPendingOperation(retry);
+      expect(await local.watchPendingOperations('owner-a').first, isEmpty);
+      expect(await local.watch('owner-a').first, isEmpty);
+    },
+  );
+
+  test(
+    'generic specialized acknowledgement upserts every canonical row',
+    () async {
+      await local.queueFinancialOperation(
+        ownerId: 'owner-a',
+        operationId: 'operation-transfer',
+        entityId: 'transfer-1',
+        type: OutboxOperationType.transferCommit,
+        payload: const <String, Object?>{
+          'id': 'transfer-1',
+          'client_operation_id': 'operation-transfer',
+        },
+      );
+      final operation = await local.readNextOperation('owner-a', force: true);
+
+      await local.acknowledge(
+        operation: operation!,
+        transactions: <LedgerTransaction>[
+          _specializedCanonical(
+            id: 'source-transaction',
+            accountId: 'account-a',
+            type: TransactionType.transferOut,
+            effect: TransactionEffect.outflow,
+            amount: '40.0000',
+            tagIds: const <String>['tag-source'],
+          ),
+          _specializedCanonical(
+            id: 'destination-transaction',
+            accountId: 'account-b',
+            type: TransactionType.transferIn,
+            effect: TransactionEffect.inflow,
+            amount: '40.0000',
+          ),
+          _specializedCanonical(
+            id: 'fee-transaction',
+            accountId: 'account-a',
+            type: TransactionType.transferFee,
+            effect: TransactionEffect.outflow,
+            amount: '1.0000',
+          ),
+        ],
+      );
+
+      final cached = await local.watch('owner-a').first;
+      expect(cached, hasLength(3));
+      expect(
+        cached.map((value) => value.type),
+        containsAll(<TransactionType>[
+          TransactionType.transferOut,
+          TransactionType.transferIn,
+          TransactionType.transferFee,
+        ]),
+      );
+      expect(
+        cached.singleWhere((value) => value.id == 'source-transaction').tagIds,
+        <String>['tag-source'],
+      );
+      expect(await local.watchPendingCount('owner-a').first, 0);
+    },
+  );
+
+  test('financial queue rejects generic transaction operations', () {
+    expect(
+      () => local.queueFinancialOperation(
+        ownerId: 'owner-a',
+        operationId: 'operation-create',
+        entityId: 'transaction-1',
+        type: OutboxOperationType.createDraft,
+        payload: const <String, Object?>{
+          'id': 'transaction-1',
+          'client_operation_id': 'operation-create',
+        },
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('an acknowledgement may contain no local ledger rows', () async {
+    await local.queueFinancialOperation(
+      ownerId: 'owner-a',
+      operationId: 'operation-reallocation',
+      entityId: 'reallocation-1',
+      type: OutboxOperationType.reallocationCommit,
+      payload: const <String, Object?>{
+        'id': 'reallocation-1',
+        'client_operation_id': 'operation-reallocation',
+      },
+    );
+    final operation = await local.readNextOperation('owner-a', force: true);
+
+    await local.acknowledge(
+      operation: operation!,
+      transactions: const <LedgerTransaction>[],
+    );
+
+    expect(await local.watchPendingCount('owner-a').first, 0);
+    expect(await local.watch('owner-a').first, isEmpty);
+  });
 }
 
 TransactionDraft _draft({
@@ -209,6 +355,40 @@ LedgerTransaction _canonical({
     reversalOfId: null,
     clientOperationId: clientOperationId,
     version: version,
+    createdAt: now,
+    updatedAt: now,
+    syncState: LocalTransactionSyncState.synced,
+    pendingAction: null,
+    lastSyncError: null,
+  );
+}
+
+LedgerTransaction _specializedCanonical({
+  required String id,
+  required String accountId,
+  required TransactionType type,
+  required TransactionEffect effect,
+  required String amount,
+  List<String> tagIds = const <String>[],
+}) {
+  final now = DateTime.utc(2026, 8, 25, 12);
+  return LedgerTransaction(
+    id: id,
+    ownerId: 'owner-a',
+    accountId: accountId,
+    type: type,
+    effect: effect,
+    amount: Money.parse(amount, 'MAD'),
+    occurredAt: now,
+    status: TransactionStatus.posted,
+    categoryId: null,
+    counterparty: null,
+    note: null,
+    tagIds: tagIds,
+    parentTransactionId: null,
+    reversalOfId: null,
+    clientOperationId: 'operation-transfer',
+    version: 1,
     createdAt: now,
     updatedAt: now,
     syncState: LocalTransactionSyncState.synced,

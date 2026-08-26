@@ -23,6 +23,11 @@ class AccountsScreen extends ConsumerWidget {
         title: const Text('Accounts'),
         actions: <Widget>[
           IconButton(
+            tooltip: 'Keep Total Fixed',
+            onPressed: () => context.push('/reallocations/new'),
+            icon: const Icon(Icons.balance_rounded),
+          ),
+          IconButton(
             tooltip: 'Refresh accounts',
             onPressed: action.busy
                 ? null
@@ -197,19 +202,53 @@ class _AccountCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: PlanItSpacing.sm),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Text(
-                    account.calculatedBalance.toDisplayString(),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      Text(
+                        account.calculatedBalance.toDisplayString(),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: PlanItSpacing.xxs),
+                      Text(
+                        'v${account.version}',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: PlanItSpacing.xxs),
-                  Text(
-                    'v${account.version}',
-                    style: Theme.of(context).textTheme.labelSmall,
+                  PopupMenuButton<_AccountMenuAction>(
+                    tooltip: 'Account actions',
+                    onSelected: (selected) {
+                      switch (selected) {
+                        case _AccountMenuAction.edit:
+                          context.push('/accounts/${account.id}/edit');
+                        case _AccountMenuAction.transfer:
+                          context.push('/transfers/new');
+                        case _AccountMenuAction.reconcile:
+                          context.push(
+                            '/reconciliations/new?accountId=${account.id}',
+                          );
+                      }
+                    },
+                    itemBuilder: (context) =>
+                        const <PopupMenuEntry<_AccountMenuAction>>[
+                          PopupMenuItem<_AccountMenuAction>(
+                            value: _AccountMenuAction.transfer,
+                            child: Text('Transfer'),
+                          ),
+                          PopupMenuItem<_AccountMenuAction>(
+                            value: _AccountMenuAction.reconcile,
+                            child: Text('Reconcile'),
+                          ),
+                          PopupMenuItem<_AccountMenuAction>(
+                            value: _AccountMenuAction.edit,
+                            child: Text('Edit account'),
+                          ),
+                        ],
                   ),
                 ],
               ),
@@ -230,6 +269,8 @@ class _AccountCard extends StatelessWidget {
     AccountType.other => Icons.account_balance_wallet_outlined,
   };
 }
+
+enum _AccountMenuAction { transfer, reconcile, edit }
 
 class _EmptyAccounts extends StatelessWidget {
   const _EmptyAccounts();

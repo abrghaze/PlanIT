@@ -12,7 +12,7 @@ def require_core_kind(kind: TransactionKind) -> None:
     if kind not in _CORE_KINDS:
         raise DomainError(
             "UNSUPPORTED_TRANSACTION_TYPE",
-            "Milestone 2 supports expense and income transactions only.",
+            "Use the specialized financial workflow for this transaction type.",
         )
 
 
@@ -69,6 +69,11 @@ def require_reversible(status: TransactionStatus, kind: TransactionKind) -> None
         raise DomainError(
             "REVERSAL_OF_REVERSAL_NOT_ALLOWED",
             "A reversal cannot target another reversal.",
+        )
+    if kind not in _CORE_KINDS:
+        raise DomainError(
+            "SPECIALIZED_REVERSAL_REQUIRED",
+            "This movement belongs to a grouped financial operation and cannot be reversed alone.",
         )
     if status is TransactionStatus.REVERSED:
         raise DomainError(

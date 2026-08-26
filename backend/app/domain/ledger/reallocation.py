@@ -37,6 +37,14 @@ class ReallocationPreview:
     source_fingerprint: str
 
 
+def fingerprint_positions(positions: Sequence[AccountPosition]) -> str:
+    fingerprint_source = "|".join(
+        f"{position.account_id}:{position.version}:{position.balance.to_api()}"
+        for position in sorted(positions, key=lambda value: str(value.account_id))
+    )
+    return hashlib.sha256(fingerprint_source.encode()).hexdigest()
+
+
 def preview_reallocation(
     *,
     positions: Sequence[AccountPosition],
@@ -121,13 +129,9 @@ def preview_reallocation(
             )
         )
 
-    fingerprint_source = "|".join(
-        f"{position.account_id}:{position.version}:{position.balance.to_api()}"
-        for position in sorted(positions, key=lambda value: str(value.account_id))
-    )
     return ReallocationPreview(
         fixed_total=fixed_total,
         balancing_account_id=balancing_account_id,
         lines=tuple(lines),
-        source_fingerprint=hashlib.sha256(fingerprint_source.encode()).hexdigest(),
+        source_fingerprint=fingerprint_positions(positions),
     )

@@ -35,6 +35,27 @@ class AccountRepository:
             statement = statement.with_for_update()
         return (await self._session.execute(statement)).scalar_one_or_none()
 
+    async def get_owned_many(
+        self,
+        *,
+        account_ids: set[UUID],
+        user_id: UUID,
+        for_update: bool = False,
+    ) -> list[AccountModel]:
+        if not account_ids:
+            return []
+        statement = (
+            select(AccountModel)
+            .where(
+                AccountModel.id.in_(account_ids),
+                AccountModel.user_id == user_id,
+            )
+            .order_by(AccountModel.id)
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return list((await self._session.scalars(statement)).all())
+
     async def has_posted_activity(self, account_id: UUID) -> bool:
         statement = (
             select(TransactionModel.id)
@@ -79,6 +100,23 @@ class AccountRepository:
             return None
         account, balance = row
         return self._to_snapshot(account, balance, as_of)
+
+    async def get_snapshots(
+        self,
+        *,
+        account_ids: set[UUID],
+        user_id: UUID,
+        as_of: datetime,
+    ) -> list[AccountSnapshot]:
+        if not account_ids:
+            return []
+        statement = (
+            self._snapshot_statement(user_id=user_id, as_of=as_of)
+            .where(AccountModel.id.in_(account_ids))
+            .order_by(AccountModel.id)
+        )
+        rows = (await self._session.execute(statement)).all()
+        return [self._to_snapshot(account, balance, as_of) for account, balance in rows]
 
     @staticmethod
     def _snapshot_statement(

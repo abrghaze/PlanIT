@@ -276,6 +276,11 @@ class TransferModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("source_amount > 0", name="source_amount_positive"),
         CheckConstraint("destination_amount > 0", name="destination_amount_positive"),
         CheckConstraint("fx_rate IS NULL OR fx_rate > 0", name="fx_rate_positive"),
+        CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint(
+            "source_fingerprint ~ '^[0-9a-f]{64}$'",
+            name="source_fingerprint_format",
+        ),
         CheckConstraint(
             "source_transaction_id <> destination_transaction_id", name="transactions_different"
         ),
@@ -285,35 +290,86 @@ class TransferModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
             "fee_transaction_id <> destination_transaction_id)",
             name="fee_transaction_different",
         ),
+        ForeignKeyConstraint(
+            ("source_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_transfers_source_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("destination_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_transfers_destination_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("fee_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_transfers_fee_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("reallocation_session_id", "user_id"),
+            ("reallocation_sessions.id", "reallocation_sessions.user_id"),
+            name="fk_transfers_reallocation_session_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("id", "user_id", name="uq_transfers_id_user"),
+        UniqueConstraint(
+            "user_id",
+            "client_operation_id",
+            name="uq_transfers_user_client_operation",
+        ),
+        Index("ix_transfers_user_created", "user_id", "created_at"),
+        Index("ix_transfers_reallocation_session", "reallocation_session_id"),
     )
 
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     source_transaction_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("transactions.id", ondelete="RESTRICT"),
-        nullable=False,
-        unique=True,
+        Uuid(as_uuid=True), nullable=False, unique=True
     )
     destination_transaction_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("transactions.id", ondelete="RESTRICT"),
-        nullable=False,
-        unique=True,
+        Uuid(as_uuid=True), nullable=False, unique=True
     )
-    fee_transaction_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("transactions.id", ondelete="RESTRICT"), unique=True
-    )
+    fee_transaction_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), unique=True)
     source_amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     destination_amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     fx_rate: Mapped[Decimal | None] = mapped_column(FX_RATE)
+    reallocation_session_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    source_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
 class BalanceReconciliationModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "balance_reconciliations"
     __table_args__ = (
         CheckConstraint("delta = actual_balance - calculated_balance", name="delta_matches"),
+        CheckConstraint("delta <> 0", name="delta_non_zero"),
+        CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint(
+            "source_fingerprint ~ '^[0-9a-f]{64}$'",
+            name="source_fingerprint_format",
+        ),
+        ForeignKeyConstraint(
+            ("account_id", "user_id"),
+            ("accounts.id", "accounts.user_id"),
+            name="fk_balance_reconciliations_account_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("adjustment_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_balance_reconciliations_adjustment_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "user_id",
+            "client_operation_id",
+            name="uq_balance_reconciliations_user_client_operation",
+        ),
         Index(
             "ix_balance_reconciliations_account_effective",
             "account_id",
@@ -324,26 +380,35 @@ class BalanceReconciliationModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     user_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    account_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
-    )
+    account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     calculated_balance: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     actual_balance: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     delta: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     effective_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text)
     adjustment_transaction_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("transactions.id", ondelete="RESTRICT"),
-        nullable=False,
-        unique=True,
+        Uuid(as_uuid=True), nullable=False, unique=True
     )
+    source_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
 class ReallocationSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "reallocation_sessions"
     __table_args__ = (
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name="currency_format"),
+        CheckConstraint(
+            "source_fingerprint ~ '^[0-9a-f]{64}$'",
+            name="source_fingerprint_format",
+        ),
+        ForeignKeyConstraint(
+            ("balancing_account_id", "user_id"),
+            ("accounts.id", "accounts.user_id"),
+            name="fk_reallocation_sessions_balancing_account_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("id", "user_id", name="uq_reallocation_sessions_id_user"),
         UniqueConstraint(
             "user_id",
             "client_operation_id",
@@ -357,9 +422,7 @@ class ReallocationSessionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     )
     fixed_total: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    balancing_account_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="RESTRICT"), nullable=False
-    )
+    balancing_account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     source_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
@@ -368,17 +431,25 @@ class ReallocationLineModel(Base):
     __tablename__ = "reallocation_lines"
     __table_args__ = (
         CheckConstraint("delta = requested_balance - before_balance", name="delta_matches"),
+        ForeignKeyConstraint(
+            ("session_id", "user_id"),
+            ("reallocation_sessions.id", "reallocation_sessions.user_id"),
+            name="fk_reallocation_lines_session_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ("account_id", "user_id"),
+            ("accounts.id", "accounts.user_id"),
+            name="fk_reallocation_lines_account_owner",
+            ondelete="RESTRICT",
+        ),
+        Index("ix_reallocation_lines_user_session", "user_id", "session_id"),
     )
 
-    session_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("reallocation_sessions.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    account_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="RESTRICT"),
-        primary_key=True,
+    session_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    account_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     before_balance: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     requested_balance: Mapped[Decimal] = mapped_column(MONEY, nullable=False)

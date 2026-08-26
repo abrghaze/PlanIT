@@ -2,10 +2,18 @@ import 'package:planit_mobile/features/transactions/domain/outbox_operation.dart
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 final class RemoteOperationResult {
-  const RemoteOperationResult({required this.primary, this.secondary});
+  RemoteOperationResult({required List<LedgerTransaction> transactions})
+    : transactions = List<LedgerTransaction>.unmodifiable(transactions) {
+    if (transactions.isEmpty) {
+      throw ArgumentError.value(
+        transactions,
+        'transactions',
+        'A remote operation must return at least one transaction.',
+      );
+    }
+  }
 
-  final LedgerTransaction primary;
-  final LedgerTransaction? secondary;
+  final List<LedgerTransaction> transactions;
 }
 
 abstract interface class TransactionsRemoteDataSource {

@@ -27,6 +27,12 @@ final class TransactionsLocalDataSource {
     });
   }
 
+  Stream<List<PendingOperation>> watchPendingOperations(String ownerId) {
+    return _database
+        .watchOutboxOperations(ownerId)
+        .map((rows) => rows.map(_fromOperationRow).toList(growable: false));
+  }
+
   Future<void> queueCreate({
     required String ownerId,
     required TransactionDraft draft,
@@ -129,9 +135,10 @@ final class TransactionsLocalDataSource {
     required TransactionReversalDraft reversal,
   }) {
     if (current.syncState != LocalTransactionSyncState.synced ||
-        current.status != TransactionStatus.posted) {
+        current.status != TransactionStatus.posted ||
+        !current.type.supportsGenericReversal) {
       throw StateError(
-        'Only a synchronized posted transaction can be reversed.',
+        'Only a synchronized posted expense or income can use generic reversal.',
       );
     }
     final now = DateTime.now().toUtc();
@@ -155,6 +162,44 @@ final class TransactionsLocalDataSource {
           createdAt: now,
         ),
       ],
+    );
+  }
+
+  Future<void> queueFinancialOperation({
+    required String ownerId,
+    required String operationId,
+    required String entityId,
+    required OutboxOperationType type,
+    required Map<String, Object?> payload,
+  }) {
+    if (!type.isSpecializedFinancialCommit) {
+      throw ArgumentError.value(
+        type,
+        'type',
+        'Only specialized financial commits can use this queue.',
+      );
+    }
+    if (ownerId.isEmpty || operationId.isEmpty || entityId.isEmpty) {
+      throw ArgumentError('Owner, operation, and entity IDs are required.');
+    }
+    if (payload['client_operation_id'] != operationId) {
+      throw ArgumentError(
+        'Payload client_operation_id must match the outbox operation ID.',
+      );
+    }
+    if (payload['id'] != entityId) {
+      throw ArgumentError('Payload id must match the outbox entity ID.');
+    }
+    final now = DateTime.now().toUtc();
+    return _database.queueOutboxOperation(
+      _operationCompanion(
+        id: operationId,
+        ownerId: ownerId,
+        entityId: entityId,
+        type: type,
+        payload: Map<String, Object?>.from(payload),
+        createdAt: now,
+      ),
     );
   }
 
@@ -189,21 +234,7 @@ final class TransactionsLocalDataSource {
     if (row == null) {
       return null;
     }
-    final decoded = jsonDecode(row.payloadJson);
-    if (decoded is! Map) {
-      throw const FormatException('Outbox payload must be a JSON object.');
-    }
-    return PendingOperation(
-      id: row.id,
-      ownerId: row.ownerId,
-      entityId: row.entityId,
-      type: OutboxOperationTypeContract.fromStorage(row.type),
-      payload: Map<String, Object?>.from(decoded),
-      attemptCount: row.attemptCount,
-      nextAttemptAt: row.nextAttemptAt.toUtc(),
-      lastError: row.lastError,
-      createdAt: row.createdAt.toUtc(),
-    );
+    return _fromOperationRow(row);
   }
 
   Stream<int> watchPendingCount(String ownerId) {
@@ -233,16 +264,39 @@ final class TransactionsLocalDataSource {
 
   Future<void> acknowledge({
     required PendingOperation operation,
-    required LedgerTransaction canonical,
-    LedgerTransaction? secondary,
+    required List<LedgerTransaction> transactions,
   }) {
+    if (transactions.any((value) => value.ownerId != operation.ownerId)) {
+      throw ArgumentError(
+        'Canonical transactions must belong to the operation owner.',
+      );
+    }
     final now = DateTime.now().toUtc();
     return _database.acknowledgeOperation(
       operation: _operationRow(operation),
-      canonicalRow: _toCompanion(canonical, now),
-      tagIds: canonical.tagIds,
-      secondaryRow: secondary == null ? null : _toCompanion(secondary, now),
-      secondaryTagIds: secondary?.tagIds ?? const <String>[],
+      canonicalRows: transactions
+          .map((value) => _toCompanion(value, now))
+          .toList(growable: false),
+      tagIdsByTransaction: <String, List<String>>{
+        for (final value in transactions) value.id: value.tagIds,
+      },
+    );
+  }
+
+  Future<void> discardPendingOperation(PendingOperation operation) {
+    if (!operation.state.canDiscard) {
+      throw StateError('An operation cannot be discarded while it is syncing.');
+    }
+    if (operation.type.isSpecializedFinancialCommit) {
+      return _database.discardOutboxOperation(
+        ownerId: operation.ownerId,
+        operationId: operation.id,
+        entityId: operation.entityId,
+      );
+    }
+    return _database.discardEntityOperations(
+      ownerId: operation.ownerId,
+      entityId: operation.entityId,
     );
   }
 
@@ -344,7 +398,7 @@ final class TransactionsLocalDataSource {
       entityId: value.entityId,
       type: value.type.storageValue,
       payloadJson: jsonEncode(value.payload),
-      state: 'PENDING',
+      state: value.state.storageValue,
       attemptCount: value.attemptCount,
       nextAttemptAt: value.nextAttemptAt,
       lastError: value.lastError,
@@ -358,5 +412,26 @@ final class TransactionsLocalDataSource {
         current.status != TransactionStatus.draft) {
       throw StateError('Only a synchronized draft can be changed.');
     }
+  }
+
+  static PendingOperation _fromOperationRow(OutboxOperation row) {
+    final decoded = jsonDecode(row.payloadJson);
+    if (decoded is! Map) {
+      throw const FormatException('Outbox payload must be a JSON object.');
+    }
+    return PendingOperation(
+      id: row.id,
+      ownerId: row.ownerId,
+      entityId: row.entityId,
+      type: OutboxOperationTypeContract.fromStorage(row.type),
+      state: OutboxOperationStateContract.fromStorage(row.state),
+      payload: Map<String, Object?>.unmodifiable(
+        Map<String, Object?>.from(decoded),
+      ),
+      attemptCount: row.attemptCount,
+      nextAttemptAt: row.nextAttemptAt.toUtc(),
+      lastError: row.lastError,
+      createdAt: row.createdAt.toUtc(),
+    );
   }
 }

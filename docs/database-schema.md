@@ -2,8 +2,9 @@
 
 PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPTZ` in UTC, and money is `NUMERIC(19,4)`. Every user-owned aggregate has an ownership path that can be checked server-side. Posted financial history is append-oriented.
 
-The identity/control, account/ledger, category, and tag tables below are present
-through Milestone 2. Purchase detail, debts/sharing, automation, goals, and media
+The identity/control, account/ledger, category, tag, transfer, reconciliation,
+and reallocation tables below are present through Milestone 3. Purchase detail,
+debts/sharing, automation, goals, and media
 tables describe the approved later-milestone schema and are not migrated yet.
 
 ## Identity and control
@@ -44,6 +45,11 @@ Milestone 2 adds a second trigger that blocks financial-field updates and direct
 deletion of posted/reversed rows while still allowing the deliberate full-profile
 privacy cascade. Transaction-tag changes are draft-only. Posting/reversal services
 lock the account row before validating the projected balance.
+Milestone 3 adds deferred PostgreSQL validators for complete transfer pairs,
+half-even FX arithmetic, reconciliation adjustments, and whole reallocation
+sessions. Specialized financial groups and their audit lines are immutable except
+during the deliberate full-profile privacy cascade. Composite owner foreign keys
+prevent cross-user balancing accounts, lines, movements, or group links.
 
 ## Catalog and purchase detail
 

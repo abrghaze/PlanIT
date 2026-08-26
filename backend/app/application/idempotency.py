@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.json_contract import canonical_json, normalize_json_object
@@ -28,6 +29,25 @@ class IdempotencyResult:
 
 
 IdempotentOperation = Callable[[AsyncSession], Awaitable[OperationResponse]]
+FINANCIAL_IDEMPOTENCY_TTL = timedelta(days=36_500)
+
+_FINANCIAL_INTEGRITY_CONSTRAINTS = {
+    "financial_group_immutable",
+    "fx_transfer_coherent",
+    "reallocation_session_coherent",
+    "reallocation_transfer_coherent",
+    "reconciliation_adjustment_coherent",
+    "reconciliation_adjustment_link_required",
+    "same_currency_transfer_coherent",
+    "transfer_destination_transaction_required",
+    "transfer_fee_coherent",
+    "transfer_fee_link_required",
+    "transfer_in_link_required",
+    "transfer_out_link_required",
+    "transfer_pair_coherent",
+    "transfer_source_transaction_required",
+    "transfer_status_coherent",
+}
 
 
 def hash_request(payload: Mapping[str, object]) -> str:
@@ -64,56 +84,66 @@ async def execute_idempotent(
 
     request_hash = hash_request(request_payload)
 
-    async with session.begin():
-        await session.execute(
-            text("SELECT pg_advisory_xact_lock(:lock_id)"),
-            {"lock_id": _advisory_lock_id(user_id, scope, key)},
-        )
-        now = datetime.now(UTC)
-        existing = (
+    try:
+        async with session.begin():
             await session.execute(
-                select(IdempotencyKeyModel).where(
-                    IdempotencyKeyModel.user_id == user_id,
-                    IdempotencyKeyModel.scope == scope,
-                    IdempotencyKeyModel.key == key,
+                text("SELECT pg_advisory_xact_lock(:lock_id)"),
+                {"lock_id": _advisory_lock_id(user_id, scope, key)},
+            )
+            now = datetime.now(UTC)
+            existing = (
+                await session.execute(
+                    select(IdempotencyKeyModel).where(
+                        IdempotencyKeyModel.user_id == user_id,
+                        IdempotencyKeyModel.scope == scope,
+                        IdempotencyKeyModel.key == key,
+                    )
+                )
+            ).scalar_one_or_none()
+
+            if existing is not None and existing.expires_at <= now:
+                await session.delete(existing)
+                await session.flush()
+                existing = None
+
+            if existing is not None:
+                if existing.request_hash != request_hash:
+                    raise DomainError(
+                        "IDEMPOTENCY_CONFLICT",
+                        "The idempotency key was already used with a different request.",
+                    )
+                if existing.response_status is None or existing.response_json is None:
+                    raise RuntimeError("Committed idempotency record is incomplete.")
+                return IdempotencyResult(
+                    status_code=existing.response_status,
+                    body=normalize_json_object(existing.response_json),
+                    replayed=True,
+                )
+
+            response = await operation(session)
+            if not 200 <= response.status_code <= 599:
+                raise ValueError("Stored response status must be between 200 and 599.")
+            response_body = normalize_json_object(response.body)
+            session.add(
+                IdempotencyKeyModel(
+                    user_id=user_id,
+                    scope=scope,
+                    key=key,
+                    request_hash=request_hash,
+                    response_status=response.status_code,
+                    response_json=response_body,
+                    expires_at=now + ttl,
                 )
             )
-        ).scalar_one_or_none()
-
-        if existing is not None and existing.expires_at <= now:
-            await session.delete(existing)
-            await session.flush()
-            existing = None
-
-        if existing is not None:
-            if existing.request_hash != request_hash:
-                raise DomainError(
-                    "IDEMPOTENCY_CONFLICT",
-                    "The idempotency key was already used with a different request.",
-                )
-            if existing.response_status is None or existing.response_json is None:
-                raise RuntimeError("Committed idempotency record is incomplete.")
-            return IdempotencyResult(
-                status_code=existing.response_status,
-                body=normalize_json_object(existing.response_json),
-                replayed=True,
-            )
-
-        response = await operation(session)
-        if not 200 <= response.status_code <= 599:
-            raise ValueError("Stored response status must be between 200 and 599.")
-        response_body = normalize_json_object(response.body)
-        session.add(
-            IdempotencyKeyModel(
-                user_id=user_id,
-                scope=scope,
-                key=key,
-                request_hash=request_hash,
-                response_status=response.status_code,
-                response_json=response_body,
-                expires_at=now + ttl,
-            )
-        )
+    except IntegrityError as exc:
+        driver_error = getattr(exc.orig, "__cause__", None)
+        constraint_name = getattr(driver_error, "constraint_name", None)
+        if constraint_name in _FINANCIAL_INTEGRITY_CONSTRAINTS:
+            raise DomainError(
+                "FINANCIAL_INTEGRITY_CONFLICT",
+                "The financial operation could not be committed safely.",
+            ) from exc
+        raise
 
     return IdempotencyResult(
         status_code=response.status_code,

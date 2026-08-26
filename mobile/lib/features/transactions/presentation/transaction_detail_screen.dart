@@ -123,14 +123,21 @@ class TransactionDetailScreen extends ConsumerWidget {
             label: 'Account',
             value: account?.name ?? 'Unknown account',
           ),
+          if (transaction.type == TransactionType.expense ||
+              transaction.type == TransactionType.income)
+            _DetailRow(
+              label: 'Category',
+              value: category?.name ?? 'Uncategorized',
+            )
+          else
+            _DetailRow(
+              label: 'Impact',
+              value: transaction.type.isSpending
+                  ? 'Counts as spending'
+                  : 'Balance movement (neutral to income and spending)',
+            ),
           _DetailRow(
-            label: 'Category',
-            value: category?.name ?? 'Uncategorized',
-          ),
-          _DetailRow(
-            label: transaction.type == TransactionType.income
-                ? 'Source'
-                : 'Merchant',
+            label: _counterpartyLabel(transaction.type),
             value: transaction.counterparty ?? 'Not specified',
           ),
           _DetailRow(
@@ -179,13 +186,22 @@ class TransactionDetailScreen extends ConsumerWidget {
               label: const Text('Post transaction'),
             ),
           ],
-          if (transaction.status == TransactionStatus.posted && synchronized)
+          if (transaction.status == TransactionStatus.posted &&
+              synchronized &&
+              transaction.type.supportsGenericReversal)
             OutlinedButton.icon(
               onPressed: action.busy
                   ? null
                   : () => _reverse(context, ref, transaction),
               icon: const Icon(Icons.undo_rounded),
               label: const Text('Reverse transaction'),
+            ),
+          if (transaction.status == TransactionStatus.posted &&
+              synchronized &&
+              !transaction.type.supportsGenericReversal)
+            const _Notice(
+              message:
+                  'This movement belongs to a grouped financial operation and cannot be reversed by itself.',
             ),
           if (!synchronized)
             FilledButton.tonalIcon(
@@ -339,6 +355,16 @@ class TransactionDetailScreen extends ConsumerWidget {
         '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}';
   }
+
+  static String _counterpartyLabel(TransactionType type) => switch (type) {
+    TransactionType.expense => 'Merchant',
+    TransactionType.income => 'Source',
+    TransactionType.transferOut => 'Destination',
+    TransactionType.transferIn => 'Source account',
+    TransactionType.transferFee => 'Fee charged by',
+    TransactionType.reconciliationAdjustment => 'Adjustment',
+    _ => 'Counterparty',
+  };
 }
 
 class _DetailRow extends StatelessWidget {

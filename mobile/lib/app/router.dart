@@ -7,6 +7,10 @@ import 'package:planit_mobile/features/activity/presentation/activity_screen.dar
 import 'package:planit_mobile/features/analytics/presentation/analytics_screen.dart';
 import 'package:planit_mobile/features/auth/presentation/register_screen.dart';
 import 'package:planit_mobile/features/auth/presentation/sign_in_screen.dart';
+import 'package:planit_mobile/features/financial_operations/presentation/pending_operations_screen.dart';
+import 'package:planit_mobile/features/financial_operations/presentation/reallocation_screen.dart';
+import 'package:planit_mobile/features/financial_operations/presentation/reconciliation_screen.dart';
+import 'package:planit_mobile/features/financial_operations/presentation/transfer_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
@@ -56,6 +60,24 @@ final GoRouter authenticatedRouter = GoRouter(
             ? TransactionType.income
             : TransactionType.expense,
       ),
+    ),
+    GoRoute(
+      path: '/transfers/new',
+      builder: (context, state) => const TransferScreen(),
+    ),
+    GoRoute(
+      path: '/reconciliations/new',
+      builder: (context, state) => ReconciliationScreen(
+        initialAccountId: state.uri.queryParameters['accountId'],
+      ),
+    ),
+    GoRoute(
+      path: '/reallocations/new',
+      builder: (context, state) => const ReallocationScreen(),
+    ),
+    GoRoute(
+      path: '/pending-operations',
+      builder: (context, state) => const PendingOperationsScreen(),
     ),
     GoRoute(
       path: '/transactions/:transactionId',

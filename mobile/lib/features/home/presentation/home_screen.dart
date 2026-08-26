@@ -178,7 +178,7 @@ class _HomeAccountContent extends StatelessWidget {
                 SizedBox(width: PlanItSpacing.md),
                 Expanded(
                   child: Text(
-                    'Income and spending insights will appear after ledger activity is added in Milestone 2.',
+                    'Posted expenses and transfer fees count as spending. Internal transfers and balance corrections remain neutral.',
                   ),
                 ),
               ],

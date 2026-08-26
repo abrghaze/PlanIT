@@ -1,6 +1,7 @@
 import 'package:planit_mobile/core/errors/app_exception.dart';
 import 'package:planit_mobile/features/transactions/data/transactions_local_data_source.dart';
 import 'package:planit_mobile/features/transactions/data/transactions_remote_data_source.dart';
+import 'package:planit_mobile/features/transactions/domain/outbox_operation.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 final class TransactionSyncResult {
@@ -54,14 +55,63 @@ abstract interface class TransactionsRepository {
   });
 }
 
-final class DefaultTransactionsRepository implements TransactionsRepository {
-  const DefaultTransactionsRepository({
-    required this.remote,
-    required this.local,
+abstract interface class FinancialOperationsOutboxRepository {
+  Stream<List<PendingOperation>> watchPendingOperations(String ownerId);
+
+  Future<void> queueFinancialOperation({
+    required String ownerId,
+    required String operationId,
+    required String entityId,
+    required OutboxOperationType type,
+    required Map<String, Object?> payload,
   });
+
+  Future<void> discardPendingOperation(PendingOperation operation);
+}
+
+extension TransactionsRepositoryFinancialOperations on TransactionsRepository {
+  Stream<List<PendingOperation>> watchPendingOperations(String ownerId) {
+    return _financialOperations.watchPendingOperations(ownerId);
+  }
+
+  Future<void> queueFinancialOperation({
+    required String ownerId,
+    required String operationId,
+    required String entityId,
+    required OutboxOperationType type,
+    required Map<String, Object?> payload,
+  }) {
+    return _financialOperations.queueFinancialOperation(
+      ownerId: ownerId,
+      operationId: operationId,
+      entityId: entityId,
+      type: type,
+      payload: payload,
+    );
+  }
+
+  Future<void> discardPendingOperation(PendingOperation operation) {
+    return _financialOperations.discardPendingOperation(operation);
+  }
+
+  FinancialOperationsOutboxRepository get _financialOperations {
+    final repository = this;
+    if (repository is FinancialOperationsOutboxRepository) {
+      return repository as FinancialOperationsOutboxRepository;
+    }
+    throw UnsupportedError(
+      'This transactions repository does not support financial operations.',
+    );
+  }
+}
+
+final class DefaultTransactionsRepository
+    implements TransactionsRepository, FinancialOperationsOutboxRepository {
+  DefaultTransactionsRepository({required this.remote, required this.local});
 
   final TransactionsRemoteDataSource remote;
   final TransactionsLocalDataSource local;
+  Future<TransactionSyncResult>? _activeSynchronization;
 
   @override
   Stream<List<LedgerTransaction>> watch(String ownerId) => local.watch(ownerId);
@@ -69,6 +119,11 @@ final class DefaultTransactionsRepository implements TransactionsRepository {
   @override
   Stream<int> watchPendingCount(String ownerId) =>
       local.watchPendingCount(ownerId);
+
+  @override
+  Stream<List<PendingOperation>> watchPendingOperations(String ownerId) {
+    return local.watchPendingOperations(ownerId);
+  }
 
   @override
   Future<void> refresh({
@@ -127,8 +182,30 @@ final class DefaultTransactionsRepository implements TransactionsRepository {
   }
 
   @override
+  Future<void> queueFinancialOperation({
+    required String ownerId,
+    required String operationId,
+    required String entityId,
+    required OutboxOperationType type,
+    required Map<String, Object?> payload,
+  }) {
+    return local.queueFinancialOperation(
+      ownerId: ownerId,
+      operationId: operationId,
+      entityId: entityId,
+      type: type,
+      payload: payload,
+    );
+  }
+
+  @override
   Future<void> discardPending(LedgerTransaction transaction) {
     return local.discardPending(transaction);
+  }
+
+  @override
+  Future<void> discardPendingOperation(PendingOperation operation) {
+    return local.discardPendingOperation(operation);
   }
 
   @override
@@ -136,6 +213,28 @@ final class DefaultTransactionsRepository implements TransactionsRepository {
     required String ownerId,
     required String accessToken,
     bool force = false,
+  }) {
+    final active = _activeSynchronization;
+    if (active != null) {
+      return active;
+    }
+    final future = _synchronize(
+      ownerId: ownerId,
+      accessToken: accessToken,
+      force: force,
+    );
+    _activeSynchronization = future;
+    return future.whenComplete(() {
+      if (identical(_activeSynchronization, future)) {
+        _activeSynchronization = null;
+      }
+    });
+  }
+
+  Future<TransactionSyncResult> _synchronize({
+    required String ownerId,
+    required String accessToken,
+    required bool force,
   }) async {
     var processed = 0;
     for (var index = 0; index < 50; index += 1) {
@@ -151,8 +250,7 @@ final class DefaultTransactionsRepository implements TransactionsRepository {
         );
         await local.acknowledge(
           operation: operation,
-          canonical: result.primary,
-          secondary: result.secondary,
+          transactions: result.transactions,
         );
         processed += 1;
       } on AppException catch (error) {
