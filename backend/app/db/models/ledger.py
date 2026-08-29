@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
@@ -268,6 +269,179 @@ class TransactionTagModel(Base):
     transaction_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     tag_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+
+class PersonModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "people"
+    __table_args__ = (
+        CheckConstraint("length(btrim(name)) BETWEEN 1 AND 120", name="name_not_blank"),
+        CheckConstraint("version > 0", name="version_positive"),
+        UniqueConstraint("id", "user_id", name="uq_people_id_user"),
+        Index("ix_people_user_name", "user_id", "normalized_name", "id"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    normalized_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    contact: Mapped[str | None] = mapped_column(String(240))
+    notes: Mapped[str | None] = mapped_column(Text)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
+class DebtModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "debts"
+    __table_args__ = (
+        CheckConstraint("direction IN ('RECEIVABLE','PAYABLE')", name="direction_valid"),
+        CheckConstraint(
+            "origin_type IN ('EXISTING','LEND_NOW','BORROW_NOW','SHARED_EXPENSE')",
+            name="origin_type_valid",
+        ),
+        CheckConstraint(
+            "status IN ('OPEN','PARTIALLY_PAID','SETTLED','CANCELLED')",
+            name="status_valid",
+        ),
+        CheckConstraint("original_amount > 0", name="original_amount_positive"),
+        CheckConstraint("currency ~ '^[A-Z]{3}$'", name="currency_format"),
+        CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint(
+            "(origin_type = 'EXISTING' AND origin_transaction_id IS NULL) OR "
+            "(origin_type <> 'EXISTING' AND origin_transaction_id IS NOT NULL)",
+            name="origin_transaction_required",
+        ),
+        CheckConstraint(
+            "(origin_type <> 'LEND_NOW' OR direction = 'RECEIVABLE') AND "
+            "(origin_type <> 'BORROW_NOW' OR direction = 'PAYABLE') AND "
+            "(origin_type <> 'SHARED_EXPENSE' OR direction = 'RECEIVABLE')",
+            name="origin_direction_coherent",
+        ),
+        CheckConstraint(
+            "(status = 'CANCELLED') = (cancelled_at IS NOT NULL)",
+            name="cancellation_coherent",
+        ),
+        ForeignKeyConstraint(
+            ("person_id", "user_id"),
+            ("people.id", "people.user_id"),
+            name="fk_debts_person_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("origin_transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_debts_origin_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("id", "user_id", name="uq_debts_id_user"),
+        UniqueConstraint("user_id", "client_operation_id", name="uq_debts_user_client_operation"),
+        Index(
+            "uq_debts_cash_origin_transaction",
+            "origin_transaction_id",
+            unique=True,
+            postgresql_where=text("origin_type IN ('LEND_NOW','BORROW_NOW')"),
+        ),
+        Index("ix_debts_user_status_due", "user_id", "status", "due_date"),
+        Index("ix_debts_person_status", "person_id", "status"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    person_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    direction: Mapped[str] = mapped_column(String(16), nullable=False)
+    origin_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    origin_transaction_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    original_amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    due_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="OPEN")
+    note: Mapped[str | None] = mapped_column(Text)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancellation_reason: Mapped[str | None] = mapped_column(Text)
+    client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
+class DebtPaymentModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "debt_payments"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="amount_positive"),
+        ForeignKeyConstraint(
+            ("debt_id", "user_id"),
+            ("debts.id", "debts.user_id"),
+            name="fk_debt_payments_debt_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_debt_payments_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint("transaction_id", name="uq_debt_payments_transaction"),
+        UniqueConstraint(
+            "user_id", "client_operation_id", name="uq_debt_payments_user_client_operation"
+        ),
+        Index("ix_debt_payments_debt_paid", "debt_id", "paid_at", "id"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    debt_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    transaction_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+
+
+class SharedExpenseShareModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "shared_expense_shares"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="amount_positive"),
+        CheckConstraint("status IN ('ACTIVE','CANCELLED')", name="status_valid"),
+        CheckConstraint("version > 0", name="version_positive"),
+        ForeignKeyConstraint(
+            ("transaction_id", "user_id"),
+            ("transactions.id", "transactions.user_id"),
+            name="fk_shared_expense_shares_transaction_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("person_id", "user_id"),
+            ("people.id", "people.user_id"),
+            name="fk_shared_expense_shares_person_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("debt_id", "user_id"),
+            ("debts.id", "debts.user_id"),
+            name="fk_shared_expense_shares_debt_owner",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "transaction_id", "person_id", name="uq_shared_expense_shares_transaction_person"
+        ),
+        UniqueConstraint("debt_id", name="uq_shared_expense_shares_debt"),
+        UniqueConstraint(
+            "user_id",
+            "client_operation_id",
+            name="uq_shared_expense_shares_user_client_operation",
+        ),
+        Index("ix_shared_expense_shares_transaction_status", "transaction_id", "status"),
+    )
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    transaction_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    person_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
+    debt_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTIVE")
+    client_operation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
 class TransferModel(UuidPrimaryKeyMixin, TimestampMixin, Base):

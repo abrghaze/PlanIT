@@ -189,12 +189,33 @@ class TransactionDetailScreen extends ConsumerWidget {
           if (transaction.status == TransactionStatus.posted &&
               synchronized &&
               transaction.type.supportsGenericReversal)
-            OutlinedButton.icon(
-              onPressed: action.busy
-                  ? null
-                  : () => _reverse(context, ref, transaction),
-              icon: const Icon(Icons.undo_rounded),
-              label: const Text('Reverse transaction'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (transaction.type == TransactionType.expense) ...<Widget>[
+                  FilledButton.tonalIcon(
+                    onPressed: () =>
+                        context.push('/transactions/$transactionId/share'),
+                    icon: const Icon(Icons.group_add_outlined),
+                    label: const Text('Share this expense'),
+                  ),
+                  const SizedBox(height: PlanItSpacing.sm),
+                  FilledButton.tonalIcon(
+                    onPressed: () =>
+                        context.push('/transactions/$transactionId/refund'),
+                    icon: const Icon(Icons.currency_exchange_rounded),
+                    label: const Text('Record a refund'),
+                  ),
+                  const SizedBox(height: PlanItSpacing.sm),
+                ],
+                OutlinedButton.icon(
+                  onPressed: action.busy
+                      ? null
+                      : () => _reverse(context, ref, transaction),
+                  icon: const Icon(Icons.undo_rounded),
+                  label: const Text('Reverse transaction'),
+                ),
+              ],
             ),
           if (transaction.status == TransactionStatus.posted &&
               synchronized &&

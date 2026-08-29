@@ -6,6 +6,10 @@ enum OutboxOperationType {
   transferCommit,
   reconciliationCommit,
   reallocationCommit,
+  debtCreate,
+  debtPayment,
+  shareCreate,
+  refundCreate,
 }
 
 extension OutboxOperationTypeContract on OutboxOperationType {
@@ -17,6 +21,10 @@ extension OutboxOperationTypeContract on OutboxOperationType {
     OutboxOperationType.transferCommit => 'TRANSFER_COMMIT',
     OutboxOperationType.reconciliationCommit => 'RECONCILIATION_COMMIT',
     OutboxOperationType.reallocationCommit => 'REALLOCATION_COMMIT',
+    OutboxOperationType.debtCreate => 'DEBT_CREATE',
+    OutboxOperationType.debtPayment => 'DEBT_PAYMENT',
+    OutboxOperationType.shareCreate => 'SHARE_CREATE',
+    OutboxOperationType.refundCreate => 'REFUND_CREATE',
   };
 
   String get label => switch (this) {
@@ -27,12 +35,20 @@ extension OutboxOperationTypeContract on OutboxOperationType {
     OutboxOperationType.transferCommit => 'Transfer',
     OutboxOperationType.reconciliationCommit => 'Balance reconciliation',
     OutboxOperationType.reallocationCommit => 'Balance reallocation',
+    OutboxOperationType.debtCreate => 'Create debt',
+    OutboxOperationType.debtPayment => 'Debt repayment',
+    OutboxOperationType.shareCreate => 'Expense share',
+    OutboxOperationType.refundCreate => 'Refund',
   };
 
   bool get isSpecializedFinancialCommit => switch (this) {
     OutboxOperationType.transferCommit ||
     OutboxOperationType.reconciliationCommit ||
     OutboxOperationType.reallocationCommit => true,
+    OutboxOperationType.debtCreate ||
+    OutboxOperationType.debtPayment ||
+    OutboxOperationType.shareCreate ||
+    OutboxOperationType.refundCreate => true,
     _ => false,
   };
 

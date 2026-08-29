@@ -90,8 +90,10 @@ Use `127.0.0.1` for an iOS simulator and the development machine's LAN address f
 `app_database.g.dart` is also committed; `dart run build_runner build` must leave
 the worktree unchanged. Schema version 2 stores the owner-scoped account and
 transaction projections, categories, tags, transaction-tag links, and a
-transactional outbox. Local tests cover atomic enqueue, operation ordering, and
-stable operation IDs across retries. The web runner includes dependency-matched
+transactional outbox. Milestone 4 debt, repayment, share, and refund commands use
+that durable outbox and refresh canonical server projections after acknowledgment.
+Local tests cover atomic enqueue, operation ordering, and stable operation IDs
+across retries. The web runner includes dependency-matched
 `drift_worker.js` and `sqlite3.wasm` assets for the local projection.
 
 ## Environment policy

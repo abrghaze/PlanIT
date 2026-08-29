@@ -105,6 +105,47 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
             data: operation.payload,
             options: Options(headers: headers),
           );
+        case OutboxOperationType.debtCreate:
+          response = await _client.raw.post<Map<String, Object?>>(
+            _client.url('/debts'),
+            data: operation.payload,
+            options: Options(headers: headers),
+          );
+        case OutboxOperationType.debtPayment:
+          final payload = Map<String, Object?>.from(operation.payload);
+          final debtId = payload.remove('_debt_id');
+          if (debtId is! String || debtId.isEmpty) throw _invalidLocalOperation;
+          response = await _client.raw.post<Map<String, Object?>>(
+            _client.url('/debts/${Uri.encodeComponent(debtId)}/payments'),
+            data: payload,
+            options: Options(headers: headers),
+          );
+        case OutboxOperationType.shareCreate:
+          final payload = Map<String, Object?>.from(operation.payload);
+          final transactionId = payload.remove('_transaction_id');
+          if (transactionId is! String || transactionId.isEmpty) {
+            throw _invalidLocalOperation;
+          }
+          response = await _client.raw.post<Map<String, Object?>>(
+            _client.url(
+              '/transactions/${Uri.encodeComponent(transactionId)}/shares',
+            ),
+            data: payload,
+            options: Options(headers: headers),
+          );
+        case OutboxOperationType.refundCreate:
+          final payload = Map<String, Object?>.from(operation.payload);
+          final transactionId = payload.remove('_transaction_id');
+          if (transactionId is! String || transactionId.isEmpty) {
+            throw _invalidLocalOperation;
+          }
+          response = await _client.raw.post<Map<String, Object?>>(
+            _client.url(
+              '/transactions/${Uri.encodeComponent(transactionId)}/refund',
+            ),
+            data: payload,
+            options: Options(headers: headers),
+          );
       }
       final data = response.data;
       if (data == null) {
@@ -139,6 +180,19 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
         ],
         OutboxOperationType.reallocationCommit =>
           _parseReallocationTransactions(data, operation.ownerId),
+        OutboxOperationType.debtCreate => _parseDebtCreateTransactions(
+          data,
+          operation.ownerId,
+        ),
+        OutboxOperationType.debtPayment => _parseDebtPaymentTransactions(
+          data,
+          operation.ownerId,
+          operation.id,
+        ),
+        OutboxOperationType.shareCreate => const <LedgerTransaction>[],
+        OutboxOperationType.refundCreate => <LedgerTransaction>[
+          _parseNamedTransaction(data, 'refund_transaction', operation.ownerId),
+        ],
         _ => <LedgerTransaction>[
           LedgerTransaction.fromJson(data, ownerId: operation.ownerId),
         ],
@@ -185,6 +239,34 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
     return transactions;
   }
 
+  static List<LedgerTransaction> _parseDebtCreateTransactions(
+    Map<String, Object?> data,
+    String ownerId,
+  ) {
+    final origin = data['origin_transaction'];
+    return origin == null
+        ? const <LedgerTransaction>[]
+        : <LedgerTransaction>[_parseTransaction(origin, ownerId)];
+  }
+
+  static List<LedgerTransaction> _parseDebtPaymentTransactions(
+    Map<String, Object?> data,
+    String ownerId,
+    String operationId,
+  ) {
+    final raw = data['payments'];
+    if (raw is! List) throw _invalidServerResponse;
+    for (final value in raw) {
+      final payment = _asMap(value);
+      if (payment['client_operation_id'] == operationId) {
+        return <LedgerTransaction>[
+          _parseNamedTransaction(payment, 'transaction', ownerId),
+        ];
+      }
+    }
+    throw _invalidServerResponse;
+  }
+
   static LedgerTransaction _parseNamedTransaction(
     Map<String, Object?> data,
     String key,
@@ -211,5 +293,9 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
   static const AppException _invalidServerResponse = AppException(
     code: 'INVALID_SERVER_RESPONSE',
     message: 'The server returned an invalid financial operation response.',
+  );
+  static const AppException _invalidLocalOperation = AppException(
+    code: 'INVALID_LOCAL_OPERATION',
+    message: 'This queued operation is incomplete.',
   );
 }

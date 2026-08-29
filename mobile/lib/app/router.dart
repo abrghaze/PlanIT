@@ -7,6 +7,10 @@ import 'package:planit_mobile/features/activity/presentation/activity_screen.dar
 import 'package:planit_mobile/features/analytics/presentation/analytics_screen.dart';
 import 'package:planit_mobile/features/auth/presentation/register_screen.dart';
 import 'package:planit_mobile/features/auth/presentation/sign_in_screen.dart';
+import 'package:planit_mobile/features/debts/presentation/debt_detail_screen.dart';
+import 'package:planit_mobile/features/debts/presentation/debt_form_screen.dart';
+import 'package:planit_mobile/features/debts/presentation/debts_screen.dart';
+import 'package:planit_mobile/features/debts/presentation/expense_recovery_screen.dart';
 import 'package:planit_mobile/features/financial_operations/presentation/pending_operations_screen.dart';
 import 'package:planit_mobile/features/financial_operations/presentation/reallocation_screen.dart';
 import 'package:planit_mobile/features/financial_operations/presentation/reconciliation_screen.dart';
@@ -38,6 +42,35 @@ final GoRouter authenticatedRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/home',
   routes: <RouteBase>[
+    GoRoute(
+      path: '/debts',
+      builder: (context, state) => const DebtsScreen(),
+      routes: <RouteBase>[
+        GoRoute(
+          path: 'new',
+          builder: (context, state) => const DebtFormScreen(),
+        ),
+        GoRoute(
+          path: ':debtId',
+          builder: (context, state) =>
+              DebtDetailScreen(debtId: state.pathParameters['debtId']!),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/transactions/:transactionId/share',
+      builder: (context, state) => ExpenseRecoveryScreen(
+        transactionId: state.pathParameters['transactionId']!,
+        kind: ExpenseRecoveryKind.share,
+      ),
+    ),
+    GoRoute(
+      path: '/transactions/:transactionId/refund',
+      builder: (context, state) => ExpenseRecoveryScreen(
+        transactionId: state.pathParameters['transactionId']!,
+        kind: ExpenseRecoveryKind.refund,
+      ),
+    ),
     GoRoute(
       path: '/accounts',
       builder: (context, state) => const AccountsScreen(),

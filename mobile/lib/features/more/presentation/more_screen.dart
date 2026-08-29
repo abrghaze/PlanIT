@@ -22,7 +22,11 @@ class MoreScreen extends ConsumerWidget {
         label: 'Categories & tags',
         onTap: () => context.push('/catalog'),
       ),
-      (icon: Icons.people_alt_outlined, label: 'People & debts', onTap: null),
+      (
+        icon: Icons.people_alt_outlined,
+        label: 'People & debts',
+        onTap: () => context.push('/debts'),
+      ),
       (icon: Icons.storefront_outlined, label: 'Shops', onTap: null),
       (icon: Icons.inventory_2_outlined, label: 'Products', onTap: null),
       (icon: Icons.repeat_rounded, label: 'Recurring', onTap: null),

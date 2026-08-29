@@ -31,7 +31,7 @@ class AddActionSheet extends StatelessWidget {
             icon: Icons.people_alt_outlined,
             title: 'Debt',
             subtitle: 'Existing, lend now, or borrow now',
-            route: null,
+            route: '/debts/new',
           ),
           (
             icon: Icons.balance_rounded,

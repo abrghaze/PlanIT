@@ -160,6 +160,10 @@ class PendingOperationsScreen extends ConsumerWidget {
     OutboxOperationType.transferCommit => '/transfers/new',
     OutboxOperationType.reconciliationCommit => '/reconciliations/new',
     OutboxOperationType.reallocationCommit => '/reallocations/new',
+    OutboxOperationType.debtCreate ||
+    OutboxOperationType.debtPayment => '/debts',
+    OutboxOperationType.shareCreate ||
+    OutboxOperationType.refundCreate => '/activity',
     _ => '/activity',
   };
 }
@@ -265,6 +269,10 @@ class _PendingOperationCard extends StatelessWidget {
     OutboxOperationType.transferCommit => Icons.swap_horiz_rounded,
     OutboxOperationType.reconciliationCommit => Icons.fact_check_outlined,
     OutboxOperationType.reallocationCommit => Icons.balance_rounded,
+    OutboxOperationType.debtCreate ||
+    OutboxOperationType.debtPayment => Icons.people_alt_outlined,
+    OutboxOperationType.shareCreate => Icons.group_add_outlined,
+    OutboxOperationType.refundCreate => Icons.currency_exchange_rounded,
     OutboxOperationType.reverse => Icons.undo_rounded,
     OutboxOperationType.post => Icons.check_circle_outline,
     OutboxOperationType.createDraft ||

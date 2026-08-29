@@ -3,9 +3,9 @@
 PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPTZ` in UTC, and money is `NUMERIC(19,4)`. Every user-owned aggregate has an ownership path that can be checked server-side. Posted financial history is append-oriented.
 
 The identity/control, account/ledger, category, tag, transfer, reconciliation,
-and reallocation tables below are present through Milestone 3. Purchase detail,
-debts/sharing, automation, goals, and media
-tables describe the approved later-milestone schema and are not migrated yet.
+reallocation, debt, sharing, and refund structures below are present through
+Milestone 4. Purchase detail, automation, goals, and media tables describe the
+approved later-milestone schema and are not migrated yet.
 
 ## Identity and control
 
@@ -72,7 +72,11 @@ prevent cross-user balancing accounts, lines, movements, or group links.
 | `debt_payments` | Settlement history | unique transaction ID, positive amount, payment time; sum cannot exceed principal |
 | `shared_expense_shares` | Recoverable expense portion | unique `(transaction_id, person_id)`, positive amount, unique linked receivable debt |
 
-Remaining debt is derived from principal less valid payments. Status is deterministic except an explicit cancellation/write-off with an audit reason.
+Refunds are linked `REFUND` transaction rows whose `parent_transaction_id` names
+the original posted expense. Remaining debt is derived from principal less valid
+payments. Status is deterministic except an explicit cancellation with an audit
+reason. Deferred database validators enforce debt/payment direction, origin/cash
+coherence, overpayment, one active share per person/expense, and refund/share caps.
 
 ## Automation, goals, and media
 

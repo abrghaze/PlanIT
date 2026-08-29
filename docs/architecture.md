@@ -1,11 +1,11 @@
 # PlanIT architecture
 
-This document describes the approved target architecture. Through Milestone 3,
+This document describes the approved target architecture. Through Milestone 4,
 the backend implements configuration, request/error handling, identity and rotating
 sessions, authenticated ownership, account lifecycle/balance use cases, PostgreSQL
 repositories, audit helpers, and the idempotency transaction coordinator. The
 mobile app implements its shell, secure session storage, registration/sign-in,
-account, core-ledger, transfer, reconciliation, and reallocation management, an owner-scoped Drift v2 projection,
+account, core-ledger, transfer, reconciliation, reallocation, debt, sharing, and refund management, an owner-scoped Drift v2 projection,
 compile-time API configuration, exact money values, and an ordered transactional
 outbox for generic transactions and specialized financial commit operations.
 
@@ -33,7 +33,7 @@ Flutter app
 ```
 
 PostgreSQL is authoritative for synchronized financial history. Drift is a local,
-owner-scoped projection and hosts the ordered Milestone 3 outbox.
+owner-scoped projection and hosts the ordered Milestone 4 outbox.
 Cached aggregates are disposable read models; credentials are never stored there.
 
 ## Backend boundaries

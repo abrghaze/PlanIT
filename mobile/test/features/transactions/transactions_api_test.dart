@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:planit_mobile/core/network/api_client.dart';
 import 'package:planit_mobile/features/transactions/data/transactions_api.dart';
-import 'package:planit_mobile/features/transactions/data/transactions_remote_data_source.dart';
 import 'package:planit_mobile/features/transactions/domain/outbox_operation.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
@@ -217,10 +216,150 @@ void main() {
     );
   });
 
-  test('remote operation results cannot acknowledge an empty response', () {
+  test('existing debt can acknowledge without a ledger movement', () async {
+    final adapter = _RecordingAdapter(<Map<String, Object?>>[
+      _debtJson(originTransaction: null),
+    ]);
+    final api = _api(adapter);
+
+    final result = await api.execute(
+      accessToken: 'access-token',
+      operation: _operation(
+        type: OutboxOperationType.debtCreate,
+        entityId: 'debt-1',
+        payload: const <String, Object?>{
+          'id': 'debt-1',
+          'client_operation_id': 'operation-1',
+        },
+      ),
+    );
+
+    expect(result.transactions, isEmpty);
+    expect(Uri.parse(adapter.requests.single.path).path, '/api/v1/debts');
+  });
+
+  test('lend-now debt returns its canonical cash movement', () async {
+    final adapter = _RecordingAdapter(<Map<String, Object?>>[
+      _debtJson(
+        originTransaction: _transactionJson(
+          id: 'loan-out',
+          type: 'LOAN_PRINCIPAL_OUT',
+          effect: 'OUTFLOW',
+          accountId: 'account-a',
+        ),
+      ),
+    ]);
+    final api = _api(adapter);
+
+    final result = await api.execute(
+      accessToken: 'access-token',
+      operation: _operation(
+        type: OutboxOperationType.debtCreate,
+        entityId: 'debt-1',
+        payload: const <String, Object?>{
+          'id': 'debt-1',
+          'client_operation_id': 'operation-1',
+        },
+      ),
+    );
+
+    expect(result.transactions.single.type, TransactionType.loanPrincipalOut);
+  });
+
+  test('debt repayment routes by debt id and removes local metadata', () async {
+    final adapter = _RecordingAdapter(<Map<String, Object?>>[
+      _debtJson(
+        payments: <Object?>[
+          <String, Object?>{
+            'id': 'payment-1',
+            'client_operation_id': 'operation-1',
+            'transaction': _transactionJson(
+              id: 'repayment-in',
+              type: 'DEBT_REPAYMENT_IN',
+              effect: 'INFLOW',
+              accountId: 'account-a',
+            ),
+          },
+        ],
+      ),
+    ]);
+    final api = _api(adapter);
+
+    final result = await api.execute(
+      accessToken: 'access-token',
+      operation: _operation(
+        type: OutboxOperationType.debtPayment,
+        entityId: 'payment-1',
+        payload: const <String, Object?>{
+          'id': 'payment-1',
+          '_debt_id': 'debt-1',
+          'client_operation_id': 'operation-1',
+        },
+      ),
+    );
+
+    expect(result.transactions.single.type, TransactionType.debtRepaymentIn);
+    final request = adapter.requests.single;
+    expect(Uri.parse(request.path).path, '/api/v1/debts/debt-1/payments');
+    expect(_requestPayload(request), isNot(contains('_debt_id')));
+  });
+
+  test('share acknowledgment has no ledger movement', () async {
+    final adapter = _RecordingAdapter(<Map<String, Object?>>[
+      <String, Object?>{'id': 'share-1'},
+    ]);
+    final api = _api(adapter);
+
+    final result = await api.execute(
+      accessToken: 'access-token',
+      operation: _operation(
+        type: OutboxOperationType.shareCreate,
+        entityId: 'share-1',
+        payload: const <String, Object?>{
+          'id': 'share-1',
+          '_transaction_id': 'expense-1',
+        },
+      ),
+    );
+
+    expect(result.transactions, isEmpty);
+    final request = adapter.requests.single;
     expect(
-      () => RemoteOperationResult(transactions: const <LedgerTransaction>[]),
-      throwsArgumentError,
+      Uri.parse(request.path).path,
+      '/api/v1/transactions/expense-1/shares',
+    );
+    expect(_requestPayload(request), isNot(contains('_transaction_id')));
+  });
+
+  test('refund returns its linked canonical inflow', () async {
+    final adapter = _RecordingAdapter(<Map<String, Object?>>[
+      <String, Object?>{
+        'refund_transaction': _transactionJson(
+          id: 'refund-1',
+          type: 'REFUND',
+          effect: 'INFLOW',
+          accountId: 'account-a',
+        ),
+      },
+    ]);
+    final api = _api(adapter);
+
+    final result = await api.execute(
+      accessToken: 'access-token',
+      operation: _operation(
+        type: OutboxOperationType.refundCreate,
+        entityId: 'refund-1',
+        payload: const <String, Object?>{
+          'id': 'refund-1',
+          '_transaction_id': 'expense-1',
+        },
+      ),
+    );
+
+    expect(result.transactions.single.type, TransactionType.refund);
+    expect(
+      Uri.parse(adapter.requests.single.path).path,
+      '/api/v1/transactions/expense-1/refund',
     );
   });
 }
@@ -278,6 +417,20 @@ Map<String, Object?> _transactionJson({
     'updated_at': timestamp,
   };
 }
+
+Map<String, Object?> _debtJson({
+  Object? originTransaction = _absent,
+  List<Object?> payments = const <Object?>[],
+}) {
+  return <String, Object?>{
+    'id': 'debt-1',
+    'payments': payments,
+    if (!identical(originTransaction, _absent))
+      'origin_transaction': originTransaction,
+  };
+}
+
+const Object _absent = Object();
 
 Map<String, Object?> _requestPayload(RequestOptions request) {
   final data = request.data;
