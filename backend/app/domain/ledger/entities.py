@@ -6,6 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.domain.money import Money
+from app.domain.purchases.entities import TransactionItemSnapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,9 +20,12 @@ class TransactionSnapshot:
     occurred_at: datetime
     status: str
     category_id: UUID | None
+    merchant_id: UUID | None
+    merchant_location_id: UUID | None
     counterparty: str | None
     note: str | None
     tag_ids: tuple[UUID, ...]
+    items: tuple[TransactionItemSnapshot, ...]
     parent_transaction_id: UUID | None
     reversal_of_id: UUID | None
     client_operation_id: UUID

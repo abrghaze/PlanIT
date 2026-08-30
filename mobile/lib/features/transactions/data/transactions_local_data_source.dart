@@ -325,6 +325,11 @@ final class TransactionsLocalDataSource {
       occurredAt: Value(value.occurredAt.toUtc()),
       status: Value(value.status.apiValue),
       categoryId: Value(value.categoryId),
+      merchantId: Value(value.merchantId),
+      merchantLocationId: Value(value.merchantLocationId),
+      itemsJson: Value(
+        jsonEncode(value.items.map((item) => item.toCacheJson()).toList()),
+      ),
       counterparty: Value(value.counterparty),
       note: Value(value.note),
       parentTransactionId: Value(value.parentTransactionId),
@@ -354,9 +359,35 @@ final class TransactionsLocalDataSource {
       occurredAt: row.occurredAt.toUtc(),
       status: TransactionStatusContract.fromApi(row.status),
       categoryId: row.categoryId,
+      merchantId: row.merchantId,
+      merchantLocationId: row.merchantLocationId,
       counterparty: row.counterparty,
       note: row.note,
       tagIds: List<String>.unmodifiable(tagIds),
+      items: (jsonDecode(row.itemsJson) as List)
+          .asMap()
+          .entries
+          .map((entry) {
+            final json = Map<String, Object?>.from(entry.value as Map);
+            final quantity = '${json['quantity']}';
+            final unitPrice = '${json['unit_price']}';
+            final discount = '${json['discount']}';
+            final lineTotal =
+                (double.parse(quantity) * double.parse(unitPrice) -
+                        double.parse(discount))
+                    .toStringAsFixed(4);
+            return PurchaseItem(
+              id: json['id']! as String,
+              productId: json['product_id'] as String?,
+              description: json['description']! as String,
+              quantity: quantity,
+              unitPrice: unitPrice,
+              discount: discount,
+              lineTotal: '${json['line_total'] ?? lineTotal}',
+              position: json['position'] as int? ?? entry.key,
+            );
+          })
+          .toList(growable: false),
       parentTransactionId: row.parentTransactionId,
       reversalOfId: row.reversalOfId,
       clientOperationId: row.clientOperationId,

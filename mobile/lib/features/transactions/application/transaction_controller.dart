@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/errors/app_exception.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
+import 'package:planit_mobile/features/purchases/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_action_state.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
@@ -67,6 +68,9 @@ final class TransactionController extends Notifier<TransactionActionState> {
                 ownerId: session.user.id,
                 accessToken: session.accessToken,
               ),
+          ref
+              .read(purchaseCatalogRepositoryProvider)
+              .refresh(session.user.id, session.accessToken),
         ]);
       }
       state = state.copyWith(

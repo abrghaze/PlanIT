@@ -2,7 +2,7 @@
 
 Each milestone must leave the repository runnable and may advance only after its invariants, migration, API contract, offline behavior, and tests agree.
 
-**Delivery status:** Milestones 0 through 4 are complete in release `0.5.0`.
+**Delivery status:** Milestones 0 through 5 are complete in release `0.6.0`.
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
@@ -16,7 +16,6 @@ Each milestone must leave the repository runnable and may advance only after its
 | 7 — Planning | Recurring commitments, subscriptions, savings goals and reminders | Deduplicated occurrences, reliable progress and due-state handling |
 | 8 — Advanced and release | OCR/bank adapter seams, anomaly insights, accessibility, performance, privacy export/deletion | Threat review, backup/restore drill, observability, store-ready builds |
 
-The next implementation slice is Milestone 5. Debts, repayments, shared expenses,
-and refunds now use the authoritative ledger, row locks, database caps, durable
-idempotency, audit events, and FIFO mobile delivery. Those boundaries are ready
-to support itemized purchase and receipt workflows without duplicating financial facts.
+The next implementation slice is Milestone 6. Purchase facts now preserve shop,
+branch, product variant, quantity, price, discount, snapshot description, and
+private receipt references without changing ledger classification.

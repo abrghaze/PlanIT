@@ -2,6 +2,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 void main() {
+  test('itemized purchase contract preserves exact decimal strings', () {
+    final item = PurchaseItem.fromJson(<String, Object?>{
+      'id': 'item-1',
+      'product_id': 'milk-1l',
+      'description': 'Milk 1 L',
+      'quantity': '2.000000',
+      'unit_price': '10.0000',
+      'discount': '1.0000',
+      'line_total': '19.0000',
+      'position': 0,
+    });
+    expect(item.toJson()['quantity'], '2.000000');
+    expect(item.toCacheJson()['line_total'], '19.0000');
+  });
+
   test('transaction kinds use explicit backend mappings', () {
     const expected = <TransactionType, String>{
       TransactionType.expense: 'EXPENSE',

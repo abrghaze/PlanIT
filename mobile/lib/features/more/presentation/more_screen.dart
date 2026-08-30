@@ -27,8 +27,16 @@ class MoreScreen extends ConsumerWidget {
         label: 'People & debts',
         onTap: () => context.push('/debts'),
       ),
-      (icon: Icons.storefront_outlined, label: 'Shops', onTap: null),
-      (icon: Icons.inventory_2_outlined, label: 'Products', onTap: null),
+      (
+        icon: Icons.storefront_outlined,
+        label: 'Shops',
+        onTap: () => context.push('/merchants'),
+      ),
+      (
+        icon: Icons.inventory_2_outlined,
+        label: 'Products',
+        onTap: () => context.push('/products'),
+      ),
       (icon: Icons.repeat_rounded, label: 'Recurring', onTap: null),
       (icon: Icons.savings_outlined, label: 'Savings goals', onTap: null),
       (icon: Icons.settings_outlined, label: 'Settings', onTap: null),

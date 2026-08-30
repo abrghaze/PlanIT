@@ -5,6 +5,10 @@ import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/purchases/application/media_controller.dart';
+import 'package:planit_mobile/features/purchases/application/providers.dart';
+import 'package:planit_mobile/features/purchases/domain/purchase_catalog.dart';
+import 'package:planit_mobile/features/purchases/presentation/image_source_sheet.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 import 'package:planit_mobile/features/transactions/domain/catalog.dart';
@@ -34,6 +38,7 @@ class TransactionDetailScreen extends ConsumerWidget {
         const <TransactionCategory>[];
     final tags =
         ref.watch(transactionTagsProvider).value ?? const <TransactionTag>[];
+    final merchants = ref.watch(merchantsProvider).value ?? const <Merchant>[];
     final action = ref.watch(transactionControllerProvider);
     final account = accounts
         .where((value) => value.id == transaction.accountId)
@@ -44,6 +49,12 @@ class TransactionDetailScreen extends ConsumerWidget {
     final transactionTags = tags
         .where((tag) => transaction.tagIds.contains(tag.id))
         .toList(growable: false);
+    final merchant = merchants
+        .where((value) => value.id == transaction.merchantId)
+        .firstOrNull;
+    final branch = merchant?.locations
+        .where((value) => value.id == transaction.merchantLocationId)
+        .firstOrNull;
     final synchronized =
         transaction.syncState == LocalTransactionSyncState.synced;
     final classificationReady =
@@ -138,8 +149,10 @@ class TransactionDetailScreen extends ConsumerWidget {
             ),
           _DetailRow(
             label: _counterpartyLabel(transaction.type),
-            value: transaction.counterparty ?? 'Not specified',
+            value:
+                merchant?.name ?? transaction.counterparty ?? 'Not specified',
           ),
+          if (branch != null) _DetailRow(label: 'Branch', value: branch.name),
           _DetailRow(
             label: 'Occurred',
             value: _formatTimestamp(transaction.occurredAt),
@@ -155,6 +168,29 @@ class TransactionDetailScreen extends ConsumerWidget {
               children: transactionTags
                   .map((tag) => Chip(label: Text(tag.name)))
                   .toList(growable: false),
+            ),
+          ],
+          if (transaction.items.isNotEmpty) ...<Widget>[
+            const SizedBox(height: PlanItSpacing.md),
+            Text(
+              'Purchased items',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: PlanItSpacing.xs),
+            Card(
+              child: Column(
+                children: transaction.items
+                    .map(
+                      (item) => ListTile(
+                        title: Text(item.description),
+                        subtitle: Text(
+                          '${item.quantity} × ${item.unitPrice} − ${item.discount}',
+                        ),
+                        trailing: Text(item.lineTotal),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
             ),
           ],
           if (transaction.reversalOfId != null)
@@ -193,6 +229,32 @@ class TransactionDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 if (transaction.type == TransactionType.expense) ...<Widget>[
+                  FilledButton.tonalIcon(
+                    onPressed:
+                        ref.watch(mediaUploadControllerProvider).isLoading
+                        ? null
+                        : () async {
+                            final source = await showImageSourceSheet(context);
+                            if (source == null || !context.mounted) return;
+                            final saved = await ref
+                                .read(mediaUploadControllerProvider.notifier)
+                                .addReceipt(transaction.id, source);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    saved
+                                        ? 'Receipt uploaded privately.'
+                                        : 'Receipt upload failed.',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('Add receipt image'),
+                  ),
+                  const SizedBox(height: PlanItSpacing.sm),
                   FilledButton.tonalIcon(
                     onPressed: () =>
                         context.push('/transactions/$transactionId/share'),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.audit import add_audit_event
 from app.db.models.ledger import AccountModel, CategoryModel, TransactionModel
+from app.db.models.purchases import TransactionItemModel
 from app.domain.catalog.enums import CategoryKind
 from app.domain.catalog.policies import category_accepts
 from app.domain.errors import DomainError
@@ -29,8 +31,10 @@ from app.domain.ledger.transactions import (
     require_reversible,
 )
 from app.domain.money import Money
+from app.domain.purchases.policies import calculate_line_total
 from app.infrastructure.repositories.accounts import AccountRepository
 from app.infrastructure.repositories.catalog import CatalogRepository
+from app.infrastructure.repositories.purchases import PurchaseRepository
 from app.infrastructure.repositories.transactions import TransactionRepository
 
 
@@ -43,9 +47,22 @@ class CreateTransactionCommand:
     amount: Money
     occurred_at: datetime
     category_id: UUID | None
+    merchant_id: UUID | None
+    merchant_location_id: UUID | None
     counterparty: str | None
     note: str | None
     tag_ids: tuple[UUID, ...]
+    items: tuple[TransactionItemCommand, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TransactionItemCommand:
+    id: UUID
+    product_id: UUID | None
+    description: str
+    quantity: Decimal
+    unit_price: Decimal
+    discount: Decimal
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +97,7 @@ class TransactionService:
         self._transactions = TransactionRepository(session)
         self._accounts = AccountRepository(session)
         self._catalog = CatalogRepository(session)
+        self._purchases = PurchaseRepository(session)
 
     async def create_draft_in_transaction(
         self,
@@ -105,6 +123,14 @@ class TransactionService:
         )
         tag_ids = set(command.tag_ids)
         await self._require_tags(user_id=user_id, tag_ids=tag_ids)
+        await self._require_purchase_details(
+            user_id=user_id,
+            kind=command.kind,
+            amount=command.amount.amount,
+            merchant_id=command.merchant_id,
+            merchant_location_id=command.merchant_location_id,
+            items=command.items,
+        )
         model = TransactionModel(
             id=command.id,
             user_id=user_id,
@@ -116,6 +142,8 @@ class TransactionService:
             occurred_at=occurred_at,
             status=TransactionStatus.DRAFT.value,
             category_id=command.category_id,
+            merchant_id=command.merchant_id,
+            merchant_location_id=command.merchant_location_id,
             counterparty=normalize_optional_text(
                 command.counterparty,
                 field="counterparty",
@@ -134,6 +162,7 @@ class TransactionService:
             user_id=user_id,
             tag_ids=tag_ids,
         )
+        await self._replace_items(model.id, user_id, command.items)
         await self._session.flush()
         add_audit_event(
             self._session,
@@ -248,6 +277,36 @@ class TransactionService:
             raise TypeError("tag_ids must be a tuple")
         tag_ids = set(raw_tag_ids)
         await self._require_tags(user_id=user_id, tag_ids=tag_ids)
+        raw_items = command.values.get("items")
+        if raw_items is None:
+            current = await self._purchases.items_for(transaction_ids=[model.id])
+            item_commands = tuple(
+                TransactionItemCommand(
+                    item.id,
+                    item.product_id,
+                    item.description,
+                    item.quantity,
+                    item.unit_price,
+                    item.discount,
+                )
+                for item in current.get(model.id, ())
+            )
+        elif isinstance(raw_items, tuple):
+            item_commands = raw_items
+        else:
+            raise TypeError("items must be a tuple")
+        merchant_value = command.values.get("merchant_id", model.merchant_id)
+        merchant_id = merchant_value if isinstance(merchant_value, UUID) else None
+        location_value = command.values.get("merchant_location_id", model.merchant_location_id)
+        merchant_location_id = location_value if isinstance(location_value, UUID) else None
+        await self._require_purchase_details(
+            user_id=user_id,
+            kind=kind,
+            amount=money.amount,
+            merchant_id=merchant_id,
+            merchant_location_id=merchant_location_id,
+            items=item_commands,
+        )
 
         model.account_id = account.id
         model.type = kind.value
@@ -256,6 +315,8 @@ class TransactionService:
         model.currency = account.currency
         model.occurred_at = occurred_at
         model.category_id = category_id
+        model.merchant_id = merchant_id
+        model.merchant_location_id = merchant_location_id
         if "counterparty" in command.values:
             raw = command.values["counterparty"]
             model.counterparty = normalize_optional_text(
@@ -276,6 +337,8 @@ class TransactionService:
             user_id=user_id,
             tag_ids=tag_ids,
         )
+        if raw_items is not None:
+            await self._replace_items(model.id, user_id, item_commands)
         await self._flush_transaction()
         add_audit_event(
             self._session,
@@ -328,6 +391,25 @@ class TransactionService:
         )
         tag_ids = set(await self._transactions.tag_ids(transaction_id=model.id))
         await self._require_tags(user_id=user_id, tag_ids=tag_ids)
+        item_map = await self._purchases.items_for(transaction_ids=[model.id])
+        await self._require_purchase_details(
+            user_id=user_id,
+            kind=kind,
+            amount=model.amount,
+            merchant_id=model.merchant_id,
+            merchant_location_id=model.merchant_location_id,
+            items=tuple(
+                TransactionItemCommand(
+                    item.id,
+                    item.product_id,
+                    item.description,
+                    item.quantity,
+                    item.unit_price,
+                    item.discount,
+                )
+                for item in item_map.get(model.id, ())
+            ),
+        )
         await self._require_projected_balance(
             account=account,
             user_id=user_id,
@@ -412,6 +494,8 @@ class TransactionService:
             occurred_at=occurred_at,
             status=TransactionStatus.DRAFT.value,
             category_id=original.category_id,
+            merchant_id=None,
+            merchant_location_id=None,
             counterparty=original.counterparty,
             note=normalize_optional_text(command.note, field="note", maximum=2000),
             parent_transaction_id=original.id,
@@ -522,6 +606,116 @@ class TransactionService:
         if len(active) != len(tag_ids):
             raise DomainError("TAG_NOT_FOUND", "One or more tags were not found.")
 
+    async def _require_purchase_details(
+        self,
+        *,
+        user_id: UUID,
+        kind: TransactionKind,
+        amount: Decimal,
+        merchant_id: UUID | None,
+        merchant_location_id: UUID | None,
+        items: tuple[TransactionItemCommand, ...],
+    ) -> None:
+        if (merchant_id is not None or merchant_location_id is not None or items) and (
+            kind is not TransactionKind.EXPENSE
+        ):
+            raise DomainError(
+                "PURCHASE_DETAILS_EXPENSE_ONLY",
+                "Shop and item details are available only for expenses.",
+            )
+        merchant = None
+        if merchant_id is not None:
+            merchant = await self._purchases.get_merchant(
+                merchant_id=merchant_id,
+                user_id=user_id,
+            )
+            if merchant is None or merchant.archived_at is not None:
+                raise DomainError("MERCHANT_NOT_FOUND", "Shop was not found.")
+        if merchant_location_id is not None:
+            if merchant is None:
+                raise DomainError(
+                    "MERCHANT_REQUIRED",
+                    "Select the shop before selecting a branch.",
+                )
+            location = await self._purchases.get_location(
+                location_id=merchant_location_id,
+                user_id=user_id,
+            )
+            if (
+                location is None
+                or location.archived_at is not None
+                or location.merchant_id != merchant.id
+            ):
+                raise DomainError(
+                    "MERCHANT_LOCATION_NOT_FOUND",
+                    "Shop branch was not found.",
+                )
+        if len(items) > 200:
+            raise DomainError("TOO_MANY_ITEMS", "A purchase can contain at most 200 lines.")
+        total = Decimal("0")
+        seen_ids: set[UUID] = set()
+        for item in items:
+            if item.id in seen_ids:
+                raise DomainError(
+                    "DUPLICATE_ITEM_ID",
+                    "Item identifiers must be unique.",
+                )
+            seen_ids.add(item.id)
+            description = item.description.strip()
+            if not description or len(description) > 240:
+                raise DomainError(
+                    "INVALID_ITEM_DESCRIPTION",
+                    "Item description must contain 1 to 240 characters.",
+                )
+            if item.product_id is not None:
+                product = await self._purchases.get_product(
+                    product_id=item.product_id,
+                    user_id=user_id,
+                )
+                if product is None or product.archived_at is not None:
+                    raise DomainError("PRODUCT_NOT_FOUND", "Product was not found.")
+            total += calculate_line_total(item.quantity, item.unit_price, item.discount)
+        if items and total != amount:
+            raise DomainError(
+                "INVALID_LINE_TOTAL",
+                "Item lines must total exactly to the expense amount.",
+                details={
+                    "item_total": format(total, ".4f"),
+                    "transaction_total": format(amount, ".4f"),
+                    "difference": format(amount - total, ".4f"),
+                },
+            )
+
+    async def _replace_items(
+        self,
+        transaction_id: UUID,
+        user_id: UUID,
+        items: tuple[TransactionItemCommand, ...],
+    ) -> None:
+        await self._purchases.replace_items(
+            transaction_id=transaction_id,
+            user_id=user_id,
+            items=[
+                TransactionItemModel(
+                    id=item.id,
+                    user_id=user_id,
+                    transaction_id=transaction_id,
+                    product_id=item.product_id,
+                    description_snapshot=item.description.strip(),
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    discount=item.discount,
+                    line_total=calculate_line_total(
+                        item.quantity,
+                        item.unit_price,
+                        item.discount,
+                    ),
+                    position=index,
+                )
+                for index, item in enumerate(items)
+            ],
+        )
+
     async def _require_projected_balance(
         self,
         *,
@@ -610,6 +804,10 @@ class TransactionService:
             "occurred_at": model.occurred_at.isoformat(),
             "status": model.status,
             "category_id": str(model.category_id) if model.category_id else None,
+            "merchant_id": str(model.merchant_id) if model.merchant_id else None,
+            "merchant_location_id": (
+                str(model.merchant_location_id) if model.merchant_location_id else None
+            ),
             "tag_ids": sorted(str(tag_id) for tag_id in tag_ids),
             "version": model.version,
         }

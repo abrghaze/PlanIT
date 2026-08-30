@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Self
 from uuid import UUID
 
@@ -12,10 +13,59 @@ from app.application.transactions import (
     PostTransactionCommand,
     ReversalResult,
     ReverseTransactionCommand,
+    TransactionItemCommand,
     UpdateTransactionCommand,
 )
 from app.domain.ledger.entities import TransactionSnapshot
 from app.domain.ledger.enums import AccountEffect, TransactionKind, TransactionStatus
+from app.domain.purchases.entities import TransactionItemSnapshot
+
+
+class TransactionItemRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: UUID
+    product_id: UUID | None = None
+    description: str = Field(min_length=1, max_length=240)
+    quantity: Decimal = Field(gt=0, max_digits=19, decimal_places=6)
+    unit_price: Decimal = Field(ge=0, max_digits=19, decimal_places=4)
+    discount: Decimal = Field(default=Decimal("0"), ge=0, max_digits=19, decimal_places=4)
+
+    def to_command(self) -> TransactionItemCommand:
+        return TransactionItemCommand(
+            self.id,
+            self.product_id,
+            self.description,
+            self.quantity,
+            self.unit_price,
+            self.discount,
+        )
+
+
+class TransactionItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: UUID
+    product_id: UUID | None
+    description: str
+    quantity: Decimal
+    unit_price: Decimal
+    discount: Decimal
+    line_total: Decimal
+    position: int
+
+    @classmethod
+    def from_domain(cls, value: TransactionItemSnapshot) -> Self:
+        return cls(
+            id=value.id,
+            product_id=value.product_id,
+            description=value.description,
+            quantity=value.quantity,
+            unit_price=value.unit_price,
+            discount=value.discount,
+            line_total=value.line_total,
+            position=value.position,
+        )
 
 
 class TransactionCreateRequest(BaseModel):
@@ -28,9 +78,12 @@ class TransactionCreateRequest(BaseModel):
     amount: MoneyPayload
     occurred_at: datetime
     category_id: UUID | None = None
+    merchant_id: UUID | None = None
+    merchant_location_id: UUID | None = None
     counterparty: str | None = Field(default=None, strict=True, max_length=160)
     note: str | None = Field(default=None, strict=True, max_length=2000)
     tag_ids: list[UUID] = Field(default_factory=list, max_length=20)
+    items: list[TransactionItemRequest] = Field(default_factory=list, max_length=200)
 
     @model_validator(mode="after")
     def unique_tags(self) -> Self:
@@ -47,9 +100,12 @@ class TransactionCreateRequest(BaseModel):
             amount=self.amount.to_domain(),
             occurred_at=self.occurred_at,
             category_id=self.category_id,
+            merchant_id=self.merchant_id,
+            merchant_location_id=self.merchant_location_id,
             counterparty=self.counterparty,
             note=self.note,
             tag_ids=tuple(self.tag_ids),
+            items=tuple(item.to_command() for item in self.items),
         )
 
 
@@ -62,16 +118,25 @@ class TransactionUpdateRequest(BaseModel):
     amount: MoneyPayload | None = None
     occurred_at: datetime | None = None
     category_id: UUID | None = None
+    merchant_id: UUID | None = None
+    merchant_location_id: UUID | None = None
     counterparty: str | None = Field(default=None, strict=True, max_length=160)
     note: str | None = Field(default=None, strict=True, max_length=2000)
     tag_ids: list[UUID] | None = Field(default=None, max_length=20)
+    items: list[TransactionItemRequest] | None = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
     def validate_patch(self) -> Self:
         changed = self.model_fields_set - {"version"}
         if not changed:
             raise ValueError("At least one transaction field must be supplied.")
-        nullable = {"category_id", "counterparty", "note"}
+        nullable = {
+            "category_id",
+            "merchant_id",
+            "merchant_location_id",
+            "counterparty",
+            "note",
+        }
         if any(getattr(self, field) is None for field in changed - nullable):
             raise ValueError("Financial transaction fields cannot be null.")
         if self.tag_ids is not None and len(set(self.tag_ids)) != len(self.tag_ids):
@@ -88,6 +153,8 @@ class TransactionUpdateRequest(BaseModel):
                 values[field] = value.to_domain()
             elif field == "tag_ids" and isinstance(value, list):
                 values[field] = tuple(value)
+            elif field == "items" and isinstance(value, list):
+                values[field] = tuple(item.to_command() for item in value)
             else:
                 values[field] = value
         return UpdateTransactionCommand(version=self.version, values=values)
@@ -132,9 +199,12 @@ class TransactionResponse(BaseModel):
     occurred_at: datetime
     status: TransactionStatus
     category_id: UUID | None
+    merchant_id: UUID | None
+    merchant_location_id: UUID | None
     counterparty: str | None
     note: str | None
     tag_ids: list[UUID]
+    items: list[TransactionItemResponse]
     parent_transaction_id: UUID | None
     reversal_of_id: UUID | None
     client_operation_id: UUID
@@ -153,9 +223,12 @@ class TransactionResponse(BaseModel):
             occurred_at=value.occurred_at,
             status=TransactionStatus(value.status),
             category_id=value.category_id,
+            merchant_id=value.merchant_id,
+            merchant_location_id=value.merchant_location_id,
             counterparty=value.counterparty,
             note=value.note,
             tag_ids=list(value.tag_ids),
+            items=[TransactionItemResponse.from_domain(item) for item in value.items],
             parent_transaction_id=value.parent_transaction_id,
             reversal_of_id=value.reversal_of_id,
             client_operation_id=value.client_operation_id,

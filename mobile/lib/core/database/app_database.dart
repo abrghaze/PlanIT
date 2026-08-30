@@ -75,6 +75,10 @@ class CachedTransactions extends Table {
   DateTimeColumn get occurredAt => dateTime()();
   TextColumn get status => text().withLength(min: 1, max: 16)();
   TextColumn get categoryId => text().nullable()();
+  TextColumn get merchantId => text().nullable()();
+  TextColumn get merchantLocationId => text().nullable()();
+  TextColumn get itemsJson =>
+      text().withDefault(const Constant<String>('[]'))();
   TextColumn get counterparty =>
       text().withLength(min: 1, max: 160).nullable()();
   TextColumn get note => text().nullable()();
@@ -90,6 +94,62 @@ class CachedTransactions extends Table {
   TextColumn get pendingAction =>
       text().withLength(min: 1, max: 24).nullable()();
   TextColumn get lastSyncError => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+class CachedTransactionItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get ownerId => text()();
+  TextColumn get transactionId => text()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get description => text().withLength(min: 1, max: 240)();
+  TextColumn get quantity => text()();
+  TextColumn get unitPrice => text()();
+  TextColumn get discount => text()();
+  TextColumn get lineTotal => text()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+class CachedMerchants extends Table {
+  TextColumn get id => text()();
+  TextColumn get ownerId => text()();
+  TextColumn get name => text().withLength(min: 1, max: 160)();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  TextColumn get locationsJson => text()();
+  BoolColumn get archived => boolean()();
+  IntColumn get version => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get cachedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+class CachedProducts extends Table {
+  TextColumn get id => text()();
+  TextColumn get ownerId => text()();
+  TextColumn get parentProductId => text().nullable()();
+  TextColumn get name => text().withLength(min: 1, max: 160)();
+  TextColumn get brand => text().nullable()();
+  TextColumn get variantLabel => text().nullable()();
+  TextColumn get sizeValue => text().nullable()();
+  TextColumn get sizeUnit => text().nullable()();
+  TextColumn get barcode => text().nullable()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get defaultMerchantId => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  BoolColumn get archived => boolean()();
+  IntColumn get version => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get cachedAt => dateTime()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
@@ -128,7 +188,10 @@ class OutboxOperations extends Table {
     CachedCategories,
     CachedTags,
     CachedTransactions,
+    CachedTransactionItems,
     CachedTransactionTags,
+    CachedMerchants,
+    CachedProducts,
     OutboxOperations,
   ],
 )
@@ -137,7 +200,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? openPlanItDatabase());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -149,6 +212,23 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(cachedTransactions);
         await migrator.createTable(cachedTransactionTags);
         await migrator.createTable(outboxOperations);
+      }
+      if (from < 3) {
+        await migrator.addColumn(
+          cachedTransactions,
+          cachedTransactions.merchantId,
+        );
+        await migrator.addColumn(
+          cachedTransactions,
+          cachedTransactions.merchantLocationId,
+        );
+        await migrator.addColumn(
+          cachedTransactions,
+          cachedTransactions.itemsJson,
+        );
+        await migrator.createTable(cachedTransactionItems);
+        await migrator.createTable(cachedMerchants);
+        await migrator.createTable(cachedProducts);
       }
     },
     beforeOpen: (OpeningDetails details) async {
@@ -251,6 +331,55 @@ class AppDatabase extends _$AppDatabase {
   Future<void> upsertTag(CachedTagsCompanion tag) {
     return into(cachedTags).insertOnConflictUpdate(tag);
   }
+
+  Stream<List<CachedMerchant>> watchMerchants(String ownerId) {
+    final query = select(cachedMerchants)
+      ..where((row) => row.ownerId.equals(ownerId))
+      ..orderBy(<OrderClauseGenerator<CachedMerchants>>[
+        (row) => OrderingTerm.asc(row.name),
+      ]);
+    return query.watch();
+  }
+
+  Future<void> replaceMerchants(
+    String ownerId,
+    List<CachedMerchantsCompanion> rows,
+  ) => transaction(() async {
+    await (delete(
+      cachedMerchants,
+    )..where((row) => row.ownerId.equals(ownerId))).go();
+    if (rows.isNotEmpty) {
+      await batch((batch) => batch.insertAll(cachedMerchants, rows));
+    }
+  });
+
+  Future<void> upsertMerchant(CachedMerchantsCompanion row) =>
+      into(cachedMerchants).insertOnConflictUpdate(row);
+
+  Stream<List<CachedProduct>> watchProducts(String ownerId) {
+    final query = select(cachedProducts)
+      ..where((row) => row.ownerId.equals(ownerId))
+      ..orderBy(<OrderClauseGenerator<CachedProducts>>[
+        (row) => OrderingTerm.asc(row.name),
+        (row) => OrderingTerm.asc(row.variantLabel),
+      ]);
+    return query.watch();
+  }
+
+  Future<void> replaceProducts(
+    String ownerId,
+    List<CachedProductsCompanion> rows,
+  ) => transaction(() async {
+    await (delete(
+      cachedProducts,
+    )..where((row) => row.ownerId.equals(ownerId))).go();
+    if (rows.isNotEmpty) {
+      await batch((batch) => batch.insertAll(cachedProducts, rows));
+    }
+  });
+
+  Future<void> upsertProduct(CachedProductsCompanion row) =>
+      into(cachedProducts).insertOnConflictUpdate(row);
 
   Stream<List<CachedTransaction>> watchTransactions(String ownerId) {
     final query = select(cachedTransactions)

@@ -18,6 +18,14 @@ from app.db.models.ledger import (
     TransactionTagModel,
     TransferModel,
 )
+from app.db.models.purchases import (
+    EntityMediaModel,
+    MediaAssetModel,
+    MerchantLocationModel,
+    MerchantModel,
+    ProductModel,
+    TransactionItemModel,
+)
 
 __all__ = [
     "AccountModel",
@@ -27,14 +35,20 @@ __all__ = [
     "CategoryModel",
     "DebtModel",
     "DebtPaymentModel",
+    "EntityMediaModel",
     "ExchangeRateModel",
     "IdempotencyKeyModel",
+    "MediaAssetModel",
+    "MerchantLocationModel",
+    "MerchantModel",
     "PersonModel",
+    "ProductModel",
     "ReallocationLineModel",
     "ReallocationSessionModel",
     "RefreshSessionModel",
     "SharedExpenseShareModel",
     "TagModel",
+    "TransactionItemModel",
     "TransactionModel",
     "TransactionTagModel",
     "TransferModel",

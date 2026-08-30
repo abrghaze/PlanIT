@@ -195,6 +195,22 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
             ondelete="RESTRICT",
         ),
         ForeignKeyConstraint(
+            ("merchant_id", "user_id"),
+            ("merchants.id", "merchants.user_id"),
+            name="fk_transactions_merchant_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ("merchant_location_id", "user_id", "merchant_id"),
+            (
+                "merchant_locations.id",
+                "merchant_locations.user_id",
+                "merchant_locations.merchant_id",
+            ),
+            name="fk_transactions_merchant_location_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
             ("parent_transaction_id", "user_id"),
             ("transactions.id", "transactions.user_id"),
             name="fk_transactions_parent_owner",
@@ -225,6 +241,13 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_transactions_user_occurred_id", "user_id", "occurred_at", "id"),
         Index("ix_transactions_account_occurred_id", "account_id", "occurred_at", "id"),
         Index("ix_transactions_category_occurred_id", "category_id", "occurred_at", "id"),
+        Index("ix_transactions_merchant_occurred_id", "merchant_id", "occurred_at", "id"),
+        Index(
+            "ix_transactions_merchant_location_occurred",
+            "merchant_location_id",
+            "occurred_at",
+            "id",
+        ),
         Index("ix_transactions_parent_transaction_id", "parent_transaction_id"),
         Index("ix_transactions_reversal_of_id", "reversal_of_id"),
     )
@@ -240,6 +263,8 @@ class TransactionModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default=TransactionStatus.DRAFT)
     category_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    merchant_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
+    merchant_location_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))
     counterparty: Mapped[str | None] = mapped_column(String(160))
     note: Mapped[str | None] = mapped_column(Text)
     parent_transaction_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True))

@@ -2465,6 +2465,40 @@ class $CachedTransactionsTable extends CachedTransactions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _merchantIdMeta = const VerificationMeta(
+    'merchantId',
+  );
+  @override
+  late final GeneratedColumn<String> merchantId = GeneratedColumn<String>(
+    'merchant_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _merchantLocationIdMeta =
+      const VerificationMeta('merchantLocationId');
+  @override
+  late final GeneratedColumn<String> merchantLocationId =
+      GeneratedColumn<String>(
+        'merchant_location_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _itemsJsonMeta = const VerificationMeta(
+    'itemsJson',
+  );
+  @override
+  late final GeneratedColumn<String> itemsJson = GeneratedColumn<String>(
+    'items_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant<String>('[]'),
+  );
   static const VerificationMeta _counterpartyMeta = const VerificationMeta(
     'counterparty',
   );
@@ -2621,6 +2655,9 @@ class $CachedTransactionsTable extends CachedTransactions
     occurredAt,
     status,
     categoryId,
+    merchantId,
+    merchantLocationId,
+    itemsJson,
     counterparty,
     note,
     parentTransactionId,
@@ -2719,6 +2756,27 @@ class $CachedTransactionsTable extends CachedTransactions
       context.handle(
         _categoryIdMeta,
         categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('merchant_id')) {
+      context.handle(
+        _merchantIdMeta,
+        merchantId.isAcceptableOrUnknown(data['merchant_id']!, _merchantIdMeta),
+      );
+    }
+    if (data.containsKey('merchant_location_id')) {
+      context.handle(
+        _merchantLocationIdMeta,
+        merchantLocationId.isAcceptableOrUnknown(
+          data['merchant_location_id']!,
+          _merchantLocationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('items_json')) {
+      context.handle(
+        _itemsJsonMeta,
+        itemsJson.isAcceptableOrUnknown(data['items_json']!, _itemsJsonMeta),
       );
     }
     if (data.containsKey('counterparty')) {
@@ -2872,6 +2930,18 @@ class $CachedTransactionsTable extends CachedTransactions
         DriftSqlType.string,
         data['${effectivePrefix}category_id'],
       ),
+      merchantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant_id'],
+      ),
+      merchantLocationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant_location_id'],
+      ),
+      itemsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}items_json'],
+      )!,
       counterparty: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}counterparty'],
@@ -2941,6 +3011,9 @@ class CachedTransaction extends DataClass
   final DateTime occurredAt;
   final String status;
   final String? categoryId;
+  final String? merchantId;
+  final String? merchantLocationId;
+  final String itemsJson;
   final String? counterparty;
   final String? note;
   final String? parentTransactionId;
@@ -2964,6 +3037,9 @@ class CachedTransaction extends DataClass
     required this.occurredAt,
     required this.status,
     this.categoryId,
+    this.merchantId,
+    this.merchantLocationId,
+    required this.itemsJson,
     this.counterparty,
     this.note,
     this.parentTransactionId,
@@ -2992,6 +3068,13 @@ class CachedTransaction extends DataClass
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
     }
+    if (!nullToAbsent || merchantId != null) {
+      map['merchant_id'] = Variable<String>(merchantId);
+    }
+    if (!nullToAbsent || merchantLocationId != null) {
+      map['merchant_location_id'] = Variable<String>(merchantLocationId);
+    }
+    map['items_json'] = Variable<String>(itemsJson);
     if (!nullToAbsent || counterparty != null) {
       map['counterparty'] = Variable<String>(counterparty);
     }
@@ -3033,6 +3116,13 @@ class CachedTransaction extends DataClass
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
+      merchantId: merchantId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchantId),
+      merchantLocationId: merchantLocationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchantLocationId),
+      itemsJson: Value(itemsJson),
       counterparty: counterparty == null && nullToAbsent
           ? const Value.absent()
           : Value(counterparty),
@@ -3074,6 +3164,11 @@ class CachedTransaction extends DataClass
       occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
       status: serializer.fromJson<String>(json['status']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
+      merchantId: serializer.fromJson<String?>(json['merchantId']),
+      merchantLocationId: serializer.fromJson<String?>(
+        json['merchantLocationId'],
+      ),
+      itemsJson: serializer.fromJson<String>(json['itemsJson']),
       counterparty: serializer.fromJson<String?>(json['counterparty']),
       note: serializer.fromJson<String?>(json['note']),
       parentTransactionId: serializer.fromJson<String?>(
@@ -3104,6 +3199,9 @@ class CachedTransaction extends DataClass
       'occurredAt': serializer.toJson<DateTime>(occurredAt),
       'status': serializer.toJson<String>(status),
       'categoryId': serializer.toJson<String?>(categoryId),
+      'merchantId': serializer.toJson<String?>(merchantId),
+      'merchantLocationId': serializer.toJson<String?>(merchantLocationId),
+      'itemsJson': serializer.toJson<String>(itemsJson),
       'counterparty': serializer.toJson<String?>(counterparty),
       'note': serializer.toJson<String?>(note),
       'parentTransactionId': serializer.toJson<String?>(parentTransactionId),
@@ -3130,6 +3228,9 @@ class CachedTransaction extends DataClass
     DateTime? occurredAt,
     String? status,
     Value<String?> categoryId = const Value.absent(),
+    Value<String?> merchantId = const Value.absent(),
+    Value<String?> merchantLocationId = const Value.absent(),
+    String? itemsJson,
     Value<String?> counterparty = const Value.absent(),
     Value<String?> note = const Value.absent(),
     Value<String?> parentTransactionId = const Value.absent(),
@@ -3153,6 +3254,11 @@ class CachedTransaction extends DataClass
     occurredAt: occurredAt ?? this.occurredAt,
     status: status ?? this.status,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    merchantId: merchantId.present ? merchantId.value : this.merchantId,
+    merchantLocationId: merchantLocationId.present
+        ? merchantLocationId.value
+        : this.merchantLocationId,
+    itemsJson: itemsJson ?? this.itemsJson,
     counterparty: counterparty.present ? counterparty.value : this.counterparty,
     note: note.present ? note.value : this.note,
     parentTransactionId: parentTransactionId.present
@@ -3188,6 +3294,13 @@ class CachedTransaction extends DataClass
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
+      merchantId: data.merchantId.present
+          ? data.merchantId.value
+          : this.merchantId,
+      merchantLocationId: data.merchantLocationId.present
+          ? data.merchantLocationId.value
+          : this.merchantLocationId,
+      itemsJson: data.itemsJson.present ? data.itemsJson.value : this.itemsJson,
       counterparty: data.counterparty.present
           ? data.counterparty.value
           : this.counterparty,
@@ -3228,6 +3341,9 @@ class CachedTransaction extends DataClass
           ..write('occurredAt: $occurredAt, ')
           ..write('status: $status, ')
           ..write('categoryId: $categoryId, ')
+          ..write('merchantId: $merchantId, ')
+          ..write('merchantLocationId: $merchantLocationId, ')
+          ..write('itemsJson: $itemsJson, ')
           ..write('counterparty: $counterparty, ')
           ..write('note: $note, ')
           ..write('parentTransactionId: $parentTransactionId, ')
@@ -3256,6 +3372,9 @@ class CachedTransaction extends DataClass
     occurredAt,
     status,
     categoryId,
+    merchantId,
+    merchantLocationId,
+    itemsJson,
     counterparty,
     note,
     parentTransactionId,
@@ -3283,6 +3402,9 @@ class CachedTransaction extends DataClass
           other.occurredAt == this.occurredAt &&
           other.status == this.status &&
           other.categoryId == this.categoryId &&
+          other.merchantId == this.merchantId &&
+          other.merchantLocationId == this.merchantLocationId &&
+          other.itemsJson == this.itemsJson &&
           other.counterparty == this.counterparty &&
           other.note == this.note &&
           other.parentTransactionId == this.parentTransactionId &&
@@ -3308,6 +3430,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
   final Value<DateTime> occurredAt;
   final Value<String> status;
   final Value<String?> categoryId;
+  final Value<String?> merchantId;
+  final Value<String?> merchantLocationId;
+  final Value<String> itemsJson;
   final Value<String?> counterparty;
   final Value<String?> note;
   final Value<String?> parentTransactionId;
@@ -3332,6 +3457,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
     this.occurredAt = const Value.absent(),
     this.status = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.merchantId = const Value.absent(),
+    this.merchantLocationId = const Value.absent(),
+    this.itemsJson = const Value.absent(),
     this.counterparty = const Value.absent(),
     this.note = const Value.absent(),
     this.parentTransactionId = const Value.absent(),
@@ -3357,6 +3485,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
     required DateTime occurredAt,
     required String status,
     this.categoryId = const Value.absent(),
+    this.merchantId = const Value.absent(),
+    this.merchantLocationId = const Value.absent(),
+    this.itemsJson = const Value.absent(),
     this.counterparty = const Value.absent(),
     this.note = const Value.absent(),
     this.parentTransactionId = const Value.absent(),
@@ -3396,6 +3527,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
     Expression<DateTime>? occurredAt,
     Expression<String>? status,
     Expression<String>? categoryId,
+    Expression<String>? merchantId,
+    Expression<String>? merchantLocationId,
+    Expression<String>? itemsJson,
     Expression<String>? counterparty,
     Expression<String>? note,
     Expression<String>? parentTransactionId,
@@ -3421,6 +3555,10 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
       if (occurredAt != null) 'occurred_at': occurredAt,
       if (status != null) 'status': status,
       if (categoryId != null) 'category_id': categoryId,
+      if (merchantId != null) 'merchant_id': merchantId,
+      if (merchantLocationId != null)
+        'merchant_location_id': merchantLocationId,
+      if (itemsJson != null) 'items_json': itemsJson,
       if (counterparty != null) 'counterparty': counterparty,
       if (note != null) 'note': note,
       if (parentTransactionId != null)
@@ -3449,6 +3587,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
     Value<DateTime>? occurredAt,
     Value<String>? status,
     Value<String?>? categoryId,
+    Value<String?>? merchantId,
+    Value<String?>? merchantLocationId,
+    Value<String>? itemsJson,
     Value<String?>? counterparty,
     Value<String?>? note,
     Value<String?>? parentTransactionId,
@@ -3474,6 +3615,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
       occurredAt: occurredAt ?? this.occurredAt,
       status: status ?? this.status,
       categoryId: categoryId ?? this.categoryId,
+      merchantId: merchantId ?? this.merchantId,
+      merchantLocationId: merchantLocationId ?? this.merchantLocationId,
+      itemsJson: itemsJson ?? this.itemsJson,
       counterparty: counterparty ?? this.counterparty,
       note: note ?? this.note,
       parentTransactionId: parentTransactionId ?? this.parentTransactionId,
@@ -3522,6 +3666,15 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (merchantId.present) {
+      map['merchant_id'] = Variable<String>(merchantId.value);
+    }
+    if (merchantLocationId.present) {
+      map['merchant_location_id'] = Variable<String>(merchantLocationId.value);
+    }
+    if (itemsJson.present) {
+      map['items_json'] = Variable<String>(itemsJson.value);
     }
     if (counterparty.present) {
       map['counterparty'] = Variable<String>(counterparty.value);
@@ -3580,6 +3733,9 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
           ..write('occurredAt: $occurredAt, ')
           ..write('status: $status, ')
           ..write('categoryId: $categoryId, ')
+          ..write('merchantId: $merchantId, ')
+          ..write('merchantLocationId: $merchantLocationId, ')
+          ..write('itemsJson: $itemsJson, ')
           ..write('counterparty: $counterparty, ')
           ..write('note: $note, ')
           ..write('parentTransactionId: $parentTransactionId, ')
@@ -3592,6 +3748,633 @@ class CachedTransactionsCompanion extends UpdateCompanion<CachedTransaction> {
           ..write('syncState: $syncState, ')
           ..write('pendingAction: $pendingAction, ')
           ..write('lastSyncError: $lastSyncError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CachedTransactionItemsTable extends CachedTransactionItems
+    with TableInfo<$CachedTransactionItemsTable, CachedTransactionItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedTransactionItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transactionIdMeta = const VerificationMeta(
+    'transactionId',
+  );
+  @override
+  late final GeneratedColumn<String> transactionId = GeneratedColumn<String>(
+    'transaction_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 240,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<String> quantity = GeneratedColumn<String>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unitPriceMeta = const VerificationMeta(
+    'unitPrice',
+  );
+  @override
+  late final GeneratedColumn<String> unitPrice = GeneratedColumn<String>(
+    'unit_price',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _discountMeta = const VerificationMeta(
+    'discount',
+  );
+  @override
+  late final GeneratedColumn<String> discount = GeneratedColumn<String>(
+    'discount',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lineTotalMeta = const VerificationMeta(
+    'lineTotal',
+  );
+  @override
+  late final GeneratedColumn<String> lineTotal = GeneratedColumn<String>(
+    'line_total',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ownerId,
+    transactionId,
+    productId,
+    description,
+    quantity,
+    unitPrice,
+    discount,
+    lineTotal,
+    position,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_transaction_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedTransactionItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('transaction_id')) {
+      context.handle(
+        _transactionIdMeta,
+        transactionId.isAcceptableOrUnknown(
+          data['transaction_id']!,
+          _transactionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_transactionIdMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
+    }
+    if (data.containsKey('unit_price')) {
+      context.handle(
+        _unitPriceMeta,
+        unitPrice.isAcceptableOrUnknown(data['unit_price']!, _unitPriceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_unitPriceMeta);
+    }
+    if (data.containsKey('discount')) {
+      context.handle(
+        _discountMeta,
+        discount.isAcceptableOrUnknown(data['discount']!, _discountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_discountMeta);
+    }
+    if (data.containsKey('line_total')) {
+      context.handle(
+        _lineTotalMeta,
+        lineTotal.isAcceptableOrUnknown(data['line_total']!, _lineTotalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lineTotalMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedTransactionItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedTransactionItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      transactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}transaction_id'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantity'],
+      )!,
+      unitPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit_price'],
+      )!,
+      discount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}discount'],
+      )!,
+      lineTotal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}line_total'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedTransactionItemsTable createAlias(String alias) {
+    return $CachedTransactionItemsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedTransactionItem extends DataClass
+    implements Insertable<CachedTransactionItem> {
+  final String id;
+  final String ownerId;
+  final String transactionId;
+  final String? productId;
+  final String description;
+  final String quantity;
+  final String unitPrice;
+  final String discount;
+  final String lineTotal;
+  final int position;
+  const CachedTransactionItem({
+    required this.id,
+    required this.ownerId,
+    required this.transactionId,
+    this.productId,
+    required this.description,
+    required this.quantity,
+    required this.unitPrice,
+    required this.discount,
+    required this.lineTotal,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
+    map['transaction_id'] = Variable<String>(transactionId);
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
+    map['description'] = Variable<String>(description);
+    map['quantity'] = Variable<String>(quantity);
+    map['unit_price'] = Variable<String>(unitPrice);
+    map['discount'] = Variable<String>(discount);
+    map['line_total'] = Variable<String>(lineTotal);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  CachedTransactionItemsCompanion toCompanion(bool nullToAbsent) {
+    return CachedTransactionItemsCompanion(
+      id: Value(id),
+      ownerId: Value(ownerId),
+      transactionId: Value(transactionId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
+      description: Value(description),
+      quantity: Value(quantity),
+      unitPrice: Value(unitPrice),
+      discount: Value(discount),
+      lineTotal: Value(lineTotal),
+      position: Value(position),
+    );
+  }
+
+  factory CachedTransactionItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedTransactionItem(
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      transactionId: serializer.fromJson<String>(json['transactionId']),
+      productId: serializer.fromJson<String?>(json['productId']),
+      description: serializer.fromJson<String>(json['description']),
+      quantity: serializer.fromJson<String>(json['quantity']),
+      unitPrice: serializer.fromJson<String>(json['unitPrice']),
+      discount: serializer.fromJson<String>(json['discount']),
+      lineTotal: serializer.fromJson<String>(json['lineTotal']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'transactionId': serializer.toJson<String>(transactionId),
+      'productId': serializer.toJson<String?>(productId),
+      'description': serializer.toJson<String>(description),
+      'quantity': serializer.toJson<String>(quantity),
+      'unitPrice': serializer.toJson<String>(unitPrice),
+      'discount': serializer.toJson<String>(discount),
+      'lineTotal': serializer.toJson<String>(lineTotal),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  CachedTransactionItem copyWith({
+    String? id,
+    String? ownerId,
+    String? transactionId,
+    Value<String?> productId = const Value.absent(),
+    String? description,
+    String? quantity,
+    String? unitPrice,
+    String? discount,
+    String? lineTotal,
+    int? position,
+  }) => CachedTransactionItem(
+    id: id ?? this.id,
+    ownerId: ownerId ?? this.ownerId,
+    transactionId: transactionId ?? this.transactionId,
+    productId: productId.present ? productId.value : this.productId,
+    description: description ?? this.description,
+    quantity: quantity ?? this.quantity,
+    unitPrice: unitPrice ?? this.unitPrice,
+    discount: discount ?? this.discount,
+    lineTotal: lineTotal ?? this.lineTotal,
+    position: position ?? this.position,
+  );
+  CachedTransactionItem copyWithCompanion(
+    CachedTransactionItemsCompanion data,
+  ) {
+    return CachedTransactionItem(
+      id: data.id.present ? data.id.value : this.id,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      transactionId: data.transactionId.present
+          ? data.transactionId.value
+          : this.transactionId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
+      discount: data.discount.present ? data.discount.value : this.discount,
+      lineTotal: data.lineTotal.present ? data.lineTotal.value : this.lineTotal,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedTransactionItem(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('productId: $productId, ')
+          ..write('description: $description, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('discount: $discount, ')
+          ..write('lineTotal: $lineTotal, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ownerId,
+    transactionId,
+    productId,
+    description,
+    quantity,
+    unitPrice,
+    discount,
+    lineTotal,
+    position,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedTransactionItem &&
+          other.id == this.id &&
+          other.ownerId == this.ownerId &&
+          other.transactionId == this.transactionId &&
+          other.productId == this.productId &&
+          other.description == this.description &&
+          other.quantity == this.quantity &&
+          other.unitPrice == this.unitPrice &&
+          other.discount == this.discount &&
+          other.lineTotal == this.lineTotal &&
+          other.position == this.position);
+}
+
+class CachedTransactionItemsCompanion
+    extends UpdateCompanion<CachedTransactionItem> {
+  final Value<String> id;
+  final Value<String> ownerId;
+  final Value<String> transactionId;
+  final Value<String?> productId;
+  final Value<String> description;
+  final Value<String> quantity;
+  final Value<String> unitPrice;
+  final Value<String> discount;
+  final Value<String> lineTotal;
+  final Value<int> position;
+  final Value<int> rowid;
+  const CachedTransactionItemsCompanion({
+    this.id = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.description = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.unitPrice = const Value.absent(),
+    this.discount = const Value.absent(),
+    this.lineTotal = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedTransactionItemsCompanion.insert({
+    required String id,
+    required String ownerId,
+    required String transactionId,
+    this.productId = const Value.absent(),
+    required String description,
+    required String quantity,
+    required String unitPrice,
+    required String discount,
+    required String lineTotal,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       ownerId = Value(ownerId),
+       transactionId = Value(transactionId),
+       description = Value(description),
+       quantity = Value(quantity),
+       unitPrice = Value(unitPrice),
+       discount = Value(discount),
+       lineTotal = Value(lineTotal),
+       position = Value(position);
+  static Insertable<CachedTransactionItem> custom({
+    Expression<String>? id,
+    Expression<String>? ownerId,
+    Expression<String>? transactionId,
+    Expression<String>? productId,
+    Expression<String>? description,
+    Expression<String>? quantity,
+    Expression<String>? unitPrice,
+    Expression<String>? discount,
+    Expression<String>? lineTotal,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (transactionId != null) 'transaction_id': transactionId,
+      if (productId != null) 'product_id': productId,
+      if (description != null) 'description': description,
+      if (quantity != null) 'quantity': quantity,
+      if (unitPrice != null) 'unit_price': unitPrice,
+      if (discount != null) 'discount': discount,
+      if (lineTotal != null) 'line_total': lineTotal,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedTransactionItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? ownerId,
+    Value<String>? transactionId,
+    Value<String?>? productId,
+    Value<String>? description,
+    Value<String>? quantity,
+    Value<String>? unitPrice,
+    Value<String>? discount,
+    Value<String>? lineTotal,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return CachedTransactionItemsCompanion(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      transactionId: transactionId ?? this.transactionId,
+      productId: productId ?? this.productId,
+      description: description ?? this.description,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      discount: discount ?? this.discount,
+      lineTotal: lineTotal ?? this.lineTotal,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (transactionId.present) {
+      map['transaction_id'] = Variable<String>(transactionId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<String>(quantity.value);
+    }
+    if (unitPrice.present) {
+      map['unit_price'] = Variable<String>(unitPrice.value);
+    }
+    if (discount.present) {
+      map['discount'] = Variable<String>(discount.value);
+    }
+    if (lineTotal.present) {
+      map['line_total'] = Variable<String>(lineTotal.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedTransactionItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('productId: $productId, ')
+          ..write('description: $description, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('discount: $discount, ')
+          ..write('lineTotal: $lineTotal, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3866,6 +4649,1652 @@ class CachedTransactionTagsCompanion
           ..write('transactionId: $transactionId, ')
           ..write('tagId: $tagId, ')
           ..write('ownerId: $ownerId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CachedMerchantsTable extends CachedMerchants
+    with TableInfo<$CachedMerchantsTable, CachedMerchant> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedMerchantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 160,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationsJsonMeta = const VerificationMeta(
+    'locationsJson',
+  );
+  @override
+  late final GeneratedColumn<String> locationsJson = GeneratedColumn<String>(
+    'locations_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> cachedAt = GeneratedColumn<DateTime>(
+    'cached_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ownerId,
+    name,
+    categoryId,
+    notes,
+    locationsJson,
+    archived,
+    version,
+    createdAt,
+    updatedAt,
+    cachedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_merchants';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedMerchant> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('locations_json')) {
+      context.handle(
+        _locationsJsonMeta,
+        locationsJson.isAcceptableOrUnknown(
+          data['locations_json']!,
+          _locationsJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_locationsJsonMeta);
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_archivedMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_versionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('cached_at')) {
+      context.handle(
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cachedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedMerchant map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedMerchant(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      locationsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}locations_json'],
+      )!,
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}cached_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedMerchantsTable createAlias(String alias) {
+    return $CachedMerchantsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedMerchant extends DataClass implements Insertable<CachedMerchant> {
+  final String id;
+  final String ownerId;
+  final String name;
+  final String? categoryId;
+  final String? notes;
+  final String locationsJson;
+  final bool archived;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime cachedAt;
+  const CachedMerchant({
+    required this.id,
+    required this.ownerId,
+    required this.name,
+    this.categoryId,
+    this.notes,
+    required this.locationsJson,
+    required this.archived,
+    required this.version,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.cachedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['locations_json'] = Variable<String>(locationsJson);
+    map['archived'] = Variable<bool>(archived);
+    map['version'] = Variable<int>(version);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['cached_at'] = Variable<DateTime>(cachedAt);
+    return map;
+  }
+
+  CachedMerchantsCompanion toCompanion(bool nullToAbsent) {
+    return CachedMerchantsCompanion(
+      id: Value(id),
+      ownerId: Value(ownerId),
+      name: Value(name),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      locationsJson: Value(locationsJson),
+      archived: Value(archived),
+      version: Value(version),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      cachedAt: Value(cachedAt),
+    );
+  }
+
+  factory CachedMerchant.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedMerchant(
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      name: serializer.fromJson<String>(json['name']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      locationsJson: serializer.fromJson<String>(json['locationsJson']),
+      archived: serializer.fromJson<bool>(json['archived']),
+      version: serializer.fromJson<int>(json['version']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      cachedAt: serializer.fromJson<DateTime>(json['cachedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'name': serializer.toJson<String>(name),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'notes': serializer.toJson<String?>(notes),
+      'locationsJson': serializer.toJson<String>(locationsJson),
+      'archived': serializer.toJson<bool>(archived),
+      'version': serializer.toJson<int>(version),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'cachedAt': serializer.toJson<DateTime>(cachedAt),
+    };
+  }
+
+  CachedMerchant copyWith({
+    String? id,
+    String? ownerId,
+    String? name,
+    Value<String?> categoryId = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    String? locationsJson,
+    bool? archived,
+    int? version,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? cachedAt,
+  }) => CachedMerchant(
+    id: id ?? this.id,
+    ownerId: ownerId ?? this.ownerId,
+    name: name ?? this.name,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    notes: notes.present ? notes.value : this.notes,
+    locationsJson: locationsJson ?? this.locationsJson,
+    archived: archived ?? this.archived,
+    version: version ?? this.version,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    cachedAt: cachedAt ?? this.cachedAt,
+  );
+  CachedMerchant copyWithCompanion(CachedMerchantsCompanion data) {
+    return CachedMerchant(
+      id: data.id.present ? data.id.value : this.id,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      name: data.name.present ? data.name.value : this.name,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      locationsJson: data.locationsJson.present
+          ? data.locationsJson.value
+          : this.locationsJson,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      version: data.version.present ? data.version.value : this.version,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedMerchant(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('name: $name, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('notes: $notes, ')
+          ..write('locationsJson: $locationsJson, ')
+          ..write('archived: $archived, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('cachedAt: $cachedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ownerId,
+    name,
+    categoryId,
+    notes,
+    locationsJson,
+    archived,
+    version,
+    createdAt,
+    updatedAt,
+    cachedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedMerchant &&
+          other.id == this.id &&
+          other.ownerId == this.ownerId &&
+          other.name == this.name &&
+          other.categoryId == this.categoryId &&
+          other.notes == this.notes &&
+          other.locationsJson == this.locationsJson &&
+          other.archived == this.archived &&
+          other.version == this.version &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.cachedAt == this.cachedAt);
+}
+
+class CachedMerchantsCompanion extends UpdateCompanion<CachedMerchant> {
+  final Value<String> id;
+  final Value<String> ownerId;
+  final Value<String> name;
+  final Value<String?> categoryId;
+  final Value<String?> notes;
+  final Value<String> locationsJson;
+  final Value<bool> archived;
+  final Value<int> version;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime> cachedAt;
+  final Value<int> rowid;
+  const CachedMerchantsCompanion({
+    this.id = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.locationsJson = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.cachedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedMerchantsCompanion.insert({
+    required String id,
+    required String ownerId,
+    required String name,
+    this.categoryId = const Value.absent(),
+    this.notes = const Value.absent(),
+    required String locationsJson,
+    required bool archived,
+    required int version,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    required DateTime cachedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       ownerId = Value(ownerId),
+       name = Value(name),
+       locationsJson = Value(locationsJson),
+       archived = Value(archived),
+       version = Value(version),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       cachedAt = Value(cachedAt);
+  static Insertable<CachedMerchant> custom({
+    Expression<String>? id,
+    Expression<String>? ownerId,
+    Expression<String>? name,
+    Expression<String>? categoryId,
+    Expression<String>? notes,
+    Expression<String>? locationsJson,
+    Expression<bool>? archived,
+    Expression<int>? version,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? cachedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (name != null) 'name': name,
+      if (categoryId != null) 'category_id': categoryId,
+      if (notes != null) 'notes': notes,
+      if (locationsJson != null) 'locations_json': locationsJson,
+      if (archived != null) 'archived': archived,
+      if (version != null) 'version': version,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (cachedAt != null) 'cached_at': cachedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedMerchantsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? ownerId,
+    Value<String>? name,
+    Value<String?>? categoryId,
+    Value<String?>? notes,
+    Value<String>? locationsJson,
+    Value<bool>? archived,
+    Value<int>? version,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime>? cachedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedMerchantsCompanion(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      name: name ?? this.name,
+      categoryId: categoryId ?? this.categoryId,
+      notes: notes ?? this.notes,
+      locationsJson: locationsJson ?? this.locationsJson,
+      archived: archived ?? this.archived,
+      version: version ?? this.version,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      cachedAt: cachedAt ?? this.cachedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (locationsJson.present) {
+      map['locations_json'] = Variable<String>(locationsJson.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<DateTime>(cachedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedMerchantsCompanion(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('name: $name, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('notes: $notes, ')
+          ..write('locationsJson: $locationsJson, ')
+          ..write('archived: $archived, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('cachedAt: $cachedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CachedProductsTable extends CachedProducts
+    with TableInfo<$CachedProductsTable, CachedProduct> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedProductsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentProductIdMeta = const VerificationMeta(
+    'parentProductId',
+  );
+  @override
+  late final GeneratedColumn<String> parentProductId = GeneratedColumn<String>(
+    'parent_product_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 160,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _brandMeta = const VerificationMeta('brand');
+  @override
+  late final GeneratedColumn<String> brand = GeneratedColumn<String>(
+    'brand',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _variantLabelMeta = const VerificationMeta(
+    'variantLabel',
+  );
+  @override
+  late final GeneratedColumn<String> variantLabel = GeneratedColumn<String>(
+    'variant_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeValueMeta = const VerificationMeta(
+    'sizeValue',
+  );
+  @override
+  late final GeneratedColumn<String> sizeValue = GeneratedColumn<String>(
+    'size_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeUnitMeta = const VerificationMeta(
+    'sizeUnit',
+  );
+  @override
+  late final GeneratedColumn<String> sizeUnit = GeneratedColumn<String>(
+    'size_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _barcodeMeta = const VerificationMeta(
+    'barcode',
+  );
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+    'barcode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _defaultMerchantIdMeta = const VerificationMeta(
+    'defaultMerchantId',
+  );
+  @override
+  late final GeneratedColumn<String> defaultMerchantId =
+      GeneratedColumn<String>(
+        'default_merchant_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cachedAtMeta = const VerificationMeta(
+    'cachedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> cachedAt = GeneratedColumn<DateTime>(
+    'cached_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ownerId,
+    parentProductId,
+    name,
+    brand,
+    variantLabel,
+    sizeValue,
+    sizeUnit,
+    barcode,
+    categoryId,
+    defaultMerchantId,
+    notes,
+    archived,
+    version,
+    createdAt,
+    updatedAt,
+    cachedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedProduct> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('parent_product_id')) {
+      context.handle(
+        _parentProductIdMeta,
+        parentProductId.isAcceptableOrUnknown(
+          data['parent_product_id']!,
+          _parentProductIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('brand')) {
+      context.handle(
+        _brandMeta,
+        brand.isAcceptableOrUnknown(data['brand']!, _brandMeta),
+      );
+    }
+    if (data.containsKey('variant_label')) {
+      context.handle(
+        _variantLabelMeta,
+        variantLabel.isAcceptableOrUnknown(
+          data['variant_label']!,
+          _variantLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('size_value')) {
+      context.handle(
+        _sizeValueMeta,
+        sizeValue.isAcceptableOrUnknown(data['size_value']!, _sizeValueMeta),
+      );
+    }
+    if (data.containsKey('size_unit')) {
+      context.handle(
+        _sizeUnitMeta,
+        sizeUnit.isAcceptableOrUnknown(data['size_unit']!, _sizeUnitMeta),
+      );
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(
+        _barcodeMeta,
+        barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('default_merchant_id')) {
+      context.handle(
+        _defaultMerchantIdMeta,
+        defaultMerchantId.isAcceptableOrUnknown(
+          data['default_merchant_id']!,
+          _defaultMerchantIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_archivedMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_versionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('cached_at')) {
+      context.handle(
+        _cachedAtMeta,
+        cachedAt.isAcceptableOrUnknown(data['cached_at']!, _cachedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cachedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedProduct map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedProduct(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      parentProductId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_product_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      brand: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}brand'],
+      ),
+      variantLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}variant_label'],
+      ),
+      sizeValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}size_value'],
+      ),
+      sizeUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}size_unit'],
+      ),
+      barcode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barcode'],
+      ),
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
+      defaultMerchantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_merchant_id'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      cachedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}cached_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedProductsTable createAlias(String alias) {
+    return $CachedProductsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedProduct extends DataClass implements Insertable<CachedProduct> {
+  final String id;
+  final String ownerId;
+  final String? parentProductId;
+  final String name;
+  final String? brand;
+  final String? variantLabel;
+  final String? sizeValue;
+  final String? sizeUnit;
+  final String? barcode;
+  final String? categoryId;
+  final String? defaultMerchantId;
+  final String? notes;
+  final bool archived;
+  final int version;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime cachedAt;
+  const CachedProduct({
+    required this.id,
+    required this.ownerId,
+    this.parentProductId,
+    required this.name,
+    this.brand,
+    this.variantLabel,
+    this.sizeValue,
+    this.sizeUnit,
+    this.barcode,
+    this.categoryId,
+    this.defaultMerchantId,
+    this.notes,
+    required this.archived,
+    required this.version,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.cachedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
+    if (!nullToAbsent || parentProductId != null) {
+      map['parent_product_id'] = Variable<String>(parentProductId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || brand != null) {
+      map['brand'] = Variable<String>(brand);
+    }
+    if (!nullToAbsent || variantLabel != null) {
+      map['variant_label'] = Variable<String>(variantLabel);
+    }
+    if (!nullToAbsent || sizeValue != null) {
+      map['size_value'] = Variable<String>(sizeValue);
+    }
+    if (!nullToAbsent || sizeUnit != null) {
+      map['size_unit'] = Variable<String>(sizeUnit);
+    }
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
+    }
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    if (!nullToAbsent || defaultMerchantId != null) {
+      map['default_merchant_id'] = Variable<String>(defaultMerchantId);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['archived'] = Variable<bool>(archived);
+    map['version'] = Variable<int>(version);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['cached_at'] = Variable<DateTime>(cachedAt);
+    return map;
+  }
+
+  CachedProductsCompanion toCompanion(bool nullToAbsent) {
+    return CachedProductsCompanion(
+      id: Value(id),
+      ownerId: Value(ownerId),
+      parentProductId: parentProductId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentProductId),
+      name: Value(name),
+      brand: brand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(brand),
+      variantLabel: variantLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(variantLabel),
+      sizeValue: sizeValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeValue),
+      sizeUnit: sizeUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeUnit),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      defaultMerchantId: defaultMerchantId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultMerchantId),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      archived: Value(archived),
+      version: Value(version),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      cachedAt: Value(cachedAt),
+    );
+  }
+
+  factory CachedProduct.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedProduct(
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      parentProductId: serializer.fromJson<String?>(json['parentProductId']),
+      name: serializer.fromJson<String>(json['name']),
+      brand: serializer.fromJson<String?>(json['brand']),
+      variantLabel: serializer.fromJson<String?>(json['variantLabel']),
+      sizeValue: serializer.fromJson<String?>(json['sizeValue']),
+      sizeUnit: serializer.fromJson<String?>(json['sizeUnit']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      defaultMerchantId: serializer.fromJson<String?>(
+        json['defaultMerchantId'],
+      ),
+      notes: serializer.fromJson<String?>(json['notes']),
+      archived: serializer.fromJson<bool>(json['archived']),
+      version: serializer.fromJson<int>(json['version']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      cachedAt: serializer.fromJson<DateTime>(json['cachedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'parentProductId': serializer.toJson<String?>(parentProductId),
+      'name': serializer.toJson<String>(name),
+      'brand': serializer.toJson<String?>(brand),
+      'variantLabel': serializer.toJson<String?>(variantLabel),
+      'sizeValue': serializer.toJson<String?>(sizeValue),
+      'sizeUnit': serializer.toJson<String?>(sizeUnit),
+      'barcode': serializer.toJson<String?>(barcode),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'defaultMerchantId': serializer.toJson<String?>(defaultMerchantId),
+      'notes': serializer.toJson<String?>(notes),
+      'archived': serializer.toJson<bool>(archived),
+      'version': serializer.toJson<int>(version),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'cachedAt': serializer.toJson<DateTime>(cachedAt),
+    };
+  }
+
+  CachedProduct copyWith({
+    String? id,
+    String? ownerId,
+    Value<String?> parentProductId = const Value.absent(),
+    String? name,
+    Value<String?> brand = const Value.absent(),
+    Value<String?> variantLabel = const Value.absent(),
+    Value<String?> sizeValue = const Value.absent(),
+    Value<String?> sizeUnit = const Value.absent(),
+    Value<String?> barcode = const Value.absent(),
+    Value<String?> categoryId = const Value.absent(),
+    Value<String?> defaultMerchantId = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    bool? archived,
+    int? version,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? cachedAt,
+  }) => CachedProduct(
+    id: id ?? this.id,
+    ownerId: ownerId ?? this.ownerId,
+    parentProductId: parentProductId.present
+        ? parentProductId.value
+        : this.parentProductId,
+    name: name ?? this.name,
+    brand: brand.present ? brand.value : this.brand,
+    variantLabel: variantLabel.present ? variantLabel.value : this.variantLabel,
+    sizeValue: sizeValue.present ? sizeValue.value : this.sizeValue,
+    sizeUnit: sizeUnit.present ? sizeUnit.value : this.sizeUnit,
+    barcode: barcode.present ? barcode.value : this.barcode,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    defaultMerchantId: defaultMerchantId.present
+        ? defaultMerchantId.value
+        : this.defaultMerchantId,
+    notes: notes.present ? notes.value : this.notes,
+    archived: archived ?? this.archived,
+    version: version ?? this.version,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    cachedAt: cachedAt ?? this.cachedAt,
+  );
+  CachedProduct copyWithCompanion(CachedProductsCompanion data) {
+    return CachedProduct(
+      id: data.id.present ? data.id.value : this.id,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      parentProductId: data.parentProductId.present
+          ? data.parentProductId.value
+          : this.parentProductId,
+      name: data.name.present ? data.name.value : this.name,
+      brand: data.brand.present ? data.brand.value : this.brand,
+      variantLabel: data.variantLabel.present
+          ? data.variantLabel.value
+          : this.variantLabel,
+      sizeValue: data.sizeValue.present ? data.sizeValue.value : this.sizeValue,
+      sizeUnit: data.sizeUnit.present ? data.sizeUnit.value : this.sizeUnit,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      defaultMerchantId: data.defaultMerchantId.present
+          ? data.defaultMerchantId.value
+          : this.defaultMerchantId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      version: data.version.present ? data.version.value : this.version,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      cachedAt: data.cachedAt.present ? data.cachedAt.value : this.cachedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedProduct(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('parentProductId: $parentProductId, ')
+          ..write('name: $name, ')
+          ..write('brand: $brand, ')
+          ..write('variantLabel: $variantLabel, ')
+          ..write('sizeValue: $sizeValue, ')
+          ..write('sizeUnit: $sizeUnit, ')
+          ..write('barcode: $barcode, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('defaultMerchantId: $defaultMerchantId, ')
+          ..write('notes: $notes, ')
+          ..write('archived: $archived, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('cachedAt: $cachedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ownerId,
+    parentProductId,
+    name,
+    brand,
+    variantLabel,
+    sizeValue,
+    sizeUnit,
+    barcode,
+    categoryId,
+    defaultMerchantId,
+    notes,
+    archived,
+    version,
+    createdAt,
+    updatedAt,
+    cachedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedProduct &&
+          other.id == this.id &&
+          other.ownerId == this.ownerId &&
+          other.parentProductId == this.parentProductId &&
+          other.name == this.name &&
+          other.brand == this.brand &&
+          other.variantLabel == this.variantLabel &&
+          other.sizeValue == this.sizeValue &&
+          other.sizeUnit == this.sizeUnit &&
+          other.barcode == this.barcode &&
+          other.categoryId == this.categoryId &&
+          other.defaultMerchantId == this.defaultMerchantId &&
+          other.notes == this.notes &&
+          other.archived == this.archived &&
+          other.version == this.version &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.cachedAt == this.cachedAt);
+}
+
+class CachedProductsCompanion extends UpdateCompanion<CachedProduct> {
+  final Value<String> id;
+  final Value<String> ownerId;
+  final Value<String?> parentProductId;
+  final Value<String> name;
+  final Value<String?> brand;
+  final Value<String?> variantLabel;
+  final Value<String?> sizeValue;
+  final Value<String?> sizeUnit;
+  final Value<String?> barcode;
+  final Value<String?> categoryId;
+  final Value<String?> defaultMerchantId;
+  final Value<String?> notes;
+  final Value<bool> archived;
+  final Value<int> version;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime> cachedAt;
+  final Value<int> rowid;
+  const CachedProductsCompanion({
+    this.id = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.parentProductId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.brand = const Value.absent(),
+    this.variantLabel = const Value.absent(),
+    this.sizeValue = const Value.absent(),
+    this.sizeUnit = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.defaultMerchantId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.version = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.cachedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedProductsCompanion.insert({
+    required String id,
+    required String ownerId,
+    this.parentProductId = const Value.absent(),
+    required String name,
+    this.brand = const Value.absent(),
+    this.variantLabel = const Value.absent(),
+    this.sizeValue = const Value.absent(),
+    this.sizeUnit = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.defaultMerchantId = const Value.absent(),
+    this.notes = const Value.absent(),
+    required bool archived,
+    required int version,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    required DateTime cachedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       ownerId = Value(ownerId),
+       name = Value(name),
+       archived = Value(archived),
+       version = Value(version),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       cachedAt = Value(cachedAt);
+  static Insertable<CachedProduct> custom({
+    Expression<String>? id,
+    Expression<String>? ownerId,
+    Expression<String>? parentProductId,
+    Expression<String>? name,
+    Expression<String>? brand,
+    Expression<String>? variantLabel,
+    Expression<String>? sizeValue,
+    Expression<String>? sizeUnit,
+    Expression<String>? barcode,
+    Expression<String>? categoryId,
+    Expression<String>? defaultMerchantId,
+    Expression<String>? notes,
+    Expression<bool>? archived,
+    Expression<int>? version,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? cachedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (parentProductId != null) 'parent_product_id': parentProductId,
+      if (name != null) 'name': name,
+      if (brand != null) 'brand': brand,
+      if (variantLabel != null) 'variant_label': variantLabel,
+      if (sizeValue != null) 'size_value': sizeValue,
+      if (sizeUnit != null) 'size_unit': sizeUnit,
+      if (barcode != null) 'barcode': barcode,
+      if (categoryId != null) 'category_id': categoryId,
+      if (defaultMerchantId != null) 'default_merchant_id': defaultMerchantId,
+      if (notes != null) 'notes': notes,
+      if (archived != null) 'archived': archived,
+      if (version != null) 'version': version,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (cachedAt != null) 'cached_at': cachedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedProductsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? ownerId,
+    Value<String?>? parentProductId,
+    Value<String>? name,
+    Value<String?>? brand,
+    Value<String?>? variantLabel,
+    Value<String?>? sizeValue,
+    Value<String?>? sizeUnit,
+    Value<String?>? barcode,
+    Value<String?>? categoryId,
+    Value<String?>? defaultMerchantId,
+    Value<String?>? notes,
+    Value<bool>? archived,
+    Value<int>? version,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime>? cachedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedProductsCompanion(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      parentProductId: parentProductId ?? this.parentProductId,
+      name: name ?? this.name,
+      brand: brand ?? this.brand,
+      variantLabel: variantLabel ?? this.variantLabel,
+      sizeValue: sizeValue ?? this.sizeValue,
+      sizeUnit: sizeUnit ?? this.sizeUnit,
+      barcode: barcode ?? this.barcode,
+      categoryId: categoryId ?? this.categoryId,
+      defaultMerchantId: defaultMerchantId ?? this.defaultMerchantId,
+      notes: notes ?? this.notes,
+      archived: archived ?? this.archived,
+      version: version ?? this.version,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      cachedAt: cachedAt ?? this.cachedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (parentProductId.present) {
+      map['parent_product_id'] = Variable<String>(parentProductId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (brand.present) {
+      map['brand'] = Variable<String>(brand.value);
+    }
+    if (variantLabel.present) {
+      map['variant_label'] = Variable<String>(variantLabel.value);
+    }
+    if (sizeValue.present) {
+      map['size_value'] = Variable<String>(sizeValue.value);
+    }
+    if (sizeUnit.present) {
+      map['size_unit'] = Variable<String>(sizeUnit.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (defaultMerchantId.present) {
+      map['default_merchant_id'] = Variable<String>(defaultMerchantId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (cachedAt.present) {
+      map['cached_at'] = Variable<DateTime>(cachedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedProductsCompanion(')
+          ..write('id: $id, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('parentProductId: $parentProductId, ')
+          ..write('name: $name, ')
+          ..write('brand: $brand, ')
+          ..write('variantLabel: $variantLabel, ')
+          ..write('sizeValue: $sizeValue, ')
+          ..write('sizeUnit: $sizeUnit, ')
+          ..write('barcode: $barcode, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('defaultMerchantId: $defaultMerchantId, ')
+          ..write('notes: $notes, ')
+          ..write('archived: $archived, ')
+          ..write('version: $version, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('cachedAt: $cachedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4560,8 +6989,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CachedTagsTable cachedTags = $CachedTagsTable(this);
   late final $CachedTransactionsTable cachedTransactions =
       $CachedTransactionsTable(this);
+  late final $CachedTransactionItemsTable cachedTransactionItems =
+      $CachedTransactionItemsTable(this);
   late final $CachedTransactionTagsTable cachedTransactionTags =
       $CachedTransactionTagsTable(this);
+  late final $CachedMerchantsTable cachedMerchants = $CachedMerchantsTable(
+    this,
+  );
+  late final $CachedProductsTable cachedProducts = $CachedProductsTable(this);
   late final $OutboxOperationsTable outboxOperations = $OutboxOperationsTable(
     this,
   );
@@ -4574,7 +7009,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedCategories,
     cachedTags,
     cachedTransactions,
+    cachedTransactionItems,
     cachedTransactionTags,
+    cachedMerchants,
+    cachedProducts,
     outboxOperations,
   ];
 }
@@ -5668,6 +8106,9 @@ typedef $$CachedTransactionsTableCreateCompanionBuilder =
       required DateTime occurredAt,
       required String status,
       Value<String?> categoryId,
+      Value<String?> merchantId,
+      Value<String?> merchantLocationId,
+      Value<String> itemsJson,
       Value<String?> counterparty,
       Value<String?> note,
       Value<String?> parentTransactionId,
@@ -5694,6 +8135,9 @@ typedef $$CachedTransactionsTableUpdateCompanionBuilder =
       Value<DateTime> occurredAt,
       Value<String> status,
       Value<String?> categoryId,
+      Value<String?> merchantId,
+      Value<String?> merchantLocationId,
+      Value<String> itemsJson,
       Value<String?> counterparty,
       Value<String?> note,
       Value<String?> parentTransactionId,
@@ -5765,6 +8209,21 @@ class $$CachedTransactionsTableFilterComposer
 
   ColumnFilters<String> get categoryId => $composableBuilder(
     column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchantLocationId => $composableBuilder(
+    column: $table.merchantLocationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemsJson => $composableBuilder(
+    column: $table.itemsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5888,6 +8347,21 @@ class $$CachedTransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchantLocationId => $composableBuilder(
+    column: $table.merchantLocationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get itemsJson => $composableBuilder(
+    column: $table.itemsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get counterparty => $composableBuilder(
     column: $table.counterparty,
     builder: (column) => ColumnOrderings(column),
@@ -5992,6 +8466,19 @@ class $$CachedTransactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get merchantLocationId => $composableBuilder(
+    column: $table.merchantLocationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get itemsJson =>
+      $composableBuilder(column: $table.itemsJson, builder: (column) => column);
+
   GeneratedColumn<String> get counterparty => $composableBuilder(
     column: $table.counterparty,
     builder: (column) => column,
@@ -6091,6 +8578,9 @@ class $$CachedTransactionsTableTableManager
                 Value<DateTime> occurredAt = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
+                Value<String?> merchantId = const Value.absent(),
+                Value<String?> merchantLocationId = const Value.absent(),
+                Value<String> itemsJson = const Value.absent(),
                 Value<String?> counterparty = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> parentTransactionId = const Value.absent(),
@@ -6115,6 +8605,9 @@ class $$CachedTransactionsTableTableManager
                 occurredAt: occurredAt,
                 status: status,
                 categoryId: categoryId,
+                merchantId: merchantId,
+                merchantLocationId: merchantLocationId,
+                itemsJson: itemsJson,
                 counterparty: counterparty,
                 note: note,
                 parentTransactionId: parentTransactionId,
@@ -6141,6 +8634,9 @@ class $$CachedTransactionsTableTableManager
                 required DateTime occurredAt,
                 required String status,
                 Value<String?> categoryId = const Value.absent(),
+                Value<String?> merchantId = const Value.absent(),
+                Value<String?> merchantLocationId = const Value.absent(),
+                Value<String> itemsJson = const Value.absent(),
                 Value<String?> counterparty = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<String?> parentTransactionId = const Value.absent(),
@@ -6165,6 +8661,9 @@ class $$CachedTransactionsTableTableManager
                 occurredAt: occurredAt,
                 status: status,
                 categoryId: categoryId,
+                merchantId: merchantId,
+                merchantLocationId: merchantLocationId,
+                itemsJson: itemsJson,
                 counterparty: counterparty,
                 note: note,
                 parentTransactionId: parentTransactionId,
@@ -6206,6 +8705,324 @@ typedef $$CachedTransactionsTableProcessedTableManager =
         >,
       ),
       CachedTransaction,
+      PrefetchHooks Function()
+    >;
+typedef $$CachedTransactionItemsTableCreateCompanionBuilder =
+    CachedTransactionItemsCompanion Function({
+      required String id,
+      required String ownerId,
+      required String transactionId,
+      Value<String?> productId,
+      required String description,
+      required String quantity,
+      required String unitPrice,
+      required String discount,
+      required String lineTotal,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$CachedTransactionItemsTableUpdateCompanionBuilder =
+    CachedTransactionItemsCompanion Function({
+      Value<String> id,
+      Value<String> ownerId,
+      Value<String> transactionId,
+      Value<String?> productId,
+      Value<String> description,
+      Value<String> quantity,
+      Value<String> unitPrice,
+      Value<String> discount,
+      Value<String> lineTotal,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+class $$CachedTransactionItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedTransactionItemsTable> {
+  $$CachedTransactionItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get discount => $composableBuilder(
+    column: $table.discount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lineTotal => $composableBuilder(
+    column: $table.lineTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedTransactionItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedTransactionItemsTable> {
+  $$CachedTransactionItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get discount => $composableBuilder(
+    column: $table.discount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lineTotal => $composableBuilder(
+    column: $table.lineTotal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedTransactionItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedTransactionItemsTable> {
+  $$CachedTransactionItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get transactionId => $composableBuilder(
+    column: $table.transactionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get unitPrice =>
+      $composableBuilder(column: $table.unitPrice, builder: (column) => column);
+
+  GeneratedColumn<String> get discount =>
+      $composableBuilder(column: $table.discount, builder: (column) => column);
+
+  GeneratedColumn<String> get lineTotal =>
+      $composableBuilder(column: $table.lineTotal, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$CachedTransactionItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedTransactionItemsTable,
+          CachedTransactionItem,
+          $$CachedTransactionItemsTableFilterComposer,
+          $$CachedTransactionItemsTableOrderingComposer,
+          $$CachedTransactionItemsTableAnnotationComposer,
+          $$CachedTransactionItemsTableCreateCompanionBuilder,
+          $$CachedTransactionItemsTableUpdateCompanionBuilder,
+          (
+            CachedTransactionItem,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedTransactionItemsTable,
+              CachedTransactionItem
+            >,
+          ),
+          CachedTransactionItem,
+          PrefetchHooks Function()
+        > {
+  $$CachedTransactionItemsTableTableManager(
+    _$AppDatabase db,
+    $CachedTransactionItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedTransactionItemsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CachedTransactionItemsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CachedTransactionItemsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
+                Value<String> transactionId = const Value.absent(),
+                Value<String?> productId = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> quantity = const Value.absent(),
+                Value<String> unitPrice = const Value.absent(),
+                Value<String> discount = const Value.absent(),
+                Value<String> lineTotal = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedTransactionItemsCompanion(
+                id: id,
+                ownerId: ownerId,
+                transactionId: transactionId,
+                productId: productId,
+                description: description,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                discount: discount,
+                lineTotal: lineTotal,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String ownerId,
+                required String transactionId,
+                Value<String?> productId = const Value.absent(),
+                required String description,
+                required String quantity,
+                required String unitPrice,
+                required String discount,
+                required String lineTotal,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedTransactionItemsCompanion.insert(
+                id: id,
+                ownerId: ownerId,
+                transactionId: transactionId,
+                productId: productId,
+                description: description,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                discount: discount,
+                lineTotal: lineTotal,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedTransactionItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedTransactionItemsTable,
+      CachedTransactionItem,
+      $$CachedTransactionItemsTableFilterComposer,
+      $$CachedTransactionItemsTableOrderingComposer,
+      $$CachedTransactionItemsTableAnnotationComposer,
+      $$CachedTransactionItemsTableCreateCompanionBuilder,
+      $$CachedTransactionItemsTableUpdateCompanionBuilder,
+      (
+        CachedTransactionItem,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedTransactionItemsTable,
+          CachedTransactionItem
+        >,
+      ),
+      CachedTransactionItem,
       PrefetchHooks Function()
     >;
 typedef $$CachedTransactionTagsTableCreateCompanionBuilder =
@@ -6389,6 +9206,768 @@ typedef $$CachedTransactionTagsTableProcessedTableManager =
         >,
       ),
       CachedTransactionTag,
+      PrefetchHooks Function()
+    >;
+typedef $$CachedMerchantsTableCreateCompanionBuilder =
+    CachedMerchantsCompanion Function({
+      required String id,
+      required String ownerId,
+      required String name,
+      Value<String?> categoryId,
+      Value<String?> notes,
+      required String locationsJson,
+      required bool archived,
+      required int version,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      required DateTime cachedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedMerchantsTableUpdateCompanionBuilder =
+    CachedMerchantsCompanion Function({
+      Value<String> id,
+      Value<String> ownerId,
+      Value<String> name,
+      Value<String?> categoryId,
+      Value<String?> notes,
+      Value<String> locationsJson,
+      Value<bool> archived,
+      Value<int> version,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime> cachedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedMerchantsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedMerchantsTable> {
+  $$CachedMerchantsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationsJson => $composableBuilder(
+    column: $table.locationsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedMerchantsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedMerchantsTable> {
+  $$CachedMerchantsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get locationsJson => $composableBuilder(
+    column: $table.locationsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedMerchantsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedMerchantsTable> {
+  $$CachedMerchantsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get locationsJson => $composableBuilder(
+    column: $table.locationsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
+}
+
+class $$CachedMerchantsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedMerchantsTable,
+          CachedMerchant,
+          $$CachedMerchantsTableFilterComposer,
+          $$CachedMerchantsTableOrderingComposer,
+          $$CachedMerchantsTableAnnotationComposer,
+          $$CachedMerchantsTableCreateCompanionBuilder,
+          $$CachedMerchantsTableUpdateCompanionBuilder,
+          (
+            CachedMerchant,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedMerchantsTable,
+              CachedMerchant
+            >,
+          ),
+          CachedMerchant,
+          PrefetchHooks Function()
+        > {
+  $$CachedMerchantsTableTableManager(
+    _$AppDatabase db,
+    $CachedMerchantsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedMerchantsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedMerchantsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedMerchantsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String> locationsJson = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime> cachedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedMerchantsCompanion(
+                id: id,
+                ownerId: ownerId,
+                name: name,
+                categoryId: categoryId,
+                notes: notes,
+                locationsJson: locationsJson,
+                archived: archived,
+                version: version,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String ownerId,
+                required String name,
+                Value<String?> categoryId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                required String locationsJson,
+                required bool archived,
+                required int version,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                required DateTime cachedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedMerchantsCompanion.insert(
+                id: id,
+                ownerId: ownerId,
+                name: name,
+                categoryId: categoryId,
+                notes: notes,
+                locationsJson: locationsJson,
+                archived: archived,
+                version: version,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedMerchantsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedMerchantsTable,
+      CachedMerchant,
+      $$CachedMerchantsTableFilterComposer,
+      $$CachedMerchantsTableOrderingComposer,
+      $$CachedMerchantsTableAnnotationComposer,
+      $$CachedMerchantsTableCreateCompanionBuilder,
+      $$CachedMerchantsTableUpdateCompanionBuilder,
+      (
+        CachedMerchant,
+        BaseReferences<_$AppDatabase, $CachedMerchantsTable, CachedMerchant>,
+      ),
+      CachedMerchant,
+      PrefetchHooks Function()
+    >;
+typedef $$CachedProductsTableCreateCompanionBuilder =
+    CachedProductsCompanion Function({
+      required String id,
+      required String ownerId,
+      Value<String?> parentProductId,
+      required String name,
+      Value<String?> brand,
+      Value<String?> variantLabel,
+      Value<String?> sizeValue,
+      Value<String?> sizeUnit,
+      Value<String?> barcode,
+      Value<String?> categoryId,
+      Value<String?> defaultMerchantId,
+      Value<String?> notes,
+      required bool archived,
+      required int version,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      required DateTime cachedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedProductsTableUpdateCompanionBuilder =
+    CachedProductsCompanion Function({
+      Value<String> id,
+      Value<String> ownerId,
+      Value<String?> parentProductId,
+      Value<String> name,
+      Value<String?> brand,
+      Value<String?> variantLabel,
+      Value<String?> sizeValue,
+      Value<String?> sizeUnit,
+      Value<String?> barcode,
+      Value<String?> categoryId,
+      Value<String?> defaultMerchantId,
+      Value<String?> notes,
+      Value<bool> archived,
+      Value<int> version,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime> cachedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedProductsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedProductsTable> {
+  $$CachedProductsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parentProductId => $composableBuilder(
+    column: $table.parentProductId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get brand => $composableBuilder(
+    column: $table.brand,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get variantLabel => $composableBuilder(
+    column: $table.variantLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sizeValue => $composableBuilder(
+    column: $table.sizeValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sizeUnit => $composableBuilder(
+    column: $table.sizeUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultMerchantId => $composableBuilder(
+    column: $table.defaultMerchantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedProductsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedProductsTable> {
+  $$CachedProductsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parentProductId => $composableBuilder(
+    column: $table.parentProductId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get brand => $composableBuilder(
+    column: $table.brand,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get variantLabel => $composableBuilder(
+    column: $table.variantLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sizeValue => $composableBuilder(
+    column: $table.sizeValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sizeUnit => $composableBuilder(
+    column: $table.sizeUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultMerchantId => $composableBuilder(
+    column: $table.defaultMerchantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get cachedAt => $composableBuilder(
+    column: $table.cachedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedProductsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedProductsTable> {
+  $$CachedProductsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get parentProductId => $composableBuilder(
+    column: $table.parentProductId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get brand =>
+      $composableBuilder(column: $table.brand, builder: (column) => column);
+
+  GeneratedColumn<String> get variantLabel => $composableBuilder(
+    column: $table.variantLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sizeValue =>
+      $composableBuilder(column: $table.sizeValue, builder: (column) => column);
+
+  GeneratedColumn<String> get sizeUnit =>
+      $composableBuilder(column: $table.sizeUnit, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultMerchantId => $composableBuilder(
+    column: $table.defaultMerchantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get cachedAt =>
+      $composableBuilder(column: $table.cachedAt, builder: (column) => column);
+}
+
+class $$CachedProductsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedProductsTable,
+          CachedProduct,
+          $$CachedProductsTableFilterComposer,
+          $$CachedProductsTableOrderingComposer,
+          $$CachedProductsTableAnnotationComposer,
+          $$CachedProductsTableCreateCompanionBuilder,
+          $$CachedProductsTableUpdateCompanionBuilder,
+          (
+            CachedProduct,
+            BaseReferences<_$AppDatabase, $CachedProductsTable, CachedProduct>,
+          ),
+          CachedProduct,
+          PrefetchHooks Function()
+        > {
+  $$CachedProductsTableTableManager(
+    _$AppDatabase db,
+    $CachedProductsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedProductsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedProductsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedProductsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
+                Value<String?> parentProductId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> brand = const Value.absent(),
+                Value<String?> variantLabel = const Value.absent(),
+                Value<String?> sizeValue = const Value.absent(),
+                Value<String?> sizeUnit = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<String?> defaultMerchantId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime> cachedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedProductsCompanion(
+                id: id,
+                ownerId: ownerId,
+                parentProductId: parentProductId,
+                name: name,
+                brand: brand,
+                variantLabel: variantLabel,
+                sizeValue: sizeValue,
+                sizeUnit: sizeUnit,
+                barcode: barcode,
+                categoryId: categoryId,
+                defaultMerchantId: defaultMerchantId,
+                notes: notes,
+                archived: archived,
+                version: version,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String ownerId,
+                Value<String?> parentProductId = const Value.absent(),
+                required String name,
+                Value<String?> brand = const Value.absent(),
+                Value<String?> variantLabel = const Value.absent(),
+                Value<String?> sizeValue = const Value.absent(),
+                Value<String?> sizeUnit = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<String?> defaultMerchantId = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                required bool archived,
+                required int version,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                required DateTime cachedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedProductsCompanion.insert(
+                id: id,
+                ownerId: ownerId,
+                parentProductId: parentProductId,
+                name: name,
+                brand: brand,
+                variantLabel: variantLabel,
+                sizeValue: sizeValue,
+                sizeUnit: sizeUnit,
+                barcode: barcode,
+                categoryId: categoryId,
+                defaultMerchantId: defaultMerchantId,
+                notes: notes,
+                archived: archived,
+                version: version,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                cachedAt: cachedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedProductsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedProductsTable,
+      CachedProduct,
+      $$CachedProductsTableFilterComposer,
+      $$CachedProductsTableOrderingComposer,
+      $$CachedProductsTableAnnotationComposer,
+      $$CachedProductsTableCreateCompanionBuilder,
+      $$CachedProductsTableUpdateCompanionBuilder,
+      (
+        CachedProduct,
+        BaseReferences<_$AppDatabase, $CachedProductsTable, CachedProduct>,
+      ),
+      CachedProduct,
       PrefetchHooks Function()
     >;
 typedef $$OutboxOperationsTableCreateCompanionBuilder =
@@ -6729,8 +10308,17 @@ class $AppDatabaseManager {
       $$CachedTagsTableTableManager(_db, _db.cachedTags);
   $$CachedTransactionsTableTableManager get cachedTransactions =>
       $$CachedTransactionsTableTableManager(_db, _db.cachedTransactions);
+  $$CachedTransactionItemsTableTableManager get cachedTransactionItems =>
+      $$CachedTransactionItemsTableTableManager(
+        _db,
+        _db.cachedTransactionItems,
+      );
   $$CachedTransactionTagsTableTableManager get cachedTransactionTags =>
       $$CachedTransactionTagsTableTableManager(_db, _db.cachedTransactionTags);
+  $$CachedMerchantsTableTableManager get cachedMerchants =>
+      $$CachedMerchantsTableTableManager(_db, _db.cachedMerchants);
+  $$CachedProductsTableTableManager get cachedProducts =>
+      $$CachedProductsTableTableManager(_db, _db.cachedProducts);
   $$OutboxOperationsTableTableManager get outboxOperations =>
       $$OutboxOperationsTableTableManager(_db, _db.outboxOperations);
 }

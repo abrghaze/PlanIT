@@ -1,5 +1,53 @@
 import 'package:planit_mobile/core/money/money.dart';
 
+final class PurchaseItem {
+  const PurchaseItem({
+    required this.id,
+    required this.productId,
+    required this.description,
+    required this.quantity,
+    required this.unitPrice,
+    required this.discount,
+    required this.lineTotal,
+    required this.position,
+  });
+
+  final String id;
+  final String? productId;
+  final String description;
+  final String quantity;
+  final String unitPrice;
+  final String discount;
+  final String lineTotal;
+  final int position;
+
+  factory PurchaseItem.fromJson(Map<String, Object?> json) => PurchaseItem(
+    id: json['id']! as String,
+    productId: json['product_id'] as String?,
+    description: json['description']! as String,
+    quantity: '${json['quantity']}',
+    unitPrice: '${json['unit_price']}',
+    discount: '${json['discount']}',
+    lineTotal: '${json['line_total']}',
+    position: json['position']! as int,
+  );
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'product_id': productId,
+    'description': description,
+    'quantity': quantity,
+    'unit_price': unitPrice,
+    'discount': discount,
+  };
+
+  Map<String, Object?> toCacheJson() => <String, Object?>{
+    ...toJson(),
+    'line_total': lineTotal,
+    'position': position,
+  };
+}
+
 enum TransactionType {
   expense,
   income,
@@ -158,9 +206,12 @@ final class LedgerTransaction {
     required this.occurredAt,
     required this.status,
     required this.categoryId,
+    this.merchantId,
+    this.merchantLocationId,
     required this.counterparty,
     required this.note,
     required this.tagIds,
+    this.items = const <PurchaseItem>[],
     required this.parentTransactionId,
     required this.reversalOfId,
     required this.clientOperationId,
@@ -181,9 +232,12 @@ final class LedgerTransaction {
   final DateTime occurredAt;
   final TransactionStatus status;
   final String? categoryId;
+  final String? merchantId;
+  final String? merchantLocationId;
   final String? counterparty;
   final String? note;
   final List<String> tagIds;
+  final List<PurchaseItem> items;
   final String? parentTransactionId;
   final String? reversalOfId;
   final String clientOperationId;
@@ -214,10 +268,18 @@ final class LedgerTransaction {
       occurredAt: DateTime.parse(json['occurred_at']! as String).toUtc(),
       status: TransactionStatusContract.fromApi(json['status']! as String),
       categoryId: json['category_id'] as String?,
+      merchantId: json['merchant_id'] as String?,
+      merchantLocationId: json['merchant_location_id'] as String?,
       counterparty: json['counterparty'] as String?,
       note: json['note'] as String?,
       tagIds: (json['tag_ids']! as List)
           .map((value) => value as String)
+          .toList(growable: false),
+      items: ((json['items'] as List?) ?? const <Object>[])
+          .map(
+            (value) =>
+                PurchaseItem.fromJson(Map<String, Object?>.from(value as Map)),
+          )
           .toList(growable: false),
       parentTransactionId: json['parent_transaction_id'] as String?,
       reversalOfId: json['reversal_of_id'] as String?,
@@ -251,9 +313,12 @@ final class LedgerTransaction {
       occurredAt: occurredAt,
       status: status ?? this.status,
       categoryId: categoryId,
+      merchantId: merchantId,
+      merchantLocationId: merchantLocationId,
       counterparty: counterparty,
       note: note,
       tagIds: tagIds,
+      items: items,
       parentTransactionId: parentTransactionId,
       reversalOfId: reversalOfId,
       clientOperationId: clientOperationId,
@@ -280,9 +345,12 @@ final class TransactionDraft {
     required this.amount,
     required this.occurredAt,
     required this.categoryId,
+    this.merchantId,
+    this.merchantLocationId,
     required this.counterparty,
     required this.note,
     required this.tagIds,
+    this.items = const <PurchaseItem>[],
   });
 
   final String id;
@@ -292,9 +360,12 @@ final class TransactionDraft {
   final Money amount;
   final DateTime occurredAt;
   final String? categoryId;
+  final String? merchantId;
+  final String? merchantLocationId;
   final String? counterparty;
   final String? note;
   final List<String> tagIds;
+  final List<PurchaseItem> items;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
@@ -307,9 +378,12 @@ final class TransactionDraft {
     },
     'occurred_at': occurredAt.toUtc().toIso8601String(),
     'category_id': categoryId,
+    'merchant_id': merchantId,
+    'merchant_location_id': merchantLocationId,
     'counterparty': counterparty,
     'note': note,
     'tag_ids': tagIds,
+    'items': items.map((item) => item.toJson()).toList(growable: false),
   };
 
   LedgerTransaction toPendingTransaction({required String ownerId}) {
@@ -324,9 +398,12 @@ final class TransactionDraft {
       occurredAt: occurredAt.toUtc(),
       status: TransactionStatus.draft,
       categoryId: categoryId,
+      merchantId: merchantId,
+      merchantLocationId: merchantLocationId,
       counterparty: counterparty,
       note: note,
       tagIds: List<String>.unmodifiable(tagIds),
+      items: List<PurchaseItem>.unmodifiable(items),
       parentTransactionId: null,
       reversalOfId: null,
       clientOperationId: clientOperationId,
@@ -348,9 +425,12 @@ final class TransactionEdit {
     required this.amount,
     required this.occurredAt,
     required this.categoryId,
+    this.merchantId,
+    this.merchantLocationId,
     required this.counterparty,
     required this.note,
     required this.tagIds,
+    this.items = const <PurchaseItem>[],
   });
 
   final int version;
@@ -359,9 +439,12 @@ final class TransactionEdit {
   final Money amount;
   final DateTime occurredAt;
   final String? categoryId;
+  final String? merchantId;
+  final String? merchantLocationId;
   final String? counterparty;
   final String? note;
   final List<String> tagIds;
+  final List<PurchaseItem> items;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'version': version,
@@ -373,9 +456,12 @@ final class TransactionEdit {
     },
     'occurred_at': occurredAt.toUtc().toIso8601String(),
     'category_id': categoryId,
+    'merchant_id': merchantId,
+    'merchant_location_id': merchantLocationId,
     'counterparty': counterparty,
     'note': note,
     'tag_ids': tagIds,
+    'items': items.map((item) => item.toJson()).toList(growable: false),
   };
 
   LedgerTransaction applyTo(
@@ -393,9 +479,12 @@ final class TransactionEdit {
       occurredAt: occurredAt.toUtc(),
       status: TransactionStatus.draft,
       categoryId: categoryId,
+      merchantId: merchantId,
+      merchantLocationId: merchantLocationId,
       counterparty: counterparty,
       note: note,
       tagIds: List<String>.unmodifiable(tagIds),
+      items: List<PurchaseItem>.unmodifiable(items),
       parentTransactionId: current.parentTransactionId,
       reversalOfId: current.reversalOfId,
       clientOperationId: current.clientOperationId,

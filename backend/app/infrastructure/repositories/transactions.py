@@ -9,11 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.ledger import TransactionModel, TransactionTagModel
 from app.domain.ledger.entities import TransactionSnapshot
 from app.domain.money import Money
+from app.domain.purchases.entities import TransactionItemSnapshot
+from app.infrastructure.repositories.purchases import PurchaseRepository
 
 
 class TransactionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+        self._purchases = PurchaseRepository(session)
 
     def add(self, transaction: TransactionModel) -> None:
         self._session.add(transaction)
@@ -76,7 +79,11 @@ class TransactionRepository:
         )
         models = list((await self._session.scalars(statement)).all())
         tags = await self._tag_map([model.id for model in models])
-        return [self._to_snapshot(model, tags.get(model.id, ())) for model in models]
+        items = await self._purchases.items_for(transaction_ids=[model.id for model in models])
+        return [
+            self._to_snapshot(model, tags.get(model.id, ()), items.get(model.id, ()))
+            for model in models
+        ]
 
     async def get_snapshot(
         self,
@@ -88,11 +95,17 @@ class TransactionRepository:
         if model is None:
             return None
         tags = await self.tag_ids(transaction_id=model.id)
-        return self._to_snapshot(model, tags)
+        items = await self._purchases.items_for(transaction_ids=[model.id])
+        return self._to_snapshot(model, tags, items.get(model.id, ()))
 
     async def snapshot_for(self, model: TransactionModel) -> TransactionSnapshot:
         await self._session.refresh(model)
-        return self._to_snapshot(model, await self.tag_ids(transaction_id=model.id))
+        items = await self._purchases.items_for(transaction_ids=[model.id])
+        return self._to_snapshot(
+            model,
+            await self.tag_ids(transaction_id=model.id),
+            items.get(model.id, ()),
+        )
 
     async def tag_ids(self, *, transaction_id: UUID) -> tuple[UUID, ...]:
         statement = (
@@ -144,6 +157,7 @@ class TransactionRepository:
     def _to_snapshot(
         model: TransactionModel,
         tag_ids: tuple[UUID, ...],
+        items: tuple[TransactionItemSnapshot, ...],
     ) -> TransactionSnapshot:
         return TransactionSnapshot(
             id=model.id,
@@ -155,9 +169,12 @@ class TransactionRepository:
             occurred_at=model.occurred_at,
             status=model.status,
             category_id=model.category_id,
+            merchant_id=model.merchant_id,
+            merchant_location_id=model.merchant_location_id,
             counterparty=model.counterparty,
             note=model.note,
             tag_ids=tag_ids,
+            items=items,
             parent_transaction_id=model.parent_transaction_id,
             reversal_of_id=model.reversal_of_id,
             client_operation_id=model.client_operation_id,

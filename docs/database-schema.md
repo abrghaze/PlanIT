@@ -3,9 +3,9 @@
 PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPTZ` in UTC, and money is `NUMERIC(19,4)`. Every user-owned aggregate has an ownership path that can be checked server-side. Posted financial history is append-oriented.
 
 The identity/control, account/ledger, category, tag, transfer, reconciliation,
-reallocation, debt, sharing, and refund structures below are present through
-Milestone 4. Purchase detail, automation, goals, and media tables describe the
-approved later-milestone schema and are not migrated yet.
+reallocation, debt, sharing, refund, purchase-detail, and media structures below
+are present through Milestone 5. Automation and goal tables remain approved
+later-milestone schema and are not migrated yet.
 
 ## Identity and control
 
@@ -22,7 +22,7 @@ approved later-milestone schema and are not migrated yet.
 | Table | Purpose | Critical fields and rules |
 |---|---|---|
 | `accounts` | Owned money containers | currency, immutable opening balance after posting, opened time, inclusion/negative policy, lifecycle, version |
-| `transactions` | One account movement | positive amount, `INFLOW/OUTFLOW`, classification kind, draft/posted/reversed status, category/counterparty metadata, optional parent/reversal links, unique client operation ID |
+| `transactions` | One account movement | positive amount, `INFLOW/OUTFLOW`, classification kind, draft/posted/reversed status, category/counterparty and optional merchant/branch metadata, optional parent/reversal links, unique client operation ID |
 | `transfers` | Atomic transfer grouping | unique source/destination transaction IDs, optional unique fee transaction, source/destination amounts, explicit FX rate |
 | `balance_reconciliations` | Real-balance correction | calculated/actual/delta, effective time, unique adjustment transaction |
 | `reallocation_sessions` | Fixed-total commit | same currency, fixed total, balancing account, preview fingerprint |
@@ -63,6 +63,11 @@ prevent cross-user balancing accounts, lines, movements, or group links.
 | `tags` / `transaction_tags` | Context independent of category (migrated) | unique active normalized name per user; owner-safe composite link key; posted links immutable |
 | media link tables | Private image relationships | ordered links from verified media assets to transactions, products, merchants |
 
+Milestone 5 uses deferred validators to require exact item/expense totals and
+block item changes after posting. Composite foreign keys keep merchant, branch,
+product, transaction, and media ownership coherent. Object bytes never enter
+PostgreSQL.
+
 ## Debts and sharing
 
 | Table | Purpose | Critical fields and rules |
@@ -85,7 +90,7 @@ coherence, overpayment, one active share per person/expense, and refund/share ca
 | `recurring_rules` | Subscription/bill/income template | schedule, timezone, next due, reminder/auto-create mode, version |
 | `recurring_occurrences` | Scheduler deduplication | unique `(rule_id, scheduled_for)`, optional generated transaction |
 | `savings_goals` | Non-spending target | target amount/currency/date, linked account or manual progress, status |
-| `media_assets` | Private object metadata | owner, storage key, MIME, size, checksum, lifecycle/finalized state |
+| `media_assets` | Private object metadata (migrated) | owner, private storage key, MIME, bounded size, pending/finalized lifecycle |
 
 ## Integrity and deletion
 

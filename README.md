@@ -4,9 +4,9 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.5.0` completes Milestone 4. The tested
-> application now supports people, receivables/payables, lend/borrow-now, atomic
-> repayments, shared-expense recovery, capped refunds, and durable offline delivery.
+> **Implementation status:** release `0.6.0` completes Milestone 5. The tested
+> application now adds searchable shops/branches, reusable product variants,
+> exact itemized purchases, offline purchase caches, and private signed receipt media.
 
 ## Approved target architecture
 
@@ -28,7 +28,7 @@ plans/     Product specification and technical blueprint
 
 ## Current milestone
 
-Milestones 0 through 4 are complete. The current release provides:
+Milestones 0 through 5 are complete. The current release provides:
 
 - Argon2id registration/login and short-lived JWT access tokens.
 - Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
@@ -47,8 +47,12 @@ Milestones 0 through 4 are complete. The current release provides:
 - Shared-expense receivables that preserve the original gross expense, enforce one share per person, and reject concurrent over-allocation.
 - Linked refund inflows with category/tag continuity and database-enforced refund/share caps.
 - Mobile debt list/detail/create/repay screens plus expense share/refund flows, all delivered through the durable financial outbox.
+- Searchable merchant brands with optional branches and owner-safe transaction references.
+- Reusable product families/variants, barcode and package-size metadata, including gram/millilitre normalization.
+- Itemized expense entry with exact quantity/price/discount arithmetic, explicit unspecified-item balancing, immutable posted snapshots, and offline item caching.
+- Private JPEG/PNG/WebP media reservations, five-minute signed URLs, verified finalization, and mobile receipt upload independent from product/transaction creation.
 
-Milestone 5 adds merchants, locations, products, itemized purchases, and private receipt media.
+Milestone 6 adds trustworthy analytics and merchant/product views over these facts.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.

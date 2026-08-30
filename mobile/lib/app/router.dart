@@ -17,6 +17,8 @@ import 'package:planit_mobile/features/financial_operations/presentation/reconci
 import 'package:planit_mobile/features/financial_operations/presentation/transfer_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
+import 'package:planit_mobile/features/purchases/presentation/merchants_screen.dart';
+import 'package:planit_mobile/features/purchases/presentation/products_screen.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 import 'package:planit_mobile/features/transactions/presentation/catalog_screen.dart';
 import 'package:planit_mobile/features/transactions/presentation/transaction_detail_screen.dart';
@@ -85,6 +87,14 @@ final GoRouter authenticatedRouter = GoRouter(
               AccountFormScreen(accountId: state.pathParameters['accountId']),
         ),
       ],
+    ),
+    GoRoute(
+      path: '/merchants',
+      builder: (context, state) => const MerchantsScreen(),
+    ),
+    GoRoute(
+      path: '/products',
+      builder: (context, state) => const ProductsScreen(),
     ),
     GoRoute(
       path: '/transactions/new',

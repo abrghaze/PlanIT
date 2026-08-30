@@ -113,6 +113,8 @@ void main() {
     expect(transactionsRepository.createCount, 1);
     expect(transactionsRepository.lastDraft?.categoryId, isNull);
     expect(transactionsRepository.lastPostAfterCreate, isFalse);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }
 

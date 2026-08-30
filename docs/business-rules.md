@@ -75,6 +75,21 @@ This document converts open questions in the product specification into safe ini
 - MVP accepts an amount-level refund. The schema/API will allow item-level allocations later without changing the ledger entry.
 - If an expense has reimbursement shares, a refund that would make active shares exceed the remaining gross expense is rejected until shares are adjusted in the same reviewed workflow. The server never silently changes another person's obligation.
 
+## Purchase detail and private media
+
+- A merchant is the shop/business identity; an optional merchant location is a
+  branch and must belong to the selected merchant and user.
+- Products are reusable across merchants. Family and package variants remain
+  distinct; kilograms normalize to grams and litres to millilitres.
+- Purchase lines are allowed only on expenses. Quantity is positive; unit price
+  and discount are non-negative; line total is round-half-even to four decimals.
+- If any lines are present, their sum must equal the expense amount exactly. The
+  mobile app adds an explicit `Unspecified items` line for a positive remainder.
+- Posted purchase lines and description snapshots are immutable.
+- Receipt/product/shop images are JPEG, PNG, or WebP and at most 10 MB. Storage
+  is private; five-minute signed URLs require ownership checks. Finalization
+  verifies object size and MIME, and upload failure never removes the entity.
+
 ## Currency conversion
 
 - Original amounts and transaction FX rates are immutable.
