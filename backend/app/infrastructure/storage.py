@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 
-import boto3  # type: ignore[import-not-found]
-from botocore.client import Config  # type: ignore[import-not-found]
+import boto3
+from botocore.client import Config
 
 from app.core.config import Settings
 from app.domain.errors import DomainError
