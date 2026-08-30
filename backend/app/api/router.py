@@ -9,6 +9,7 @@ from app.api.v1.debts import debts_router, people_router
 from app.api.v1.health import router as health_router
 from app.api.v1.media import router as media_router
 from app.api.v1.planning import goals_router, recurring_router
+from app.api.v1.privacy import router as privacy_router
 from app.api.v1.purchases import router as purchases_router
 from app.api.v1.sharing import shares_router, transaction_sharing_router
 from app.api.v1.transactions import router as transactions_router
@@ -24,6 +25,7 @@ api_router.include_router(purchases_router, tags=["purchases"])
 api_router.include_router(media_router, tags=["media"])
 api_router.include_router(recurring_router, tags=["recurring"])
 api_router.include_router(goals_router, tags=["goals"])
+api_router.include_router(privacy_router, tags=["privacy"])
 api_router.include_router(transactions_router, tags=["transactions"])
 api_router.include_router(transfers_router, tags=["transfers"])
 api_router.include_router(corrections_router, tags=["corrections"])

@@ -17,6 +17,7 @@ from app.domain.analytics.entities import (
     BreakdownRow,
     ExchangeRateSnapshot,
     ProductAnalyticsRow,
+    SpendingInsight,
     TrendPoint,
 )
 from app.domain.analytics.enums import AnalyticsGranularity, AnalyticsPreset
@@ -172,6 +173,27 @@ class ProductAnalyticsRowResponse(BaseModel):
         )
 
 
+class SpendingInsightResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    transaction_id: UUID
+    occurred_at: datetime
+    amount: MoneyPayload
+    baseline: MoneyPayload
+    multiple: Decimal
+    explanation: str
+
+    @classmethod
+    def from_domain(cls, value: SpendingInsight) -> Self:
+        return cls(
+            transaction_id=value.transaction_id,
+            occurred_at=value.occurred_at,
+            amount=MoneyPayload.from_domain(value.amount),
+            baseline=MoneyPayload.from_domain(value.baseline),
+            multiple=value.multiple,
+            explanation=value.explanation,
+        )
+
+
 class AnalyticsDashboardResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     generated_at: datetime
@@ -179,6 +201,7 @@ class AnalyticsDashboardResponse(BaseModel):
     period: AnalyticsPeriodResponse
     kpis: AnalyticsKpisResponse
     warnings: list[AnalyticsWarningResponse]
+    spending_insights: list[SpendingInsightResponse]
     trend: list[TrendPointResponse]
     categories: list[BreakdownRowResponse]
     merchants: list[BreakdownRowResponse]
@@ -195,6 +218,9 @@ class AnalyticsDashboardResponse(BaseModel):
             period=AnalyticsPeriodResponse.from_domain(value.period),
             kpis=AnalyticsKpisResponse.from_domain(value.kpis),
             warnings=[AnalyticsWarningResponse.from_domain(item) for item in value.warnings],
+            spending_insights=[
+                SpendingInsightResponse.from_domain(item) for item in value.spending_insights
+            ],
             trend=[TrendPointResponse.from_domain(item) for item in value.trend],
             categories=[BreakdownRowResponse.from_domain(item) for item in value.categories],
             merchants=[BreakdownRowResponse.from_domain(item) for item in value.merchants],

@@ -290,6 +290,34 @@ class _DashboardBody extends StatelessWidget {
         ],
         const SizedBox(height: PlanItSpacing.md),
         _KpiGrid(dashboard: dashboard),
+        if (dashboard.spendingInsights.isNotEmpty) ...<Widget>[
+          const SizedBox(height: PlanItSpacing.lg),
+          const _SectionTitle(
+            title: 'Spending checks',
+            subtitle: 'Explainable comparisons with your median expense',
+          ),
+          const SizedBox(height: PlanItSpacing.sm),
+          ...dashboard.spendingInsights.map(
+            (insight) => Card(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  child: Icon(Icons.manage_search_rounded),
+                ),
+                title: Text(
+                  '${insight.amount.toDisplayString()} · ${insight.multiple}× usual',
+                ),
+                subtitle: Text(
+                  '${insight.explanation} Median: ${insight.baseline.toDisplayString()}.',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => onSources(
+                  'Spending check',
+                  <String>[insight.transactionId],
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: PlanItSpacing.lg),
         const _SectionTitle(
           title: 'Spending and income',

@@ -14,9 +14,10 @@ async def test_health_contract() -> None:
 
     assert response.status_code == 200
     assert response.headers["X-Request-ID"] == "test-request"
+    assert response.headers["Server-Timing"].startswith("app;dur=")
     assert response.json() == {
         "status": "ok",
         "service": "PlanIT API",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "environment": "test",
     }

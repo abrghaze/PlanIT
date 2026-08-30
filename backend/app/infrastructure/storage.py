@@ -67,3 +67,29 @@ class PrivateObjectStorage:
             size_bytes=int(response.get("ContentLength", 0)),
             content_type=str(response.get("ContentType", "")),
         )
+
+    async def delete_many(self, *, keys: list[str]) -> None:
+        """Permanently remove private objects, reporting partial S3 failures."""
+        for offset in range(0, len(keys), 1000):
+            chunk = keys[offset : offset + 1000]
+            if not chunk:
+                continue
+            try:
+                response = await asyncio.to_thread(
+                    self._client.delete_objects,
+                    Bucket=self._bucket,
+                    Delete={
+                        "Objects": [{"Key": key} for key in chunk],
+                        "Quiet": True,
+                    },
+                )
+            except Exception as exc:
+                raise DomainError(
+                    "MEDIA_DELETE_FAILED",
+                    "Private media could not be removed. The profile was not deleted.",
+                ) from exc
+            if response.get("Errors"):
+                raise DomainError(
+                    "MEDIA_DELETE_FAILED",
+                    "Private media could not be removed. The profile was not deleted.",
+                )

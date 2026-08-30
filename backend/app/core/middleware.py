@@ -45,15 +45,19 @@ def register_middleware(app: FastAPI, *, allowed_origins: list[str]) -> None:
         started = time.perf_counter()
 
         response = await call_next(request)
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         response.headers["X-Request-ID"] = request_id
+        response.headers["Server-Timing"] = f"app;dur={duration_ms}"
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", "unmatched")
         logger.info(
             "request_complete",
             extra={
                 "request_id": request_id,
                 "method": request.method,
-                "path": request.url.path,
+                "route": route_path,
                 "status_code": response.status_code,
-                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+                "duration_ms": duration_ms,
             },
         )
         return response

@@ -47,7 +47,11 @@ class MoreScreen extends ConsumerWidget {
         label: 'Savings goals',
         onTap: () => context.push('/goals'),
       ),
-      (icon: Icons.settings_outlined, label: 'Settings', onTap: null),
+      (
+        icon: Icons.settings_outlined,
+        label: 'Settings',
+        onTap: () => context.push('/settings'),
+      ),
     ];
 
     return ListView(
@@ -91,9 +95,6 @@ class MoreScreen extends ConsumerWidget {
             child: ListTile(
               leading: Icon(entry.icon),
               title: Text(entry.label),
-              subtitle: entry.onTap == null
-                  ? const Text('Coming in a later milestone')
-                  : null,
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: entry.onTap,
             ),

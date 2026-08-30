@@ -4,9 +4,9 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.8.0` completes Milestone 7. The tested
-> application now includes recurring commitments, duplicate-safe reminders and
-> reviewable drafts, savings goals, and owner-scoped offline planning projections.
+> **Implementation status:** release `0.9.0` completes Milestone 8. The tested
+> application now includes privacy exports and deletion, release observability,
+> continuously verified database restore, accessible Settings, and optional-provider seams.
 
 ## Approved target architecture
 
@@ -26,9 +26,9 @@ docs/      Architecture, contracts, data dictionary, ADRs, operations
 plans/     Product specification and technical blueprint
 ```
 
-## Current milestone
+## Completed milestones
 
-Milestones 0 through 7 are complete. The current release provides:
+Milestones 0 through 8 are complete. The current release provides:
 
 - Argon2id registration/login and short-lived JWT access tokens.
 - Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
@@ -60,8 +60,15 @@ Milestones 0 through 7 are complete. The current release provides:
 - Duplicate-safe due occurrences processed by a bounded scheduler worker or app refresh; reminders remain non-financial and automatic rules create reviewable drafts only.
 - Manual savings allocations and linked-account goals with exact progress/remaining values; allocations never create ledger spending.
 - Recurring and goal mobile screens backed by an owner-scoped Drift v5 cache for useful offline planning visibility.
+- Owner-scoped transaction and balance CSV exports plus a portable JSON backup that excludes credentials, private storage keys, and receipt bytes.
+- Password-and-phrase-gated profile deletion that removes private objects, cascades financial data, and invalidates every session.
+- A complete Settings experience with offline-aware data controls, security explanations, scalable Material controls, semantic section labels, and deliberate destructive-action UX.
+- Privacy-safe structured request logs, route-level latency timing, stable request correlation, a protected restore runbook, and a database dump/restore drill in CI.
+- Explainable spending checks that flag expenses above twice the period median only after a useful history exists, always linking back to the source transaction.
+- Provider-neutral OCR and bank-import contracts that remain disabled without explicit provider configuration, consent, and cost review; manual entry is always available.
+- Debug APK and release-mode Android App Bundle compilation gates. Production signing and the real HTTPS API URL remain deployment secrets, never repository content.
 
-Milestone 8 adds advanced integrations, hardening, accessibility, privacy workflows, and store-readiness.
+The ordered source-of-truth roadmap is complete; future work is post-roadmap product evolution.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.

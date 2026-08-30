@@ -75,6 +75,7 @@ _DOMAIN_STATUS_CODES = {
     "TRANSFER_NOT_FOUND": 404,
     "UNAUTHORIZED_ENTITY": 404,
     "MEDIA_STORAGE_UNAVAILABLE": 503,
+    "MEDIA_DELETE_FAILED": 503,
     "AUTH_RATE_LIMITED": 429,
     "INVALID_CREDENTIALS": 401,
     "INVALID_REFRESH_TOKEN": 401,
@@ -189,7 +190,7 @@ def register_error_handlers(app: FastAPI) -> None:
             extra={
                 "request_id": _request_id(request),
                 "method": request.method,
-                "path": request.url.path,
+                "route": getattr(request.scope.get("route"), "path", "unmatched"),
             },
             exc_info=exc,
         )

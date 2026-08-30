@@ -9,6 +9,7 @@ void main() {
 
     expect(dashboard.kpis.personalSpending.toApiString(), '75.2500');
     expect(dashboard.categories.single.sourceTransactionIds, <String>['tx-1']);
+    expect(dashboard.spendingInsights.single.multiple, '4.50');
     expect(dashboard.products.single.normalizedUnit, 'ML');
     expect(
       dashboard.products.single.normalizedAveragePrice!.toApiString(),
@@ -82,6 +83,16 @@ Map<String, Object?> _dashboardJson() => <String, Object?>{
     'complete': true,
   },
   'warnings': <Object?>[],
+  'spending_insights': <Object?>[
+    <String, Object?>{
+      'transaction_id': 'tx-1',
+      'occurred_at': '2026-08-30T10:00:00Z',
+      'amount': _money('225.0000'),
+      'baseline': _money('50.0000'),
+      'multiple': '4.50',
+      'explanation': 'This expense is more than twice the median.',
+    },
+  ],
   'trend': <Object?>[
     <String, Object?>{
       'period_start': '2026-08-30',

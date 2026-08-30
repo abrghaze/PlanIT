@@ -92,6 +92,9 @@ jobs:
       - name: Compile Android debug app
         working-directory: mobile
         run: flutter build apk --debug --no-pub
+      - name: Compile store-mode Android bundle
+        working-directory: mobile
+        run: flutter build appbundle --release --no-pub --dart-define=PLANIT_API_BASE_URL=https://api.example.com/api/v1
 
   containers:
     runs-on: ubuntu-latest
@@ -106,6 +109,13 @@ jobs:
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/health
           curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/ready
+      - name: Prove database backup and restore
+        run: |
+          docker compose -f infra/docker-compose.yml exec -T postgres pg_dump --username=planit --dbname=planit --format=custom --file=/tmp/planit-ci.dump
+          docker compose -f infra/docker-compose.yml exec -T postgres createdb --username=planit planit_restore_ci
+          docker compose -f infra/docker-compose.yml exec -T postgres pg_restore --username=planit --dbname=planit_restore_ci --exit-on-error --no-owner /tmp/planit-ci.dump
+          docker compose -f infra/docker-compose.yml exec -T postgres psql --username=planit --dbname=planit_restore_ci --tuples-only --command "SELECT version_num FROM alembic_version;"
+          docker compose -f infra/docker-compose.yml exec -T postgres dropdb --username=planit planit_restore_ci
       - name: Show container logs after failure
         if: failure()
         run: docker compose -f infra/docker-compose.yml logs --no-color

@@ -4,7 +4,8 @@ PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPT
 
 The identity/control, account/ledger, category, tag, transfer, reconciliation,
 reallocation, debt, sharing, refund, purchase-detail, media, automation, and goal
-structures below are present through Milestone 7.
+structures below are present through Milestone 8. Milestone 8 adds no tables;
+privacy workflows operate over the existing owner-linked schema.
 
 ## Identity and control
 

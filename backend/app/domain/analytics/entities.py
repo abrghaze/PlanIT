@@ -77,12 +77,23 @@ class ProductAnalyticsRow:
 
 
 @dataclass(frozen=True, slots=True)
+class SpendingInsight:
+    transaction_id: UUID
+    occurred_at: datetime
+    amount: Money
+    baseline: Money
+    multiple: Decimal
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
 class AnalyticsDashboard:
     generated_at: datetime
     base_currency: str
     period: AnalyticsPeriod
     kpis: AnalyticsKpis
     warnings: tuple[AnalyticsWarning, ...]
+    spending_insights: tuple[SpendingInsight, ...]
     trend: tuple[TrendPoint, ...]
     categories: tuple[BreakdownRow, ...]
     merchants: tuple[BreakdownRow, ...]

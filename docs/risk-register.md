@@ -13,9 +13,12 @@
 | Outbox dependency reordering | A post/reversal reaches the server before its prerequisite draft | One owner-ordered queue, atomic local entity/outbox writes, deterministic creation timestamps |
 | Permanent financial sync rejection | Endless retries hide a version or validation conflict | Park 404/409/422 operations as visible conflicts; retain payload/operation ID for review |
 | Sensitive financial data in logs/media | Privacy and security breach | Redacted structured logs, private buckets, short-lived signed URLs |
+| Unrecoverable database incident | Permanent loss of financial history | Encrypted backups, protected restore targets, documented runbook, and a full dump/restore drill in CI |
+| Incomplete profile erasure | Private data survives an account deletion request | Password plus exact phrase, object deletion before database cascade, owner-isolation and media-cleanup integration tests |
+| Optional provider lock-in or surprise cost | Core workflows depend on a paid OCR/banking service | Provider-neutral contracts, disabled defaults, manual-entry fallback, and explicit consent/cost review before enablement |
 | Credential stuffing or account enumeration | Account takeover and privacy leakage | Generic login failures, Argon2id verification including dummy hashes, persistent keyed throttling |
 | Refresh-token theft or replay | Long-lived unauthorized access | Opaque hashed rotating tokens, replacement-chain replay detection and revocation, auditable session events |
 | Cross-owner API/cache access | One user sees another user's financial data | Server-derived ownership, not-found masking, composite constraints, owner-partitioned Drift queries and tests |
 | Concurrent account edits | Silent lost updates | Row locks plus required optimistic `version`; stale writes return `VERSION_CONFLICT` |
 | Archived MinIO upstream | Unmaintained local dependency | Provider-neutral S3 adapter; active Garage release for local development |
-| Android SDK absent on this workstation | An Android APK cannot be compiled locally | CI pins Flutter 3.47.1 and builds the debug APK; local Flutter analysis, widget tests, and web compilation cover platform-neutral startup |
+| Android SDK absent on this workstation | Android artifacts cannot be compiled locally | CI pins Flutter 3.47.1 and builds both a debug APK and release-mode App Bundle after format, analysis, generated-code, and test gates |

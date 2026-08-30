@@ -218,6 +218,34 @@ final class ProductAnalyticsRow {
       );
 }
 
+final class SpendingInsight {
+  const SpendingInsight({
+    required this.transactionId,
+    required this.occurredAt,
+    required this.amount,
+    required this.baseline,
+    required this.multiple,
+    required this.explanation,
+  });
+
+  final String transactionId;
+  final DateTime occurredAt;
+  final Money amount;
+  final Money baseline;
+  final String multiple;
+  final String explanation;
+
+  factory SpendingInsight.fromJson(Map<String, Object?> json) =>
+      SpendingInsight(
+        transactionId: json['transaction_id']! as String,
+        occurredAt: DateTime.parse(json['occurred_at']! as String).toUtc(),
+        amount: _money(json['amount']),
+        baseline: _money(json['baseline']),
+        multiple: json['multiple'].toString(),
+        explanation: json['explanation']! as String,
+      );
+}
+
 final class AnalyticsDashboard {
   const AnalyticsDashboard({
     required this.generatedAt,
@@ -225,6 +253,7 @@ final class AnalyticsDashboard {
     required this.periodLabel,
     required this.kpis,
     required this.warnings,
+    required this.spendingInsights,
     required this.trend,
     required this.categories,
     required this.merchants,
@@ -241,6 +270,7 @@ final class AnalyticsDashboard {
   final String periodLabel;
   final AnalyticsKpis kpis;
   final List<AnalyticsWarning> warnings;
+  final List<SpendingInsight> spendingInsights;
   final List<TrendPoint> trend;
   final List<BreakdownRow> categories;
   final List<BreakdownRow> merchants;
@@ -257,6 +287,7 @@ final class AnalyticsDashboard {
     periodLabel: periodLabel,
     kpis: kpis,
     warnings: warnings,
+    spendingInsights: spendingInsights,
     trend: trend,
     categories: categories,
     merchants: merchants,
@@ -276,6 +307,10 @@ final class AnalyticsDashboard {
       periodLabel: '${period['local_from']} – ${period['local_to']}',
       kpis: AnalyticsKpis.fromJson(_map(json['kpis'])),
       warnings: _list(json['warnings'], AnalyticsWarning.fromJson),
+      spendingInsights: _list(
+        json['spending_insights'] ?? const <Object?>[],
+        SpendingInsight.fromJson,
+      ),
       trend: _list(json['trend'], TrendPoint.fromJson),
       categories: _list(json['categories'], BreakdownRow.fromJson),
       merchants: _list(json['merchants'], BreakdownRow.fromJson),

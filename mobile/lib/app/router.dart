@@ -21,6 +21,7 @@ import 'package:planit_mobile/features/planning/presentation/goals_screen.dart';
 import 'package:planit_mobile/features/planning/presentation/recurring_screen.dart';
 import 'package:planit_mobile/features/purchases/presentation/merchants_screen.dart';
 import 'package:planit_mobile/features/purchases/presentation/products_screen.dart';
+import 'package:planit_mobile/features/settings/presentation/settings_screen.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 import 'package:planit_mobile/features/transactions/presentation/catalog_screen.dart';
 import 'package:planit_mobile/features/transactions/presentation/transaction_detail_screen.dart';
@@ -103,6 +104,10 @@ final GoRouter authenticatedRouter = GoRouter(
       builder: (context, state) => const RecurringScreen(),
     ),
     GoRoute(path: '/goals', builder: (context, state) => const GoalsScreen()),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
     GoRoute(
       path: '/transactions/new',
       builder: (context, state) => TransactionFormScreen(

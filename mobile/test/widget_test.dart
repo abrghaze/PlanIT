@@ -128,6 +128,48 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });
+
+  testWidgets('More opens the real privacy and security settings', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            _FakeAuthRepository(_session(), restoreSession: true),
+          ),
+          accountsRepositoryProvider.overrideWithValue(
+            _FakeAccountsRepository(),
+          ),
+          transactionsRepositoryProvider.overrideWithValue(
+            _FakeTransactionsRepository(),
+          ),
+          catalogRepositoryProvider.overrideWithValue(_FakeCatalogRepository()),
+          analyticsDashboardProvider.overrideWith(
+            (ref, AnalyticsFilter filter) => Future<AnalyticsDashboard>.error(
+              StateError('Analytics is not needed in this settings test.'),
+            ),
+          ),
+        ],
+        child: const PlanItApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(NavigationDestination, 'More'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ListTile, 'Settings'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.widgetWithText(ListTile, 'Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your data'), findsOneWidget);
+    expect(find.text('Export transactions'), findsOneWidget);
+    expect(find.text('Delete profile permanently'), findsOneWidget);
+  });
 }
 
 final class _FakeTransactionsRepository implements TransactionsRepository {

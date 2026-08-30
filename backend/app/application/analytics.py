@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
+from statistics import median
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,7 @@ from app.domain.analytics.entities import (
     BreakdownRow,
     ExchangeRateSnapshot,
     ProductAnalyticsRow,
+    SpendingInsight,
     TrendPoint,
 )
 from app.domain.analytics.enums import AnalyticsGranularity, AnalyticsPreset
@@ -228,6 +230,7 @@ class AnalyticsService:
         tag_rows: dict[UUID | None, _AmountAccumulator] = defaultdict(_AmountAccumulator)
         account_rows: dict[UUID, _FlowAccumulator] = defaultdict(_FlowAccumulator)
         product_rows: dict[UUID, _ProductAccumulator] = defaultdict(_ProductAccumulator)
+        spending_candidates: list[tuple[TransactionModel, Decimal]] = []
 
         period_transactions = [
             value
@@ -259,6 +262,12 @@ class AnalyticsService:
                 converter=converter,
             )
             personal_contribution = gross_contribution - share
+            if (
+                transaction.type == TransactionKind.EXPENSE
+                and transaction.status == "POSTED"
+                and personal_contribution > 0
+            ):
+                spending_candidates.append((transaction, personal_contribution))
             income_contribution = converted * classification.income_multiplier
             gross_spending += gross_contribution
             personal_spending += personal_contribution
@@ -336,6 +345,10 @@ class AnalyticsService:
             period=period,
             kpis=kpis,
             warnings=tuple(warning_values),
+            spending_insights=_spending_insights(
+                spending_candidates,
+                currency=base_currency,
+            ),
             trend=tuple(
                 TrendPoint(
                     period_start=key,
@@ -530,6 +543,36 @@ class AnalyticsService:
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+
+def _spending_insights(
+    candidates: list[tuple[TransactionModel, Decimal]],
+    *,
+    currency: str,
+) -> tuple[SpendingInsight, ...]:
+    """Explain unusually large expenses only when a useful baseline exists."""
+    if len(candidates) < 5:
+        return ()
+    baseline = Decimal(median(value for _, value in candidates)).quantize(Decimal("0.0001"))
+    if baseline <= 0:
+        return ()
+    threshold = baseline * Decimal("2")
+    unusual = sorted(
+        ((transaction, amount) for transaction, amount in candidates if amount > threshold),
+        key=lambda item: (item[1], item[0].occurred_at, item[0].id),
+        reverse=True,
+    )[:5]
+    return tuple(
+        SpendingInsight(
+            transaction_id=transaction.id,
+            occurred_at=transaction.occurred_at,
+            amount=_money(amount, currency),
+            baseline=_money(baseline, currency),
+            multiple=(amount / baseline).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN),
+            explanation="This expense is more than twice your median expense for the period.",
+        )
+        for transaction, amount in unusual
+    )
 
 
 def _effective_transaction(

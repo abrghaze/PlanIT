@@ -8,12 +8,14 @@ from fastapi import FastAPI
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
+from app.core.logging import configure_app_logging
 from app.core.middleware import register_middleware
 from app.db.session import create_db_engine, create_session_factory
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or get_settings()
+    configure_app_logging(level=resolved.log_level)
     engine = create_db_engine(resolved)
     session_factory = create_session_factory(engine)
 

@@ -1,5 +1,8 @@
 # Development guide
 
+Operational backup, restore, privacy export, deletion, and logging procedures are in
+[operations.md](operations.md).
+
 ## Prerequisites
 
 - Python 3.11.9 (the exact version exercised by CI)
