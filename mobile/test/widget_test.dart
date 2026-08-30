@@ -168,7 +168,14 @@ void main() {
 
     expect(find.text('Your data'), findsOneWidget);
     expect(find.text('Export transactions'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Delete profile permanently'),
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('Delete profile permanently'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }
 
