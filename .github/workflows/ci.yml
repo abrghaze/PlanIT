@@ -93,6 +93,13 @@ jobs:
       - name: Compile Android debug app
         working-directory: mobile
         run: flutter build apk --debug --no-pub
+      - name: Upload installable Android preview
+        uses: actions/upload-artifact@v7
+        with:
+          name: planit-android-preview-${{ github.sha }}
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
       - name: Compile store-mode Android bundle
         working-directory: mobile
         run: flutter build appbundle --release --no-pub --dart-define=PLANIT_API_BASE_URL=https://api.example.com/api/v1
