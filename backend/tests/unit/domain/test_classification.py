@@ -21,6 +21,8 @@ def test_every_non_reversal_kind_has_an_explicit_classification() -> None:
         (TransactionKind.INCOME, 0, 1, PortfolioFlowClass.EXTERNAL),
         (TransactionKind.REFUND, -1, 0, PortfolioFlowClass.EXTERNAL),
         (TransactionKind.TRANSFER_OUT, 0, 0, PortfolioFlowClass.INTERNAL),
+        (TransactionKind.TRANSFER_FEE, 1, 0, PortfolioFlowClass.EXTERNAL),
+        (TransactionKind.LOAN_PRINCIPAL_OUT, 0, 0, PortfolioFlowClass.EXTERNAL),
         (TransactionKind.DEBT_REPAYMENT_OUT, 0, 0, PortfolioFlowClass.EXTERNAL),
         (
             TransactionKind.RECONCILIATION_ADJUSTMENT,

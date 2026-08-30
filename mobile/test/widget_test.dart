@@ -10,6 +10,8 @@ import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/data/accounts_repository.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/analytics/application/providers.dart';
+import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/data/catalog_repository.dart';
 import 'package:planit_mobile/features/transactions/data/transactions_repository.dart';
@@ -34,6 +36,11 @@ void main() {
             transactionsRepository,
           ),
           catalogRepositoryProvider.overrideWithValue(catalogRepository),
+          analyticsDashboardProvider.overrideWith(
+            (ref, AnalyticsFilter filter) => Future<AnalyticsDashboard>.error(
+              StateError('Analytics is offline in this shell test.'),
+            ),
+          ),
         ],
         child: const PlanItApp(),
       ),
@@ -84,6 +91,11 @@ void main() {
             transactionsRepository,
           ),
           catalogRepositoryProvider.overrideWithValue(catalogRepository),
+          analyticsDashboardProvider.overrideWith(
+            (ref, AnalyticsFilter filter) => Future<AnalyticsDashboard>.error(
+              StateError('Analytics is offline in this shell test.'),
+            ),
+          ),
         ],
         child: const PlanItApp(),
       ),

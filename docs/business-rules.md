@@ -97,6 +97,21 @@ This document converts open questions in the product specification into safe ini
 - Historical reporting uses the latest approved rate effective at or before each reporting boundary unless the transaction stores its own rate.
 - Missing rates produce a partial-total warning; the app does not invent or silently use a rate of one.
 
+## Analytics read model
+
+- Analytics are rebuilt from authoritative accounts, posted/reversed movements,
+  debts/payments, active shares, merchant/product snapshots, and approved rates;
+  no aggregate is an independent financial fact.
+- User-local day/week/month boundaries are converted to exclusive UTC ranges.
+- Spending counts expenses and transfer fees, subtracts refunds and reversals,
+  and subtracts active recoverable shares only from personal spending. Transfers,
+  principal, repayments, and reconciliation adjustments remain spending-neutral.
+- Merchant brands and branches remain separate dimensions. Product variants are
+  not merged; normalized price comparisons occur only within compatible base
+  units (`KG` to `G`, `L` to `ML`, or identical units).
+- Each ranked aggregate retains source transaction IDs so the mobile dashboard
+  can drill into canonical activity instead of presenting unexplained numbers.
+
 ## Initial product choices
 
 - Multiple currencies, manual exchange rates, cash accounts, optional merchant branches, seeded-plus-custom categories, and optional product detail are supported from the foundation.

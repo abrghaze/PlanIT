@@ -4,9 +4,9 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.6.0` completes Milestone 5. The tested
-> application now adds searchable shops/branches, reusable product variants,
-> exact itemized purchases, offline purchase caches, and private signed receipt media.
+> **Implementation status:** release `0.7.0` completes Milestone 6. The tested
+> application now adds traceable, timezone-aware analytics, historical manual FX
+> conversion, offline dashboard caching, and merchant/product intelligence.
 
 ## Approved target architecture
 
@@ -28,7 +28,7 @@ plans/     Product specification and technical blueprint
 
 ## Current milestone
 
-Milestones 0 through 5 are complete. The current release provides:
+Milestones 0 through 6 are complete. The current release provides:
 
 - Argon2id registration/login and short-lived JWT access tokens.
 - Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
@@ -51,8 +51,13 @@ Milestones 0 through 5 are complete. The current release provides:
 - Reusable product families/variants, barcode and package-size metadata, including gram/millilitre normalization.
 - Itemized expense entry with exact quantity/price/discount arithmetic, explicit unspecified-item balancing, immutable posted snapshots, and offline item caching.
 - Private JPEG/PNG/WebP media reservations, five-minute signed URLs, verified finalization, and mobile receipt upload independent from product/transaction creation.
+- User-timezone reporting presets and custom date ranges over one centralized transaction-classification matrix.
+- Separate money-in-accounts, net-receivables, personal-net-position, personal-spending, income, cash-flow, and reconciliation indicators.
+- Historical user-approved FX rates with explicit partial-result warnings when a required rate is missing.
+- Traceable trend, category, tag, merchant brand/branch, account-flow, and product views linked back to source transactions.
+- Variant-safe product price history and gram/millilitre package normalization, plus an owner-scoped Drift v4 dashboard cache.
 
-Milestone 6 adds trustworthy analytics and merchant/product views over these facts.
+Milestone 7 adds recurring commitments, savings goals, and reminders.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.

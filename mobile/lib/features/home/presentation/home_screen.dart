@@ -8,6 +8,8 @@ import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/accounts/application/account_controller.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/analytics/application/providers.dart';
+import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,6 +18,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     final accounts = ref.watch(accountsProvider);
+    final analytics = ref.watch(
+      analyticsDashboardProvider(const AnalyticsFilter()),
+    );
     ref.watch(accountBootstrapProvider);
     final firstName =
         auth.session?.user.displayName.split(' ').first ?? 'there';
@@ -46,6 +51,7 @@ class HomeScreen extends ConsumerWidget {
                   data: (items) => _HomeAccountContent(
                     accounts: items,
                     baseCurrency: auth.session?.user.baseCurrency ?? 'MAD',
+                    analytics: analytics,
                   ),
                 ),
               ],
@@ -98,10 +104,12 @@ class _HomeAccountContent extends StatelessWidget {
   const _HomeAccountContent({
     required this.accounts,
     required this.baseCurrency,
+    required this.analytics,
   });
 
   final List<Account> accounts;
   final String baseCurrency;
+  final AsyncValue<AnalyticsDashboard> analytics;
 
   @override
   Widget build(BuildContext context) {
@@ -120,14 +128,19 @@ class _HomeAccountContent extends StatelessWidget {
         hasUnconvertedAccounts = true;
       }
     }
+    final dashboard = analytics.whenOrNull(data: (value) => value);
+    final displayedTotal = dashboard?.kpis.moneyInAccounts ?? baseTotal;
+    final totalIsPartial = dashboard == null
+        ? hasUnconvertedAccounts
+        : !dashboard.kpis.complete;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _BalanceCard(
-          total: baseTotal,
+          total: displayedTotal,
           activeCount: active.length,
-          partial: hasUnconvertedAccounts,
+          partial: totalIsPartial,
         ),
         const SizedBox(height: PlanItSpacing.lg),
         Row(
@@ -169,19 +182,52 @@ class _HomeAccountContent extends StatelessWidget {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: PlanItSpacing.sm),
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(PlanItSpacing.lg),
-            child: Row(
-              children: <Widget>[
-                CircleAvatar(child: Icon(Icons.insights_outlined)),
-                SizedBox(width: PlanItSpacing.md),
-                Expanded(
-                  child: Text(
-                    'Posted expenses and transfer fees count as spending. Internal transfers and balance corrections remain neutral.',
-                  ),
+        analytics.when(
+          loading: () => const Card(
+            child: SizedBox(
+              height: 104,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+          error: (error, stackTrace) => Card(
+            child: ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.insights_outlined)),
+              title: const Text('Analytics is temporarily unavailable'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => context.go('/analytics'),
+            ),
+          ),
+          data: (dashboard) => Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(PlanItRadius.md),
+              onTap: () => context.go('/analytics'),
+              child: Padding(
+                padding: const EdgeInsets.all(PlanItSpacing.lg),
+                child: Row(
+                  children: <Widget>[
+                    const CircleAvatar(child: Icon(Icons.insights_outlined)),
+                    const SizedBox(width: PlanItSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Spent ${dashboard.kpis.personalSpending.toDisplayString()}',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: PlanItSpacing.xxs),
+                          Text(
+                            'Income ${dashboard.kpis.income.toDisplayString()} · '
+                            '${dashboard.kpis.complete ? 'complete' : 'FX rate needed'}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

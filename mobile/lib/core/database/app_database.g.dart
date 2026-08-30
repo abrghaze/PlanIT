@@ -6301,6 +6301,338 @@ class CachedProductsCompanion extends UpdateCompanion<CachedProduct> {
   }
 }
 
+class $CachedAnalyticsDashboardsTable extends CachedAnalyticsDashboards
+    with TableInfo<$CachedAnalyticsDashboardsTable, CachedAnalyticsDashboard> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedAnalyticsDashboardsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cache_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    ownerId,
+    cacheKey,
+    payloadJson,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_analytics_dashboards';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedAnalyticsDashboard> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('cache_key')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cache_key']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ownerId, cacheKey};
+  @override
+  CachedAnalyticsDashboard map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedAnalyticsDashboard(
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cache_key'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedAnalyticsDashboardsTable createAlias(String alias) {
+    return $CachedAnalyticsDashboardsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedAnalyticsDashboard extends DataClass
+    implements Insertable<CachedAnalyticsDashboard> {
+  final String ownerId;
+  final String cacheKey;
+  final String payloadJson;
+  final DateTime updatedAt;
+  const CachedAnalyticsDashboard({
+    required this.ownerId,
+    required this.cacheKey,
+    required this.payloadJson,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['owner_id'] = Variable<String>(ownerId);
+    map['cache_key'] = Variable<String>(cacheKey);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CachedAnalyticsDashboardsCompanion toCompanion(bool nullToAbsent) {
+    return CachedAnalyticsDashboardsCompanion(
+      ownerId: Value(ownerId),
+      cacheKey: Value(cacheKey),
+      payloadJson: Value(payloadJson),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CachedAnalyticsDashboard.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedAnalyticsDashboard(
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ownerId': serializer.toJson<String>(ownerId),
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CachedAnalyticsDashboard copyWith({
+    String? ownerId,
+    String? cacheKey,
+    String? payloadJson,
+    DateTime? updatedAt,
+  }) => CachedAnalyticsDashboard(
+    ownerId: ownerId ?? this.ownerId,
+    cacheKey: cacheKey ?? this.cacheKey,
+    payloadJson: payloadJson ?? this.payloadJson,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CachedAnalyticsDashboard copyWithCompanion(
+    CachedAnalyticsDashboardsCompanion data,
+  ) {
+    return CachedAnalyticsDashboard(
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedAnalyticsDashboard(')
+          ..write('ownerId: $ownerId, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ownerId, cacheKey, payloadJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedAnalyticsDashboard &&
+          other.ownerId == this.ownerId &&
+          other.cacheKey == this.cacheKey &&
+          other.payloadJson == this.payloadJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CachedAnalyticsDashboardsCompanion
+    extends UpdateCompanion<CachedAnalyticsDashboard> {
+  final Value<String> ownerId;
+  final Value<String> cacheKey;
+  final Value<String> payloadJson;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CachedAnalyticsDashboardsCompanion({
+    this.ownerId = const Value.absent(),
+    this.cacheKey = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedAnalyticsDashboardsCompanion.insert({
+    required String ownerId,
+    required String cacheKey,
+    required String payloadJson,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : ownerId = Value(ownerId),
+       cacheKey = Value(cacheKey),
+       payloadJson = Value(payloadJson),
+       updatedAt = Value(updatedAt);
+  static Insertable<CachedAnalyticsDashboard> custom({
+    Expression<String>? ownerId,
+    Expression<String>? cacheKey,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (ownerId != null) 'owner_id': ownerId,
+      if (cacheKey != null) 'cache_key': cacheKey,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedAnalyticsDashboardsCompanion copyWith({
+    Value<String>? ownerId,
+    Value<String>? cacheKey,
+    Value<String>? payloadJson,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedAnalyticsDashboardsCompanion(
+      ownerId: ownerId ?? this.ownerId,
+      cacheKey: cacheKey ?? this.cacheKey,
+      payloadJson: payloadJson ?? this.payloadJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (cacheKey.present) {
+      map['cache_key'] = Variable<String>(cacheKey.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedAnalyticsDashboardsCompanion(')
+          ..write('ownerId: $ownerId, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxOperationsTable extends OutboxOperations
     with TableInfo<$OutboxOperationsTable, OutboxOperation> {
   @override
@@ -6997,6 +7329,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $CachedProductsTable cachedProducts = $CachedProductsTable(this);
+  late final $CachedAnalyticsDashboardsTable cachedAnalyticsDashboards =
+      $CachedAnalyticsDashboardsTable(this);
   late final $OutboxOperationsTable outboxOperations = $OutboxOperationsTable(
     this,
   );
@@ -7013,6 +7347,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedTransactionTags,
     cachedMerchants,
     cachedProducts,
+    cachedAnalyticsDashboards,
     outboxOperations,
   ];
 }
@@ -9970,6 +10305,208 @@ typedef $$CachedProductsTableProcessedTableManager =
       CachedProduct,
       PrefetchHooks Function()
     >;
+typedef $$CachedAnalyticsDashboardsTableCreateCompanionBuilder =
+    CachedAnalyticsDashboardsCompanion Function({
+      required String ownerId,
+      required String cacheKey,
+      required String payloadJson,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedAnalyticsDashboardsTableUpdateCompanionBuilder =
+    CachedAnalyticsDashboardsCompanion Function({
+      Value<String> ownerId,
+      Value<String> cacheKey,
+      Value<String> payloadJson,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedAnalyticsDashboardsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedAnalyticsDashboardsTable> {
+  $$CachedAnalyticsDashboardsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedAnalyticsDashboardsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedAnalyticsDashboardsTable> {
+  $$CachedAnalyticsDashboardsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedAnalyticsDashboardsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedAnalyticsDashboardsTable> {
+  $$CachedAnalyticsDashboardsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CachedAnalyticsDashboardsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedAnalyticsDashboardsTable,
+          CachedAnalyticsDashboard,
+          $$CachedAnalyticsDashboardsTableFilterComposer,
+          $$CachedAnalyticsDashboardsTableOrderingComposer,
+          $$CachedAnalyticsDashboardsTableAnnotationComposer,
+          $$CachedAnalyticsDashboardsTableCreateCompanionBuilder,
+          $$CachedAnalyticsDashboardsTableUpdateCompanionBuilder,
+          (
+            CachedAnalyticsDashboard,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedAnalyticsDashboardsTable,
+              CachedAnalyticsDashboard
+            >,
+          ),
+          CachedAnalyticsDashboard,
+          PrefetchHooks Function()
+        > {
+  $$CachedAnalyticsDashboardsTableTableManager(
+    _$AppDatabase db,
+    $CachedAnalyticsDashboardsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedAnalyticsDashboardsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CachedAnalyticsDashboardsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CachedAnalyticsDashboardsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> ownerId = const Value.absent(),
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedAnalyticsDashboardsCompanion(
+                ownerId: ownerId,
+                cacheKey: cacheKey,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String ownerId,
+                required String cacheKey,
+                required String payloadJson,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedAnalyticsDashboardsCompanion.insert(
+                ownerId: ownerId,
+                cacheKey: cacheKey,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedAnalyticsDashboardsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedAnalyticsDashboardsTable,
+      CachedAnalyticsDashboard,
+      $$CachedAnalyticsDashboardsTableFilterComposer,
+      $$CachedAnalyticsDashboardsTableOrderingComposer,
+      $$CachedAnalyticsDashboardsTableAnnotationComposer,
+      $$CachedAnalyticsDashboardsTableCreateCompanionBuilder,
+      $$CachedAnalyticsDashboardsTableUpdateCompanionBuilder,
+      (
+        CachedAnalyticsDashboard,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedAnalyticsDashboardsTable,
+          CachedAnalyticsDashboard
+        >,
+      ),
+      CachedAnalyticsDashboard,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxOperationsTableCreateCompanionBuilder =
     OutboxOperationsCompanion Function({
       required String id,
@@ -10319,6 +10856,11 @@ class $AppDatabaseManager {
       $$CachedMerchantsTableTableManager(_db, _db.cachedMerchants);
   $$CachedProductsTableTableManager get cachedProducts =>
       $$CachedProductsTableTableManager(_db, _db.cachedProducts);
+  $$CachedAnalyticsDashboardsTableTableManager get cachedAnalyticsDashboards =>
+      $$CachedAnalyticsDashboardsTableTableManager(
+        _db,
+        _db.cachedAnalyticsDashboards,
+      );
   $$OutboxOperationsTableTableManager get outboxOperations =>
       $$OutboxOperationsTableTableManager(_db, _db.outboxOperations);
 }

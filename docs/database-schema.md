@@ -4,7 +4,7 @@ PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPT
 
 The identity/control, account/ledger, category, tag, transfer, reconciliation,
 reallocation, debt, sharing, refund, purchase-detail, and media structures below
-are present through Milestone 5. Automation and goal tables remain approved
+are present through Milestone 6. Automation and goal tables remain approved
 later-milestone schema and are not migrated yet.
 
 ## Identity and control
@@ -67,6 +67,15 @@ Milestone 5 uses deferred validators to require exact item/expense totals and
 block item changes after posting. Composite foreign keys keep merchant, branch,
 product, transaction, and media ownership coherent. Object bytes never enter
 PostgreSQL.
+
+## Analytics projections
+
+Milestone 6 adds no authoritative aggregate table. Dashboard values are derived
+from the existing normalized facts so corrections, refunds, shares, debt
+payments, and historical FX changes are reproducible. `exchange_rates` is the
+only analytics input written by the new API; its scoped pair/effective-time
+uniqueness prevents ambiguous historical facts. Cached mobile dashboard JSON is
+owner-scoped and disposable.
 
 ## Debts and sharing
 

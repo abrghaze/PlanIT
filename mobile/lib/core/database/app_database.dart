@@ -182,6 +182,16 @@ class OutboxOperations extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
 }
 
+class CachedAnalyticsDashboards extends Table {
+  TextColumn get ownerId => text()();
+  TextColumn get cacheKey => text()();
+  TextColumn get payloadJson => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{ownerId, cacheKey};
+}
+
 @DriftDatabase(
   tables: <Type>[
     CachedAccounts,
@@ -192,6 +202,7 @@ class OutboxOperations extends Table {
     CachedTransactionTags,
     CachedMerchants,
     CachedProducts,
+    CachedAnalyticsDashboards,
     OutboxOperations,
   ],
 )
@@ -200,7 +211,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? openPlanItDatabase());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -229,6 +240,9 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(cachedTransactionItems);
         await migrator.createTable(cachedMerchants);
         await migrator.createTable(cachedProducts);
+      }
+      if (from < 4) {
+        await migrator.createTable(cachedAnalyticsDashboards);
       }
     },
     beforeOpen: (OpeningDetails details) async {
@@ -711,8 +725,37 @@ class AppDatabase extends _$AppDatabase {
     return query.getSingleOrNull();
   }
 
+  Future<CachedAnalyticsDashboard?> readAnalyticsDashboard(
+    String ownerId,
+    String cacheKey,
+  ) {
+    final query = select(cachedAnalyticsDashboards)
+      ..where(
+        (row) => row.ownerId.equals(ownerId) & row.cacheKey.equals(cacheKey),
+      );
+    return query.getSingleOrNull();
+  }
+
+  Future<void> saveAnalyticsDashboard({
+    required String ownerId,
+    required String cacheKey,
+    required String payloadJson,
+  }) {
+    return into(cachedAnalyticsDashboards).insertOnConflictUpdate(
+      CachedAnalyticsDashboardsCompanion.insert(
+        ownerId: ownerId,
+        cacheKey: cacheKey,
+        payloadJson: payloadJson,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
   Future<void> clearOwnerData(String ownerId) {
     return transaction(() async {
+      await (delete(
+        cachedAnalyticsDashboards,
+      )..where((row) => row.ownerId.equals(ownerId))).go();
       await (delete(
         outboxOperations,
       )..where((row) => row.ownerId.equals(ownerId))).go();
@@ -730,6 +773,15 @@ class AppDatabase extends _$AppDatabase {
       )..where((row) => row.ownerId.equals(ownerId))).go();
       await (delete(
         cachedAccounts,
+      )..where((row) => row.ownerId.equals(ownerId))).go();
+      await (delete(
+        cachedTransactionItems,
+      )..where((row) => row.ownerId.equals(ownerId))).go();
+      await (delete(
+        cachedMerchants,
+      )..where((row) => row.ownerId.equals(ownerId))).go();
+      await (delete(
+        cachedProducts,
       )..where((row) => row.ownerId.equals(ownerId))).go();
     });
   }
