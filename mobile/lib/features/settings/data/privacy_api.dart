@@ -14,15 +14,13 @@ final class PrivacyApi {
 
   final ApiClient _client;
 
-  Future<PrivacyDownload> exportCsv(
-    String token, {
-    required String dataType,
-  }) => _download(
-    token,
-    '/privacy/export.csv',
-    query: <String, Object?>{'data_type': dataType},
-    fallbackFilename: 'planit-$dataType.csv',
-  );
+  Future<PrivacyDownload> exportCsv(String token, {required String dataType}) =>
+      _download(
+        token,
+        '/privacy/export.csv',
+        query: <String, Object?>{'data_type': dataType},
+        fallbackFilename: 'planit-$dataType.csv',
+      );
 
   Future<PrivacyDownload> backup(String token) => _download(
     token,

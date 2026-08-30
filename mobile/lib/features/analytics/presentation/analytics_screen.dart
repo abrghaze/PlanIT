@@ -310,10 +310,9 @@ class _DashboardBody extends StatelessWidget {
                   '${insight.explanation} Median: ${insight.baseline.toDisplayString()}.',
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => onSources(
-                  'Spending check',
-                  <String>[insight.transactionId],
-                ),
+                onTap: () => onSources('Spending check', <String>[
+                  insight.transactionId,
+                ]),
               ),
             ),
           ),

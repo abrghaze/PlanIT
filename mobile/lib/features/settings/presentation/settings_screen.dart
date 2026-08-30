@@ -19,7 +19,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   PrivacyApi get _api => PrivacyApi(ref.read(apiClientProvider));
 
-  Future<void> _download(Future<PrivacyDownload> Function(String) action) async {
+  Future<void> _download(
+    Future<PrivacyDownload> Function(String) action,
+  ) async {
     setState(() => _busy = true);
     try {
       final session = await ref
@@ -31,7 +33,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on UnsupportedError catch (error) {
-      _message(error.message?.toString() ?? 'Export is unavailable.', error: true);
+      _message(
+        error.message?.toString() ?? 'Export is unavailable.',
+        error: true,
+      );
     } on Object {
       _message('PlanIT could not save the export.', error: true);
     } finally {
@@ -133,10 +138,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 enabled: enabled,
                 onTap: enabled
                     ? () => _download(
-                        (token) => _api.exportCsv(
-                          token,
-                          dataType: 'transactions',
-                        ),
+                        (token) =>
+                            _api.exportCsv(token, dataType: 'transactions'),
                       )
                     : null,
               ),
@@ -304,7 +307,9 @@ class _DeleteProfileDialogState extends State<_DeleteProfileDialog> {
             TextField(
               controller: _confirmation,
               autocorrect: false,
-              decoration: const InputDecoration(labelText: 'Confirmation phrase'),
+              decoration: const InputDecoration(
+                labelText: 'Confirmation phrase',
+              ),
               onChanged: (_) => setState(() {}),
             ),
           ],
