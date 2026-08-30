@@ -4,9 +4,9 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.9.0` completes Milestone 8. The tested
-> application now includes privacy exports and deletion, release observability,
-> continuously verified database restore, accessible Settings, and optional-provider seams.
+> **Implementation status:** all roadmap milestones are complete. `main` is the `0.10.0`
+> production-launch candidate; the latest published source tag remains `v0.9.0` until real
+> deployment and Android-signing secrets pass the protected release workflow.
 
 ## Approved target architecture
 
@@ -67,8 +67,13 @@ Milestones 0 through 8 are complete. The current release provides:
 - Explainable spending checks that flag expenses above twice the period median only after a useful history exists, always linking back to the source transaction.
 - Provider-neutral OCR and bank-import contracts that remain disabled without explicit provider configuration, consent, and cost review; manual entry is always available.
 - Debug APK and release-mode Android App Bundle compilation gates. Production signing and the real HTTPS API URL remain deployment secrets, never repository content.
+- An immutable, non-root production API image; migration-gated hardened Compose deployment;
+  synchronized release-version checks; and a tag-triggered workflow that publishes only
+  after full tests, signed Android bundle creation, and live image smoke testing.
 
 The ordered source-of-truth roadmap is complete; future work is post-roadmap product evolution.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.
+Production operators should start with [`docs/production-deployment.md`](docs/production-deployment.md)
+and [`docs/release-checklist.md`](docs/release-checklist.md).

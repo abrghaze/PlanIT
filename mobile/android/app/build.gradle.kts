@@ -4,6 +4,22 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseKeystorePath = System.getenv("PLANIT_ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("PLANIT_ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("PLANIT_ANDROID_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("PLANIT_ANDROID_KEY_PASSWORD")
+val releaseSigningValues =
+    listOf(
+        releaseKeystorePath,
+        releaseKeystorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    )
+val configuredReleaseSigningValues = releaseSigningValues.count { !it.isNullOrBlank() }
+require(configuredReleaseSigningValues == 0 || configuredReleaseSigningValues == releaseSigningValues.size) {
+    "Android release signing is partially configured. Set all PLANIT_ANDROID_* signing variables."
+}
+
 android {
     namespace = "com.abrghaze.planit"
     // flutter_secure_storage 11 requires compile SDK 37.
@@ -27,6 +43,21 @@ android {
         versionName = flutter.versionName
     }
 
+    if (configuredReleaseSigningValues == releaseSigningValues.size) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(requireNotNull(releaseKeystorePath))
+                storePassword = requireNotNull(releaseKeystorePassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+                keyPassword = requireNotNull(releaseKeyPassword)
+            }
+        }
+        buildTypes {
+            getByName("release") {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
 }
 
 kotlin {

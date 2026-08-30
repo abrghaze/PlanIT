@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "PlanIT API"
-    app_version: str = "0.9.0"
+    app_version: str = "0.10.0"
     app_env: Literal["local", "test", "staging", "production"] = "local"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     debug: bool = True
@@ -64,6 +64,11 @@ class Settings(BaseSettings):
         if not value.startswith("postgresql+asyncpg://"):
             raise ValueError("Database URL must use PostgreSQL with the asyncpg driver.")
         return value
+
+    @field_validator("s3_endpoint_url", mode="before")
+    @classmethod
+    def normalize_optional_s3_endpoint(cls, value: object) -> object:
+        return None if value == "" else value
 
     @field_validator("allowed_origins")
     @classmethod
@@ -121,6 +126,10 @@ class Settings(BaseSettings):
                     for value in storage_values
                 ):
                     raise ValueError("Deployment S3 credentials cannot be placeholder values.")
+            if self.app_env == "production" and not all(storage_credentials):
+                raise ValueError(
+                    "Production requires private S3-compatible object-storage credentials."
+                )
         return self
 
 

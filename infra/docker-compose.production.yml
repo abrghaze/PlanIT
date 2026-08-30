@@ -1,0 +1,63 @@
+name: planit-production
+
+x-api-environment: &api-environment
+  PLANIT_APP_ENV: production
+  PLANIT_APP_VERSION: ${PLANIT_APP_VERSION:?Set PLANIT_APP_VERSION}
+  PLANIT_DEBUG: "false"
+  PLANIT_LOG_LEVEL: ${PLANIT_LOG_LEVEL:-INFO}
+  PLANIT_DATABASE_URL: ${PLANIT_DATABASE_URL:?Set PLANIT_DATABASE_URL}
+  PLANIT_ALLOWED_ORIGINS: ${PLANIT_ALLOWED_ORIGINS:-[]}
+  PLANIT_ACCESS_TOKEN_SECRET: ${PLANIT_ACCESS_TOKEN_SECRET:?Set PLANIT_ACCESS_TOKEN_SECRET}
+  PLANIT_REFRESH_TOKEN_PEPPER: ${PLANIT_REFRESH_TOKEN_PEPPER:?Set PLANIT_REFRESH_TOKEN_PEPPER}
+  PLANIT_JWT_ISSUER: ${PLANIT_JWT_ISSUER:-planit-api}
+  PLANIT_JWT_AUDIENCE: ${PLANIT_JWT_AUDIENCE:-planit-mobile}
+  PLANIT_S3_ENDPOINT_URL: ${PLANIT_S3_ENDPOINT_URL:-}
+  PLANIT_S3_REGION: ${PLANIT_S3_REGION:?Set PLANIT_S3_REGION}
+  PLANIT_S3_BUCKET: ${PLANIT_S3_BUCKET:?Set PLANIT_S3_BUCKET}
+  PLANIT_S3_ACCESS_KEY_ID: ${PLANIT_S3_ACCESS_KEY_ID:?Set PLANIT_S3_ACCESS_KEY_ID}
+  PLANIT_S3_SECRET_ACCESS_KEY: ${PLANIT_S3_SECRET_ACCESS_KEY:?Set PLANIT_S3_SECRET_ACCESS_KEY}
+
+x-api-security: &api-security
+  image: ${PLANIT_API_IMAGE:?Set PLANIT_API_IMAGE to an immutable release tag or digest}
+  user: "10001:10001"
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  init: true
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+services:
+  migrate:
+    <<: *api-security
+    environment: *api-environment
+    command: ["python", "-m", "alembic", "-c", "alembic.ini", "upgrade", "head"]
+    restart: "no"
+
+  api:
+    <<: *api-security
+    environment: *api-environment
+    ports:
+      - "${PLANIT_API_BIND_ADDRESS:-127.0.0.1}:${PLANIT_API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready', timeout=2)
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped

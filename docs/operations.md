@@ -34,6 +34,11 @@ After validating row counts and a representative financial report, remove the te
 database. CI performs this dump/restore/schema check on every change, so restoration is
 continuously exercised rather than left as an untested runbook.
 
+For production, use the database provider's encrypted backup/PITR mechanism and perform the
+same restore validation in an isolated recovery environment. The local Compose scripts do
+not connect to production. Record restore time, row-count checks, Alembic revision, and the
+person who approved destruction of the temporary recovery database.
+
 ## User-controlled exports and deletion
 
 - `GET /api/v1/privacy/export.csv?data_type=transactions` supports optional inclusive

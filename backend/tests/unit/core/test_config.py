@@ -62,6 +62,35 @@ def test_deployment_rejects_placeholder_storage_credentials() -> None:
         )
 
 
+def test_production_requires_private_object_storage() -> None:
+    with pytest.raises(ValidationError, match="Production requires private S3"):
+        Settings(
+            app_env="production",
+            debug=False,
+            database_url="postgresql+asyncpg://planit:real@database.example/planit",
+            access_token_secret="a" * 32,
+            refresh_token_pepper="b" * 32,
+        )
+
+
+def test_staging_may_disable_private_object_storage() -> None:
+    settings = Settings(
+        app_env="staging",
+        debug=False,
+        database_url="postgresql+asyncpg://planit:real@database.example/planit",
+        access_token_secret="a" * 32,
+        refresh_token_pepper="b" * 32,
+    )
+
+    assert settings.s3_access_key_id is None
+
+
+def test_empty_s3_endpoint_uses_the_provider_default() -> None:
+    settings = Settings(s3_endpoint_url="")
+
+    assert settings.s3_endpoint_url is None
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
