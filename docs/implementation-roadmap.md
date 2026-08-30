@@ -2,7 +2,7 @@
 
 Each milestone must leave the repository runnable and may advance only after its invariants, migration, API contract, offline behavior, and tests agree.
 
-**Delivery status:** Milestones 0 through 6 are complete in release `0.7.0`.
+**Delivery status:** Milestones 0 through 7 are complete in release `0.8.0`.
 
 | Milestone | Scope | Exit criteria |
 |---|---|---|
@@ -16,5 +16,6 @@ Each milestone must leave the repository runnable and may advance only after its
 | 7 — Planning | Recurring commitments, subscriptions, savings goals and reminders | Deduplicated occurrences, reliable progress and due-state handling |
 | 8 — Advanced and release | OCR/bank adapter seams, anomaly insights, accessibility, performance, privacy export/deletion | Threat review, backup/restore drill, observability, store-ready builds |
 
-The next implementation slice is Milestone 7. Analytics remain disposable read
-models over authoritative ledger, debt, sharing, merchant, and product facts.
+The next implementation slice is Milestone 8. Planning occurrences and manual
+goal allocations are authoritative metadata; analytics remain disposable read
+models over canonical financial facts.

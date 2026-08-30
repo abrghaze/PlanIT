@@ -37,8 +37,16 @@ class MoreScreen extends ConsumerWidget {
         label: 'Products',
         onTap: () => context.push('/products'),
       ),
-      (icon: Icons.repeat_rounded, label: 'Recurring', onTap: null),
-      (icon: Icons.savings_outlined, label: 'Savings goals', onTap: null),
+      (
+        icon: Icons.repeat_rounded,
+        label: 'Recurring',
+        onTap: () => context.push('/recurring'),
+      ),
+      (
+        icon: Icons.savings_outlined,
+        label: 'Savings goals',
+        onTap: () => context.push('/goals'),
+      ),
       (icon: Icons.settings_outlined, label: 'Settings', onTap: null),
     ];
 

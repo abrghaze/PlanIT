@@ -17,6 +17,6 @@ async def test_health_contract() -> None:
     assert response.json() == {
         "status": "ok",
         "service": "PlanIT API",
-        "version": "0.7.0",
+        "version": "0.8.0",
         "environment": "test",
     }

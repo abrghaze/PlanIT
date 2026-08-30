@@ -18,6 +18,12 @@ from app.db.models.ledger import (
     TransactionTagModel,
     TransferModel,
 )
+from app.db.models.planning import (
+    GoalAllocationModel,
+    RecurringOccurrenceModel,
+    RecurringRuleModel,
+    SavingsGoalModel,
+)
 from app.db.models.purchases import (
     EntityMediaModel,
     MediaAssetModel,
@@ -37,6 +43,7 @@ __all__ = [
     "DebtPaymentModel",
     "EntityMediaModel",
     "ExchangeRateModel",
+    "GoalAllocationModel",
     "IdempotencyKeyModel",
     "MediaAssetModel",
     "MerchantLocationModel",
@@ -45,7 +52,10 @@ __all__ = [
     "ProductModel",
     "ReallocationLineModel",
     "ReallocationSessionModel",
+    "RecurringOccurrenceModel",
+    "RecurringRuleModel",
     "RefreshSessionModel",
+    "SavingsGoalModel",
     "SharedExpenseShareModel",
     "TagModel",
     "TransactionItemModel",

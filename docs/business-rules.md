@@ -97,6 +97,15 @@ This document converts open questions in the product specification into safe ini
 - Historical reporting uses the latest approved rate effective at or before each reporting boundary unless the transaction stores its own rate.
 - Missing rates produce a partial-total warning; the app does not invent or silently use a rate of one.
 
+## Recurring commitments and goals
+
+- Recurring rules support weekly, monthly, quarterly, and yearly income or expense commitments. Monthly and annual equivalents are grouped by currency and never summed across currencies without an approved rate.
+- Monthly, quarterly, and yearly advancement preserves the configured local wall-clock time and clamps month-end dates safely.
+- `(rule_id, scheduled_for)` is unique. Concurrent workers lock due rules and cannot create duplicate reminders or drafts.
+- Reminder occurrences do not create transactions. `AUTO_DRAFT` and explicit record actions create one deterministic draft; neither path posts it or changes an account balance.
+- A savings goal is either linked to one same-currency account or uses auditable manual allocations. The two progress modes cannot be mixed.
+- Goal allocations may correct progress downward but can never make it negative. They are planning metadata, not expenses or transfers.
+
 ## Analytics read model
 
 - Analytics are rebuilt from authoritative accounts, posted/reversed movements,

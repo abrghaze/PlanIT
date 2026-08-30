@@ -3,9 +3,8 @@
 PostgreSQL is the authoritative store. IDs are UUIDs, timestamps are `TIMESTAMPTZ` in UTC, and money is `NUMERIC(19,4)`. Every user-owned aggregate has an ownership path that can be checked server-side. Posted financial history is append-oriented.
 
 The identity/control, account/ledger, category, tag, transfer, reconciliation,
-reallocation, debt, sharing, refund, purchase-detail, and media structures below
-are present through Milestone 6. Automation and goal tables remain approved
-later-milestone schema and are not migrated yet.
+reallocation, debt, sharing, refund, purchase-detail, media, automation, and goal
+structures below are present through Milestone 7.
 
 ## Identity and control
 
@@ -99,7 +98,13 @@ coherence, overpayment, one active share per person/expense, and refund/share ca
 | `recurring_rules` | Subscription/bill/income template | schedule, timezone, next due, reminder/auto-create mode, version |
 | `recurring_occurrences` | Scheduler deduplication | unique `(rule_id, scheduled_for)`, optional generated transaction |
 | `savings_goals` | Non-spending target | target amount/currency/date, linked account or manual progress, status |
+| `goal_allocations` | Manual goal progress audit | signed non-zero adjustment, goal currency, unique client operation ID |
 | `media_assets` | Private object metadata (migrated) | owner, private storage key, MIME, bounded size, pending/finalized lifecycle |
+
+Recurring occurrences are unique by `(rule_id, scheduled_for)`. A generated
+transaction is unique and remains a draft until the user reviews and posts it.
+Linked goals require zero manual progress and derive their projection from the
+canonical account balance; manual allocations do not reference transactions.
 
 ## Integrity and deletion
 

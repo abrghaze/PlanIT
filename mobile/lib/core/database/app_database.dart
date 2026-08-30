@@ -192,6 +192,15 @@ class CachedAnalyticsDashboards extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{ownerId, cacheKey};
 }
 
+class CachedPlanningSnapshots extends Table {
+  TextColumn get ownerId => text()();
+  TextColumn get payloadJson => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{ownerId};
+}
+
 @DriftDatabase(
   tables: <Type>[
     CachedAccounts,
@@ -203,6 +212,7 @@ class CachedAnalyticsDashboards extends Table {
     CachedMerchants,
     CachedProducts,
     CachedAnalyticsDashboards,
+    CachedPlanningSnapshots,
     OutboxOperations,
   ],
 )
@@ -211,7 +221,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? openPlanItDatabase());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -243,6 +253,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await migrator.createTable(cachedAnalyticsDashboards);
+      }
+      if (from < 5) {
+        await migrator.createTable(cachedPlanningSnapshots);
       }
     },
     beforeOpen: (OpeningDetails details) async {
@@ -751,8 +764,30 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<CachedPlanningSnapshot?> readPlanningSnapshot(String ownerId) {
+    final query = select(cachedPlanningSnapshots)
+      ..where((row) => row.ownerId.equals(ownerId));
+    return query.getSingleOrNull();
+  }
+
+  Future<void> savePlanningSnapshot({
+    required String ownerId,
+    required String payloadJson,
+  }) {
+    return into(cachedPlanningSnapshots).insertOnConflictUpdate(
+      CachedPlanningSnapshotsCompanion.insert(
+        ownerId: ownerId,
+        payloadJson: payloadJson,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
   Future<void> clearOwnerData(String ownerId) {
     return transaction(() async {
+      await (delete(
+        cachedPlanningSnapshots,
+      )..where((row) => row.ownerId.equals(ownerId))).go();
       await (delete(
         cachedAnalyticsDashboards,
       )..where((row) => row.ownerId.equals(ownerId))).go();

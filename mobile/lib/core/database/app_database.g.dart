@@ -6633,6 +6633,284 @@ class CachedAnalyticsDashboardsCompanion
   }
 }
 
+class $CachedPlanningSnapshotsTable extends CachedPlanningSnapshots
+    with TableInfo<$CachedPlanningSnapshotsTable, CachedPlanningSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedPlanningSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ownerId, payloadJson, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_planning_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedPlanningSnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ownerId};
+  @override
+  CachedPlanningSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedPlanningSnapshot(
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedPlanningSnapshotsTable createAlias(String alias) {
+    return $CachedPlanningSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedPlanningSnapshot extends DataClass
+    implements Insertable<CachedPlanningSnapshot> {
+  final String ownerId;
+  final String payloadJson;
+  final DateTime updatedAt;
+  const CachedPlanningSnapshot({
+    required this.ownerId,
+    required this.payloadJson,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['owner_id'] = Variable<String>(ownerId);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CachedPlanningSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return CachedPlanningSnapshotsCompanion(
+      ownerId: Value(ownerId),
+      payloadJson: Value(payloadJson),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CachedPlanningSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedPlanningSnapshot(
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ownerId': serializer.toJson<String>(ownerId),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CachedPlanningSnapshot copyWith({
+    String? ownerId,
+    String? payloadJson,
+    DateTime? updatedAt,
+  }) => CachedPlanningSnapshot(
+    ownerId: ownerId ?? this.ownerId,
+    payloadJson: payloadJson ?? this.payloadJson,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CachedPlanningSnapshot copyWithCompanion(
+    CachedPlanningSnapshotsCompanion data,
+  ) {
+    return CachedPlanningSnapshot(
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPlanningSnapshot(')
+          ..write('ownerId: $ownerId, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ownerId, payloadJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedPlanningSnapshot &&
+          other.ownerId == this.ownerId &&
+          other.payloadJson == this.payloadJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CachedPlanningSnapshotsCompanion
+    extends UpdateCompanion<CachedPlanningSnapshot> {
+  final Value<String> ownerId;
+  final Value<String> payloadJson;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CachedPlanningSnapshotsCompanion({
+    this.ownerId = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedPlanningSnapshotsCompanion.insert({
+    required String ownerId,
+    required String payloadJson,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : ownerId = Value(ownerId),
+       payloadJson = Value(payloadJson),
+       updatedAt = Value(updatedAt);
+  static Insertable<CachedPlanningSnapshot> custom({
+    Expression<String>? ownerId,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (ownerId != null) 'owner_id': ownerId,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedPlanningSnapshotsCompanion copyWith({
+    Value<String>? ownerId,
+    Value<String>? payloadJson,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedPlanningSnapshotsCompanion(
+      ownerId: ownerId ?? this.ownerId,
+      payloadJson: payloadJson ?? this.payloadJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPlanningSnapshotsCompanion(')
+          ..write('ownerId: $ownerId, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxOperationsTable extends OutboxOperations
     with TableInfo<$OutboxOperationsTable, OutboxOperation> {
   @override
@@ -7331,6 +7609,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CachedProductsTable cachedProducts = $CachedProductsTable(this);
   late final $CachedAnalyticsDashboardsTable cachedAnalyticsDashboards =
       $CachedAnalyticsDashboardsTable(this);
+  late final $CachedPlanningSnapshotsTable cachedPlanningSnapshots =
+      $CachedPlanningSnapshotsTable(this);
   late final $OutboxOperationsTable outboxOperations = $OutboxOperationsTable(
     this,
   );
@@ -7348,6 +7628,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedMerchants,
     cachedProducts,
     cachedAnalyticsDashboards,
+    cachedPlanningSnapshots,
     outboxOperations,
   ];
 }
@@ -10507,6 +10788,189 @@ typedef $$CachedAnalyticsDashboardsTableProcessedTableManager =
       CachedAnalyticsDashboard,
       PrefetchHooks Function()
     >;
+typedef $$CachedPlanningSnapshotsTableCreateCompanionBuilder =
+    CachedPlanningSnapshotsCompanion Function({
+      required String ownerId,
+      required String payloadJson,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedPlanningSnapshotsTableUpdateCompanionBuilder =
+    CachedPlanningSnapshotsCompanion Function({
+      Value<String> ownerId,
+      Value<String> payloadJson,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedPlanningSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedPlanningSnapshotsTable> {
+  $$CachedPlanningSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedPlanningSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedPlanningSnapshotsTable> {
+  $$CachedPlanningSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedPlanningSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedPlanningSnapshotsTable> {
+  $$CachedPlanningSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CachedPlanningSnapshotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedPlanningSnapshotsTable,
+          CachedPlanningSnapshot,
+          $$CachedPlanningSnapshotsTableFilterComposer,
+          $$CachedPlanningSnapshotsTableOrderingComposer,
+          $$CachedPlanningSnapshotsTableAnnotationComposer,
+          $$CachedPlanningSnapshotsTableCreateCompanionBuilder,
+          $$CachedPlanningSnapshotsTableUpdateCompanionBuilder,
+          (
+            CachedPlanningSnapshot,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedPlanningSnapshotsTable,
+              CachedPlanningSnapshot
+            >,
+          ),
+          CachedPlanningSnapshot,
+          PrefetchHooks Function()
+        > {
+  $$CachedPlanningSnapshotsTableTableManager(
+    _$AppDatabase db,
+    $CachedPlanningSnapshotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedPlanningSnapshotsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CachedPlanningSnapshotsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CachedPlanningSnapshotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> ownerId = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPlanningSnapshotsCompanion(
+                ownerId: ownerId,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String ownerId,
+                required String payloadJson,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPlanningSnapshotsCompanion.insert(
+                ownerId: ownerId,
+                payloadJson: payloadJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedPlanningSnapshotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedPlanningSnapshotsTable,
+      CachedPlanningSnapshot,
+      $$CachedPlanningSnapshotsTableFilterComposer,
+      $$CachedPlanningSnapshotsTableOrderingComposer,
+      $$CachedPlanningSnapshotsTableAnnotationComposer,
+      $$CachedPlanningSnapshotsTableCreateCompanionBuilder,
+      $$CachedPlanningSnapshotsTableUpdateCompanionBuilder,
+      (
+        CachedPlanningSnapshot,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedPlanningSnapshotsTable,
+          CachedPlanningSnapshot
+        >,
+      ),
+      CachedPlanningSnapshot,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxOperationsTableCreateCompanionBuilder =
     OutboxOperationsCompanion Function({
       required String id,
@@ -10860,6 +11324,11 @@ class $AppDatabaseManager {
       $$CachedAnalyticsDashboardsTableTableManager(
         _db,
         _db.cachedAnalyticsDashboards,
+      );
+  $$CachedPlanningSnapshotsTableTableManager get cachedPlanningSnapshots =>
+      $$CachedPlanningSnapshotsTableTableManager(
+        _db,
+        _db.cachedPlanningSnapshots,
       );
   $$OutboxOperationsTableTableManager get outboxOperations =>
       $$OutboxOperationsTableTableManager(_db, _db.outboxOperations);

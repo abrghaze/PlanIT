@@ -4,9 +4,9 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** release `0.7.0` completes Milestone 6. The tested
-> application now adds traceable, timezone-aware analytics, historical manual FX
-> conversion, offline dashboard caching, and merchant/product intelligence.
+> **Implementation status:** release `0.8.0` completes Milestone 7. The tested
+> application now includes recurring commitments, duplicate-safe reminders and
+> reviewable drafts, savings goals, and owner-scoped offline planning projections.
 
 ## Approved target architecture
 
@@ -28,7 +28,7 @@ plans/     Product specification and technical blueprint
 
 ## Current milestone
 
-Milestones 0 through 6 are complete. The current release provides:
+Milestones 0 through 7 are complete. The current release provides:
 
 - Argon2id registration/login and short-lived JWT access tokens.
 - Opaque hashed refresh tokens with rotation, replay detection, chain revocation, logout, and database-backed login throttling.
@@ -56,8 +56,12 @@ Milestones 0 through 6 are complete. The current release provides:
 - Historical user-approved FX rates with explicit partial-result warnings when a required rate is missing.
 - Traceable trend, category, tag, merchant brand/branch, account-flow, and product views linked back to source transactions.
 - Variant-safe product price history and gram/millilitre package normalization, plus an owner-scoped Drift v4 dashboard cache.
+- Weekly, monthly, quarterly, and yearly recurring income/expense rules with timezone-preserving due dates and multi-currency monthly/annual commitment totals.
+- Duplicate-safe due occurrences processed by a bounded scheduler worker or app refresh; reminders remain non-financial and automatic rules create reviewable drafts only.
+- Manual savings allocations and linked-account goals with exact progress/remaining values; allocations never create ledger spending.
+- Recurring and goal mobile screens backed by an owner-scoped Drift v5 cache for useful offline planning visibility.
 
-Milestone 7 adds recurring commitments, savings goals, and reminders.
+Milestone 8 adds advanced integrations, hardening, accessibility, privacy workflows, and store-readiness.
 
 See [`docs/development.md`](docs/development.md) for setup and commands and
 [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for the ordered delivery plan.
