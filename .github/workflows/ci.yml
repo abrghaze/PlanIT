@@ -46,7 +46,7 @@ jobs:
         run: |
           python -m ruff check backend
           python -m ruff format --check backend
-          python -m mypy backend/app
+          python -m mypy --config-file backend/pyproject.toml backend/app
       - name: Verify migrations in both directions
         run: |
           python -m alembic -c backend/alembic.ini upgrade head
