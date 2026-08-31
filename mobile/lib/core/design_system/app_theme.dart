@@ -53,11 +53,29 @@ abstract final class PlanItTheme {
         fillColor: isDark ? PlanItColors.darkSurface : PlanItColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(PlanItRadius.sm),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(PlanItRadius.sm),
           borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PlanItRadius.sm),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PlanItRadius.sm),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.25),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PlanItRadius.sm),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(PlanItRadius.sm),
+          borderSide: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
         ),
       ),
     );
