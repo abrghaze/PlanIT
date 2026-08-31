@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,8 @@ import 'package:planit_mobile/core/auth/application/providers.dart';
 import 'package:planit_mobile/core/auth/data/auth_repository.dart';
 import 'package:planit_mobile/core/auth/domain/auth_session.dart';
 import 'package:planit_mobile/core/auth/domain/auth_user.dart';
+import 'package:planit_mobile/core/database/app_database.dart';
+import 'package:planit_mobile/core/database/providers.dart';
 import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/data/accounts_repository.dart';
@@ -26,10 +29,13 @@ void main() {
     final accountsRepository = _FakeAccountsRepository();
     final transactionsRepository = _FakeTransactionsRepository();
     final catalogRepository = _FakeCatalogRepository();
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(database),
           authRepositoryProvider.overrideWithValue(authRepository),
           accountsRepositoryProvider.overrideWithValue(accountsRepository),
           transactionsRepositoryProvider.overrideWithValue(
@@ -69,6 +75,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Search transactions'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Add flow saves an uncategorized draft', (
@@ -81,10 +89,13 @@ void main() {
     final accountsRepository = _FakeAccountsRepository(<Account>[_account()]);
     final transactionsRepository = _FakeTransactionsRepository();
     final catalogRepository = _FakeCatalogRepository();
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(database),
           authRepositoryProvider.overrideWithValue(authRepository),
           accountsRepositoryProvider.overrideWithValue(accountsRepository),
           transactionsRepositoryProvider.overrideWithValue(
@@ -132,9 +143,12 @@ void main() {
   testWidgets('More opens the real privacy and security settings', (
     WidgetTester tester,
   ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(database),
           authRepositoryProvider.overrideWithValue(
             _FakeAuthRepository(_session(), restoreSession: true),
           ),

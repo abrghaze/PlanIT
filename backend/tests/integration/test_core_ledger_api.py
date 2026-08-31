@@ -85,6 +85,108 @@ async def _cleanup(
         await session.execute(delete(UserModel).where(UserModel.id.in_(user_ids)))
 
 
+async def test_balance_and_transactions_survive_logout_and_login(
+    db_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    app = create_app(_settings())
+    user_ids: list[UUID] = []
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            original = await _register(client)
+            user = original["user"]
+            assert isinstance(user, dict)
+            user_id = UUID(str(user["id"]))
+            user_ids.append(user_id)
+            account_id = await _create_account(client, original)
+
+            categories = await client.get(
+                "/api/v1/categories",
+                headers=_headers(original),
+            )
+            assert categories.status_code == 200, categories.text
+            food = next(
+                item for item in categories.json()["items"] if item["name"] == "Food & dining"
+            )
+
+            transaction_id = uuid4()
+            create_operation = uuid4()
+            created = await client.post(
+                "/api/v1/transactions",
+                headers=_headers(original, create_operation),
+                json={
+                    "id": str(transaction_id),
+                    "client_operation_id": str(create_operation),
+                    "account_id": str(account_id),
+                    "type": "EXPENSE",
+                    "amount": {"amount": "25.0000", "currency": "MAD"},
+                    "occurred_at": datetime.now(UTC).isoformat(),
+                    "category_id": food["id"],
+                    "counterparty": "Persistence test shop",
+                },
+            )
+            assert created.status_code == 201, created.text
+            posted = await client.post(
+                f"/api/v1/transactions/{transaction_id}/post",
+                headers=_headers(original, uuid4()),
+                json={"version": 1},
+            )
+            assert posted.status_code == 200, posted.text
+
+            before_logout = await client.get(
+                f"/api/v1/accounts/{account_id}/balance",
+                headers=_headers(original),
+            )
+            assert before_logout.status_code == 200, before_logout.text
+            assert before_logout.json()["balance"] == {
+                "amount": "75.0000",
+                "currency": "MAD",
+            }
+
+            logout = await client.post(
+                "/api/v1/auth/logout",
+                json={"refresh_token": original["refresh_token"]},
+            )
+            assert logout.status_code == 204, logout.text
+
+            login = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "email": user["email"],
+                    "password": "correct horse battery staple",
+                    "device_label": "pytest-relogin",
+                },
+            )
+            assert login.status_code == 200, login.text
+            restored = login.json()
+            assert restored["user"]["id"] == str(user_id)
+
+            accounts = await client.get(
+                "/api/v1/accounts",
+                headers=_headers(restored),
+            )
+            transactions = await client.get(
+                "/api/v1/transactions",
+                headers=_headers(restored),
+            )
+            after_login = await client.get(
+                f"/api/v1/accounts/{account_id}/balance",
+                headers=_headers(restored),
+            )
+
+            assert accounts.status_code == 200, accounts.text
+            assert transactions.status_code == 200, transactions.text
+            assert after_login.status_code == 200, after_login.text
+            assert str(account_id) in {item["id"] for item in accounts.json()["items"]}
+            assert str(transaction_id) in {item["id"] for item in transactions.json()["items"]}
+            assert after_login.json()["balance"] == before_logout.json()["balance"]
+    finally:
+        await app.state.db_engine.dispose()
+        await _cleanup(db_session_factory, user_ids)
+
+
 async def test_expense_draft_post_reverse_is_idempotent_and_balance_correct(
     db_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
