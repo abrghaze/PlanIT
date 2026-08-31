@@ -15,6 +15,8 @@ import 'package:planit_mobile/features/accounts/data/accounts_repository.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
+import 'package:planit_mobile/features/planning/application/providers.dart';
+import 'package:planit_mobile/features/planning/domain/planning.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/data/catalog_repository.dart';
 import 'package:planit_mobile/features/transactions/data/transactions_repository.dart';
@@ -45,6 +47,11 @@ void main() {
           analyticsDashboardProvider.overrideWith(
             (ref, AnalyticsFilter filter) => Future<AnalyticsDashboard>.error(
               StateError('Analytics is offline in this shell test.'),
+            ),
+          ),
+          planningDashboardProvider.overrideWith(
+            (ref) => Future<PlanningDashboard>.error(
+              StateError('Planning is offline in this shell test.'),
             ),
           ),
         ],
@@ -107,6 +114,11 @@ void main() {
               StateError('Analytics is offline in this shell test.'),
             ),
           ),
+          planningDashboardProvider.overrideWith(
+            (ref) => Future<PlanningDashboard>.error(
+              StateError('Planning is offline in this shell test.'),
+            ),
+          ),
         ],
         child: const PlanItApp(),
       ),
@@ -162,6 +174,11 @@ void main() {
           analyticsDashboardProvider.overrideWith(
             (ref, AnalyticsFilter filter) => Future<AnalyticsDashboard>.error(
               StateError('Analytics is not needed in this settings test.'),
+            ),
+          ),
+          planningDashboardProvider.overrideWith(
+            (ref) => Future<PlanningDashboard>.error(
+              StateError('Planning is not needed in this settings test.'),
             ),
           ),
         ],

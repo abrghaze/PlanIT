@@ -15,6 +15,12 @@ void main() {
       dashboard.products.single.normalizedAveragePrice!.toApiString(),
       '0.0125',
     );
+    final summary = FinancialPeriodSummary.fromDashboard(dashboard);
+    expect(summary.isDeficit, isFalse);
+    expect(summary.spendingToIncomePercent, closeTo(25.0833, 0.0001));
+    expect(summary.retainedIncomePercent, closeTo(74.9167, 0.0001));
+    expect(summary.largestSpendingArea?.name, 'Groceries');
+    expect(summary.largestSpendingSharePercent, 100);
   });
 
   test('custom filter has a deterministic cache key and API dates', () {

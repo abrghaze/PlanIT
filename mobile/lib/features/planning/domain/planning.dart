@@ -110,6 +110,52 @@ final class SavingsGoal {
   );
 }
 
+final class GoalPace {
+  const GoalPace({
+    required this.daysRemaining,
+    required this.monthlyRequired,
+    required this.overdue,
+  });
+
+  final int? daysRemaining;
+  final Money? monthlyRequired;
+  final bool overdue;
+
+  factory GoalPace.fromGoal(SavingsGoal goal, {DateTime? asOf}) {
+    final target = goal.targetDate;
+    if (target == null || goal.remaining.scaledAmount == BigInt.zero) {
+      return const GoalPace(
+        daysRemaining: null,
+        monthlyRequired: null,
+        overdue: false,
+      );
+    }
+    final now = asOf ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final deadline = DateTime(target.year, target.month, target.day);
+    final days = deadline.difference(today).inDays;
+    if (days < 0) {
+      return GoalPace(
+        daysRemaining: days,
+        monthlyRequired: goal.remaining,
+        overdue: true,
+      );
+    }
+    final months = ((days == 0 ? 1 : days) / 30).ceil().clamp(1, 240);
+    final scaled =
+        (goal.remaining.scaledAmount + BigInt.from(months - 1)) ~/
+        BigInt.from(months);
+    return GoalPace(
+      daysRemaining: days,
+      monthlyRequired: Money.parse(
+        _scaledMoneyString(scaled),
+        goal.remaining.currency,
+      ),
+      overdue: false,
+    );
+  }
+}
+
 final class PlanningDashboard {
   const PlanningDashboard({
     required this.rules,
@@ -143,3 +189,11 @@ List<T> _items<T>(Object? raw, T Function(Map<String, Object?>) parser) =>
     (raw! as List)
         .map((item) => parser(Map<String, Object?>.from(item as Map)))
         .toList(growable: false);
+
+String _scaledMoneyString(BigInt value) {
+  final absolute = value.abs();
+  final factor = BigInt.from(10000);
+  final whole = absolute ~/ factor;
+  final fraction = (absolute % factor).toString().padLeft(4, '0');
+  return '${value.isNegative ? '-' : ''}$whole.$fraction';
+}

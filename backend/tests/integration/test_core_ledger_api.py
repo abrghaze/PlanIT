@@ -33,7 +33,7 @@ async def _register(client: httpx.AsyncClient) -> dict[str, object]:
         "/api/v1/auth/register",
         json={
             "email": f"ledger-{uuid4()}@example.com",
-            "password": "correct horse battery staple",
+            "password": "Correct horse battery staple 9!",
             "display_name": "Ledger Owner",
             "base_currency": "MAD",
             "timezone": "Africa/Casablanca",
@@ -155,7 +155,7 @@ async def test_balance_and_transactions_survive_logout_and_login(
                 "/api/v1/auth/login",
                 json={
                     "email": user["email"],
-                    "password": "correct horse battery staple",
+                    "password": "Correct horse battery staple 9!",
                     "device_label": "pytest-relogin",
                 },
             )

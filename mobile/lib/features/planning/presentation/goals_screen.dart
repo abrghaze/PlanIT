@@ -208,56 +208,69 @@ class _GoalCard extends StatelessWidget {
   final VoidCallback? onAllocate;
   final VoidCallback onArchive;
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(PlanItSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  goal.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final pace = GoalPace.fromGoal(goal);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(PlanItSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    goal.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              PopupMenuButton<String>(
-                enabled: !busy,
-                onSelected: (_) => onArchive(),
-                itemBuilder: (_) => const <PopupMenuEntry<String>>[
-                  PopupMenuItem(value: 'archive', child: Text('Archive')),
-                ],
-              ),
-            ],
-          ),
-          Text(
-            '${goal.progress.toDisplayString()} of ${goal.target.toDisplayString()}',
-          ),
-          const SizedBox(height: PlanItSpacing.sm),
-          LinearProgressIndicator(value: (goal.percent / 100).clamp(0, 1)),
-          const SizedBox(height: PlanItSpacing.xs),
-          Text(
-            '${goal.percent.toStringAsFixed(0)}% · ${goal.remaining.toDisplayString()} remaining'
-            '${goal.linkedAccountId == null ? ' · Manual' : ' · Linked account'}',
-          ),
-          if (goal.targetDate != null)
-            Text('Target ${_date(goal.targetDate!)}'),
-          if (onAllocate != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: busy ? null : onAllocate,
-                icon: const Icon(Icons.add_circle_outline),
-                label: const Text('Adjust progress'),
-              ),
+                PopupMenuButton<String>(
+                  enabled: !busy,
+                  onSelected: (_) => onArchive(),
+                  itemBuilder: (_) => const <PopupMenuEntry<String>>[
+                    PopupMenuItem(value: 'archive', child: Text('Archive')),
+                  ],
+                ),
+              ],
             ),
-        ],
+            Text(
+              '${goal.progress.toDisplayString()} of ${goal.target.toDisplayString()}',
+            ),
+            const SizedBox(height: PlanItSpacing.sm),
+            LinearProgressIndicator(value: (goal.percent / 100).clamp(0, 1)),
+            const SizedBox(height: PlanItSpacing.xs),
+            Text(
+              '${goal.percent.toStringAsFixed(0)}% · ${goal.remaining.toDisplayString()} remaining'
+              '${goal.linkedAccountId == null ? ' · Manual' : ' · Linked account'}',
+            ),
+            if (goal.targetDate != null)
+              Text('Target ${_date(goal.targetDate!)}'),
+            if (pace.overdue)
+              Text(
+                'Deadline passed. Review the target or add the remaining amount.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
+            else if (pace.monthlyRequired != null)
+              Text(
+                '${pace.monthlyRequired!.toDisplayString()} per month needed '
+                '(${pace.daysRemaining} days left)',
+              ),
+            if (onAllocate != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: busy ? null : onAllocate,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Adjust progress'),
+                ),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _GoalDialog extends StatefulWidget {

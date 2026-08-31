@@ -31,7 +31,7 @@ async def _register(client: httpx.AsyncClient) -> dict[str, object]:
         "/api/v1/auth/register",
         json={
             "email": f"milestone-four-{uuid4()}@example.com",
-            "password": "correct horse battery staple",
+            "password": "Correct horse battery staple 9!",
             "display_name": "Milestone Four",
             "base_currency": "MAD",
             "timezone": "Africa/Casablanca",

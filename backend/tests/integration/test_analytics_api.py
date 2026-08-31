@@ -72,7 +72,7 @@ async def test_dashboard_classifies_spending_and_requires_historical_fx(
                 "/api/v1/auth/register",
                 json={
                     "email": f"analytics-{uuid4()}@example.com",
-                    "password": "correct horse battery staple",
+                    "password": "Correct horse battery staple 9!",
                     "display_name": "Analytics Owner",
                     "base_currency": "MAD",
                     "timezone": "Africa/Casablanca",

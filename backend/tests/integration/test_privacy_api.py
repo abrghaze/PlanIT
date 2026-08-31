@@ -36,7 +36,7 @@ async def _register(client: httpx.AsyncClient, email: str) -> dict[str, object]:
         "/api/v1/auth/register",
         json={
             "email": email,
-            "password": "correct horse battery staple",
+            "password": "Correct horse battery staple 9!",
             "display_name": "Privacy Owner",
             "base_currency": "MAD",
             "timezone": "Africa/Casablanca",
@@ -247,7 +247,7 @@ async def test_profile_deletion_requires_password_and_preserves_other_users(
                 "/api/v1/privacy/profile",
                 headers=_headers(owner),
                 json={
-                    "password": "correct horse battery staple",
+                    "password": "Correct horse battery staple 9!",
                     "confirmation": "DELETE MY PLANIT DATA",
                 },
             )

@@ -15,7 +15,22 @@ def test_identity_values_are_normalized_and_validated() -> None:
     assert normalized == "person@example.com"
     assert normalize_display_name("  Ada   Lovelace ") == "Ada Lovelace"
     assert validate_timezone("Africa/Casablanca") == "Africa/Casablanca"
-    validate_password("a sufficiently long password")
+    validate_password("A sufficiently long password 9!")
+
+
+@pytest.mark.parametrize(
+    "password",
+    [
+        "lowercase only password 9!",
+        "UPPERCASE ONLY PASSWORD 9!",
+        "No number in this password!",
+        "No symbol in this password 9",
+    ],
+)
+def test_password_requires_upper_lower_number_and_symbol(password: str) -> None:
+    with pytest.raises(DomainError) as error:
+        validate_password(password)
+    assert error.value.code == "WEAK_PASSWORD"
 
 
 @pytest.mark.parametrize(

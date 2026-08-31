@@ -10,6 +10,8 @@ import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
+import 'package:planit_mobile/features/planning/application/providers.dart';
+import 'package:planit_mobile/features/planning/domain/planning.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -21,12 +23,21 @@ class HomeScreen extends ConsumerWidget {
     final analytics = ref.watch(
       analyticsDashboardProvider(const AnalyticsFilter()),
     );
+    final planning = ref.watch(planningDashboardProvider);
     ref.watch(accountBootstrapProvider);
     final firstName =
         auth.session?.user.displayName.split(' ').first ?? 'there';
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(accountControllerProvider.notifier).refresh(),
+      onRefresh: () async {
+        await Future.wait<Object?>(<Future<Object?>>[
+          ref.read(accountControllerProvider.notifier).refresh(),
+          ref.refresh(
+            analyticsDashboardProvider(const AnalyticsFilter()).future,
+          ),
+          ref.refresh(planningDashboardProvider.future),
+        ]);
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
@@ -52,6 +63,7 @@ class HomeScreen extends ConsumerWidget {
                     accounts: items,
                     baseCurrency: auth.session?.user.baseCurrency ?? 'MAD',
                     analytics: analytics,
+                    planning: planning,
                   ),
                 ),
               ],
@@ -105,11 +117,13 @@ class _HomeAccountContent extends StatelessWidget {
     required this.accounts,
     required this.baseCurrency,
     required this.analytics,
+    required this.planning,
   });
 
   final List<Account> accounts;
   final String baseCurrency;
   final AsyncValue<AnalyticsDashboard> analytics;
+  final AsyncValue<PlanningDashboard> planning;
 
   @override
   Widget build(BuildContext context) {
@@ -197,43 +211,198 @@ class _HomeAccountContent extends StatelessWidget {
               onTap: () => context.go('/analytics'),
             ),
           ),
-          data: (dashboard) => Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(PlanItRadius.md),
-              onTap: () => context.go('/analytics'),
-              child: Padding(
-                padding: const EdgeInsets.all(PlanItSpacing.lg),
-                child: Row(
-                  children: <Widget>[
-                    const CircleAvatar(child: Icon(Icons.insights_outlined)),
-                    const SizedBox(width: PlanItSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            'Spent ${dashboard.kpis.personalSpending.toDisplayString()}',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: PlanItSpacing.xxs),
-                          Text(
-                            'Income ${dashboard.kpis.income.toDisplayString()} · '
-                            '${dashboard.kpis.complete ? 'complete' : 'FX rate needed'}',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded),
-                  ],
-                ),
+          data: (dashboard) => _MonthlyHealthCard(dashboard: dashboard),
+        ),
+        const SizedBox(height: PlanItSpacing.lg),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'Savings goal',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
-          ),
+            TextButton(
+              onPressed: () => context.push('/goals'),
+              child: const Text('View goals'),
+            ),
+          ],
         ),
+        const SizedBox(height: PlanItSpacing.sm),
+        _GoalOverview(planning: planning),
       ],
     );
   }
+}
+
+class _MonthlyHealthCard extends StatelessWidget {
+  const _MonthlyHealthCard({required this.dashboard});
+
+  final AnalyticsDashboard dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = FinancialPeriodSummary.fromDashboard(dashboard);
+    final result = summary.result;
+    final headline = result.scaledAmount == BigInt.zero
+        ? 'Income and spending are even'
+        : summary.isDeficit
+        ? 'Outspent income by ${(-result).toDisplayString()}'
+        : 'Kept ${result.toDisplayString()} this month';
+    final top = summary.largestSpendingArea;
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PlanItRadius.md),
+        onTap: () => context.go('/analytics'),
+        child: Padding(
+          padding: const EdgeInsets.all(PlanItSpacing.lg),
+          child: Row(
+            children: <Widget>[
+              CircleAvatar(
+                child: Icon(
+                  summary.isDeficit
+                      ? Icons.trending_down_rounded
+                      : Icons.insights_outlined,
+                ),
+              ),
+              const SizedBox(width: PlanItSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      headline,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: PlanItSpacing.xxs),
+                    Text(
+                      'Spent ${dashboard.kpis.personalSpending.toDisplayString()} · '
+                      'Income ${dashboard.kpis.income.toDisplayString()}',
+                    ),
+                    if (top != null) ...<Widget>[
+                      const SizedBox(height: PlanItSpacing.xxs),
+                      Text(
+                        'Largest area: ${top.name} (${top.amount.toDisplayString()})',
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalOverview extends StatelessWidget {
+  const _GoalOverview({required this.planning});
+
+  final AsyncValue<PlanningDashboard> planning;
+
+  @override
+  Widget build(BuildContext context) => planning.when(
+    loading: () => const Card(
+      child: SizedBox(
+        height: 132,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    ),
+    error: (error, stackTrace) => Card(
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.savings_outlined)),
+        title: const Text('Goal progress is temporarily unavailable'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push('/goals'),
+      ),
+    ),
+    data: (dashboard) {
+      final goals =
+          dashboard.goals
+              .where((goal) => goal.status == 'ACTIVE')
+              .toList(growable: false)
+            ..sort((left, right) {
+              final leftDate = left.targetDate;
+              final rightDate = right.targetDate;
+              if (leftDate == null && rightDate == null) {
+                return right.percent.compareTo(left.percent);
+              }
+              if (leftDate == null) return 1;
+              if (rightDate == null) return -1;
+              return leftDate.compareTo(rightDate);
+            });
+      if (goals.isEmpty) {
+        return Card(
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.flag_outlined)),
+            title: const Text('Set a savings target'),
+            subtitle: const Text(
+              'Track exactly how much is funded and what remains.',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/goals'),
+          ),
+        );
+      }
+      final goal = goals.first;
+      final pace = GoalPace.fromGoal(goal);
+      final detail = pace.overdue
+          ? 'Deadline passed · ${goal.remaining.toDisplayString()} remaining'
+          : pace.monthlyRequired != null
+          ? '${pace.monthlyRequired!.toDisplayString()} per month needed · '
+                '${pace.daysRemaining} days left'
+          : '${goal.remaining.toDisplayString()} remaining';
+      return Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(PlanItRadius.md),
+          onTap: () => context.push('/goals'),
+          child: Padding(
+            padding: const EdgeInsets.all(PlanItSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        goal.name,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    Text(
+                      '${goal.percent.toStringAsFixed(0)}%',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: PlanItSpacing.sm),
+                LinearProgressIndicator(
+                  value: (goal.percent / 100).clamp(0, 1),
+                  minHeight: 9,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                const SizedBox(height: PlanItSpacing.sm),
+                Text(
+                  '${goal.progress.toDisplayString()} of ${goal.target.toDisplayString()}',
+                ),
+                const SizedBox(height: PlanItSpacing.xxs),
+                Text(detail, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _BalanceCard extends StatelessWidget {

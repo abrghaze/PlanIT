@@ -38,7 +38,7 @@ async def test_recurring_occurrences_are_unique_and_goals_never_create_spending(
                 "/api/v1/auth/register",
                 json={
                     "email": f"planning-{uuid4()}@example.com",
-                    "password": "correct horse battery staple",
+                    "password": "Correct horse battery staple 9!",
                     "display_name": "Planning User",
                     "base_currency": "MAD",
                     "timezone": "Africa/Casablanca",

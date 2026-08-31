@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:planit_mobile/core/database/app_database.dart';
+import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
 
 void main() {
@@ -60,4 +61,25 @@ void main() {
       expect(await database.readPlanningSnapshot('owner-a'), isNull);
     },
   );
+
+  test('goal pace reports exact remaining time and monthly requirement', () {
+    final goal = SavingsGoal(
+      id: 'goal-1',
+      name: 'Emergency fund',
+      target: Money.parse('10000.0000', 'MAD'),
+      progress: Money.parse('4000.0000', 'MAD'),
+      remaining: Money.parse('6000.0000', 'MAD'),
+      percent: 40,
+      targetDate: DateTime(2026, 12, 30),
+      linkedAccountId: null,
+      status: 'ACTIVE',
+      version: 1,
+    );
+
+    final pace = GoalPace.fromGoal(goal, asOf: DateTime(2026, 8, 31));
+
+    expect(pace.overdue, isFalse);
+    expect(pace.daysRemaining, 121);
+    expect(pace.monthlyRequired?.toApiString(), '1200.0000');
+  });
 }

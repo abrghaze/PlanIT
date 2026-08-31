@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
+import 'package:planit_mobile/core/auth/domain/password_policy.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/features/auth/presentation/widgets/auth_scaffold.dart';
 
@@ -131,7 +132,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               autofillHints: const <String>[AutofillHints.newPassword],
               decoration: InputDecoration(
                 labelText: 'Password',
-                helperText: 'At least 12 characters',
+                helperText:
+                    '12+ characters with uppercase, lowercase, number, and symbol',
+                helperMaxLines: 2,
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
                   tooltip: _hidePassword ? 'Show password' : 'Hide password',
@@ -144,10 +147,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
               ),
-              validator: (value) => (value?.length ?? 0) >= 12
-                  ? null
-                  : 'Use at least 12 characters.',
+              onChanged: (_) => setState(() {}),
+              validator: PasswordPolicy.validate,
             ),
+            const SizedBox(height: PlanItSpacing.xs),
+            _PasswordChecklist(value: _passwordController.text),
             const SizedBox(height: PlanItSpacing.md),
             TextFormField(
               controller: _confirmController,
@@ -180,6 +184,44 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PasswordChecklist extends StatelessWidget {
+  const _PasswordChecklist({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final requirements = <(String, bool)>[
+      ('12+ characters', PasswordPolicy.hasMinimumLength(value)),
+      ('Uppercase', PasswordPolicy.hasUppercase(value)),
+      ('Lowercase', PasswordPolicy.hasLowercase(value)),
+      ('Number', PasswordPolicy.hasNumber(value)),
+      ('Symbol', PasswordPolicy.hasSymbol(value)),
+    ];
+    return Wrap(
+      spacing: PlanItSpacing.xs,
+      runSpacing: PlanItSpacing.xxs,
+      children: requirements
+          .map(
+            (requirement) => Chip(
+              visualDensity: VisualDensity.compact,
+              avatar: Icon(
+                requirement.$2
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 16,
+                color: requirement.$2
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+              ),
+              label: Text(requirement.$1),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }

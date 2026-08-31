@@ -45,7 +45,7 @@ async def test_shop_variants_and_exact_itemized_expense(
                 "/api/v1/auth/register",
                 json={
                     "email": f"purchases-{uuid4()}@example.com",
-                    "password": "correct horse battery staple",
+                    "password": "Correct horse battery staple 9!",
                     "display_name": "Purchase Owner",
                     "base_currency": "MAD",
                     "timezone": "Africa/Casablanca",

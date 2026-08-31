@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from string import ascii_lowercase, ascii_uppercase, digits
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from email_validator import EmailNotValidError, validate_email
@@ -39,6 +40,27 @@ def validate_password(value: str) -> None:
         raise DomainError(
             "INVALID_PASSWORD",
             "Password cannot exceed 128 characters.",
+        )
+    requirements = (
+        (any(character in ascii_uppercase for character in value), "an uppercase letter"),
+        (any(character in ascii_lowercase for character in value), "a lowercase letter"),
+        (any(character in digits for character in value), "a number"),
+        (
+            any(
+                character not in ascii_uppercase
+                and character not in ascii_lowercase
+                and character not in digits
+                and not character.isspace()
+                for character in value
+            ),
+            "a symbol",
+        ),
+    )
+    missing = [label for present, label in requirements if not present]
+    if missing:
+        raise DomainError(
+            "WEAK_PASSWORD",
+            "Password must include " + ", ".join(missing) + ".",
         )
 
 

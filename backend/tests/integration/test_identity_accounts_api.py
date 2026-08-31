@@ -33,7 +33,7 @@ async def _register(
     client: httpx.AsyncClient,
     *,
     email: str,
-    password: str = "correct horse battery staple",
+    password: str = "Correct horse battery staple 9!",
 ) -> dict[str, object]:
     response = await client.post(
         "/api/v1/auth/register",
@@ -86,6 +86,19 @@ async def test_registration_login_logout_and_generic_failures(
     user_ids: list[UUID] = []
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            weak_password = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "email": f"weak-{uuid4()}@example.com",
+                    "password": "all lowercase password",
+                    "display_name": "Weak Password",
+                    "base_currency": "MAD",
+                    "timezone": "Africa/Casablanca",
+                },
+            )
+            assert weak_password.status_code == 422
+            assert weak_password.json()["error"]["code"] == "WEAK_PASSWORD"
+
             auth = await _register(client, email=email)
             user_ids.append(UUID(str(auth["user"]["id"])))  # type: ignore[index]
 
@@ -93,7 +106,7 @@ async def test_registration_login_logout_and_generic_failures(
                 "/api/v1/auth/register",
                 json={
                     "email": email.upper(),
-                    "password": "another secure password",
+                    "password": "Another secure password 9!",
                     "display_name": "Duplicate",
                     "base_currency": "MAD",
                     "timezone": "UTC",
@@ -124,7 +137,7 @@ async def test_registration_login_logout_and_generic_failures(
             )
             limited = await client.post(
                 "/api/v1/auth/login",
-                json={"email": email, "password": "correct horse battery staple"},
+                json={"email": email, "password": "Correct horse battery staple 9!"},
             )
             assert second_wrong.status_code == 401
             assert limited.status_code == 429

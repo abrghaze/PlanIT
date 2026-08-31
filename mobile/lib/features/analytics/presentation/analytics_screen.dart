@@ -289,6 +289,13 @@ class _DashboardBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: PlanItSpacing.md),
+        _FinancialHealthCard(dashboard: dashboard),
+        const SizedBox(height: PlanItSpacing.lg),
+        const _SectionTitle(
+          title: 'Your key numbers',
+          subtitle: 'Balances, spending, income, and money owed to you',
+        ),
+        const SizedBox(height: PlanItSpacing.sm),
         _KpiGrid(dashboard: dashboard),
         if (dashboard.spendingInsights.isNotEmpty) ...<Widget>[
           const SizedBox(height: PlanItSpacing.lg),
@@ -335,7 +342,7 @@ class _DashboardBody extends StatelessWidget {
           child: SegmentedButton<int>(
             segments: const <ButtonSegment<int>>[
               ButtonSegment<int>(value: 0, label: Text('Category')),
-              ButtonSegment<int>(value: 1, label: Text('Brand')),
+              ButtonSegment<int>(value: 1, label: Text('Shop')),
               ButtonSegment<int>(value: 2, label: Text('Branch')),
               ButtonSegment<int>(value: 3, label: Text('Tag')),
             ],
@@ -390,6 +397,124 @@ class _DashboardBody extends StatelessWidget {
       ],
     );
   }
+}
+
+class _FinancialHealthCard extends StatelessWidget {
+  const _FinancialHealthCard({required this.dashboard});
+
+  final AnalyticsDashboard dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = FinancialPeriodSummary.fromDashboard(dashboard);
+    final result = summary.result;
+    final hasMovement = result.scaledAmount != BigInt.zero;
+    final resultLabel = !hasMovement
+        ? 'Income and spending are even'
+        : summary.isDeficit
+        ? 'Spent ${(-result).toDisplayString()} more than income'
+        : 'Kept ${result.toDisplayString()} after spending';
+    final top = summary.largestSpendingArea;
+    return Card(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(PlanItSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  child: Icon(
+                    summary.isDeficit
+                        ? Icons.trending_down_rounded
+                        : Icons.trending_up_rounded,
+                  ),
+                ),
+                const SizedBox(width: PlanItSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Period health check',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: PlanItSpacing.xxs),
+                      Text(
+                        resultLabel,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (summary.spendingToIncomePercent case final spending?) ...[
+              const SizedBox(height: PlanItSpacing.md),
+              Wrap(
+                spacing: PlanItSpacing.sm,
+                runSpacing: PlanItSpacing.xs,
+                children: <Widget>[
+                  Chip(
+                    avatar: const Icon(Icons.payments_outlined, size: 18),
+                    label: Text('${_percentage(spending)}% of income spent'),
+                  ),
+                  if (summary.retainedIncomePercent case final retained?)
+                    Chip(
+                      avatar: const Icon(Icons.savings_outlined, size: 18),
+                      label: Text(
+                        retained >= 0
+                            ? '${_percentage(retained)}% of income retained'
+                            : '${_percentage(retained.abs())}% income shortfall',
+                      ),
+                    ),
+                ],
+              ),
+            ] else ...<Widget>[
+              const SizedBox(height: PlanItSpacing.sm),
+              const Text(
+                'Add posted income to compare spending against what you earned.',
+              ),
+            ],
+            if (top != null) ...<Widget>[
+              const Divider(height: PlanItSpacing.xl),
+              Text(
+                'Largest spending area',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: PlanItSpacing.xxs),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      top.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${top.amount.toDisplayString()}'
+                    '${summary.largestSpendingSharePercent == null ? '' : ' · ${_percentage(summary.largestSpendingSharePercent!)}%'}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _percentage(double value) => value.toStringAsFixed(
+    value.abs() >= 100 || value == value.roundToDouble() ? 0 : 1,
+  );
 }
 
 class _KpiGrid extends StatelessWidget {
@@ -497,42 +622,61 @@ class _TrendChart extends StatelessWidget {
           PlanItSpacing.lg,
           PlanItSpacing.sm,
         ),
-        child: SizedBox(
-          height: 220,
-          child: LineChart(
-            LineChartData(
-              gridData: const FlGridData(show: true, drawVerticalLine: false),
-              borderData: FlBorderData(show: false),
-              titlesData: const FlTitlesData(
-                topTitles: AxisTitles(),
-                rightTitles: AxisTitles(),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 42),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-              ),
-              lineBarsData: <LineChartBarData>[
-                LineChartBarData(
-                  spots: _spots(points, (point) => point.spending),
-                  color: PlanItColors.negative,
-                  barWidth: 3,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: PlanItColors.negative.withValues(alpha: .08),
-                  ),
-                ),
-                LineChartBarData(
-                  spots: _spots(points, (point) => point.income),
-                  color: PlanItColors.positive,
-                  barWidth: 3,
-                  dotData: const FlDotData(show: false),
-                ),
+        child: Column(
+          children: <Widget>[
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                _ChartLegend(color: PlanItColors.negative, label: 'Spending'),
+                SizedBox(width: PlanItSpacing.md),
+                _ChartLegend(color: PlanItColors.positive, label: 'Income'),
               ],
             ),
-          ),
+            const SizedBox(height: PlanItSpacing.sm),
+            SizedBox(
+              height: 220,
+              child: LineChart(
+                LineChartData(
+                  gridData: const FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: const FlTitlesData(
+                    topTitles: AxisTitles(),
+                    rightTitles: AxisTitles(),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 42,
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  lineBarsData: <LineChartBarData>[
+                    LineChartBarData(
+                      spots: _spots(points, (point) => point.spending),
+                      color: PlanItColors.negative,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: PlanItColors.negative.withValues(alpha: .08),
+                      ),
+                    ),
+                    LineChartBarData(
+                      spots: _spots(points, (point) => point.income),
+                      color: PlanItColors.positive,
+                      barWidth: 3,
+                      dotData: const FlDotData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -547,6 +691,26 @@ class _TrendChart extends StatelessWidget {
       index.toDouble(),
       pick(values[index]).scaledAmount.toDouble() / 10000,
     ),
+  );
+}
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: PlanItSpacing.xxs),
+      Text(label, style: Theme.of(context).textTheme.labelMedium),
+    ],
   );
 }
 

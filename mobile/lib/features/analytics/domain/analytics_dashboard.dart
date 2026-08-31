@@ -108,6 +108,55 @@ final class AnalyticsKpis {
   );
 }
 
+final class FinancialPeriodSummary {
+  const FinancialPeriodSummary({
+    required this.result,
+    required this.spendingToIncomePercent,
+    required this.retainedIncomePercent,
+    required this.largestSpendingArea,
+    required this.largestSpendingSharePercent,
+  });
+
+  final Money result;
+  final double? spendingToIncomePercent;
+  final double? retainedIncomePercent;
+  final BreakdownRow? largestSpendingArea;
+  final double? largestSpendingSharePercent;
+
+  bool get isDeficit => result.scaledAmount.isNegative;
+
+  factory FinancialPeriodSummary.fromDashboard(AnalyticsDashboard dashboard) {
+    final income = dashboard.kpis.income;
+    final spending = dashboard.kpis.personalSpending;
+    BreakdownRow? largest;
+    for (final row in dashboard.categories) {
+      if (largest == null ||
+          row.amount.scaledAmount.abs() > largest.amount.scaledAmount.abs()) {
+        largest = row;
+      }
+    }
+    return FinancialPeriodSummary(
+      result: dashboard.kpis.netIncome,
+      spendingToIncomePercent: _percent(spending, income),
+      retainedIncomePercent: _percent(dashboard.kpis.netIncome, income),
+      largestSpendingArea: largest,
+      largestSpendingSharePercent: largest == null
+          ? null
+          : _percent(largest.amount, spending),
+    );
+  }
+
+  static double? _percent(Money numerator, Money denominator) {
+    if (numerator.currency != denominator.currency ||
+        denominator.scaledAmount <= BigInt.zero) {
+      return null;
+    }
+    return numerator.scaledAmount.toDouble() /
+        denominator.scaledAmount.toDouble() *
+        100;
+  }
+}
+
 final class TrendPoint {
   const TrendPoint({
     required this.periodStart,
