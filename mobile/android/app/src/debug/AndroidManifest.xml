@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- The emulator reaches the developer machine through 10.0.2.2 over HTTP.
+         This override is debug-only; release builds continue to require HTTPS. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
