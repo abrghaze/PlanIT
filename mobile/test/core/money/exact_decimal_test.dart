@@ -12,11 +12,7 @@ void main() {
 
     test('enforces the complete NUMERIC precision after scaling', () {
       expect(
-        () => ExactDecimal.parse(
-          '10000000000000',
-          scale: 6,
-          maximumDigits: 19,
-        ),
+        () => ExactDecimal.parse('10000000000000', scale: 6, maximumDigits: 19),
         throwsFormatException,
       );
     });

@@ -343,9 +343,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       final amounts = PurchaseItemAmounts.tryParse(
         quantity: quantity.text.trim(),
         unitPrice: price.text.trim(),
-        discount: discount.text.trim().isEmpty
-            ? '0'
-            : discount.text.trim(),
+        discount: discount.text.trim().isEmpty ? '0' : discount.text.trim(),
       );
       final label = description.text.trim();
       if (amounts != null && label.isNotEmpty) {

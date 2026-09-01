@@ -130,10 +130,7 @@ class _SyncStatusButton extends StatelessWidget {
       onPressed: () => context.push('/pending-operations'),
       icon: count == 0
           ? icon
-          : Badge(
-              label: Text(count > 99 ? '99+' : '$count'),
-              child: icon,
-            ),
+          : Badge(label: Text(count > 99 ? '99+' : '$count'), child: icon),
     );
   }
 }

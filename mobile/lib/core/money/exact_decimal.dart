@@ -32,8 +32,7 @@ final class ExactDecimal {
         ? BigInt.zero
         : BigInt.parse(fraction.padRight(scale, '0'));
     final absolute = BigInt.parse(whole) * factor + fractionValue;
-    if (maximumDigits != null &&
-        absolute.toString().length > maximumDigits) {
+    if (maximumDigits != null && absolute.toString().length > maximumDigits) {
       throw FormatException('Use no more than $maximumDigits digits.');
     }
     return ExactDecimal.fromScaled(
@@ -90,9 +89,10 @@ final class ExactDecimal {
         ? productScale
         : subtraction.scale;
     final product = left.scaledValue * right.scaledValue;
-    final alignedProduct = product *
-        BigInt.from(10).pow(commonScale - productScale);
-    final alignedSubtraction = subtraction.scaledValue *
+    final alignedProduct =
+        product * BigInt.from(10).pow(commonScale - productScale);
+    final alignedSubtraction =
+        subtraction.scaledValue *
         BigInt.from(10).pow(commonScale - subtraction.scale);
     return _rescale(
       alignedProduct - alignedSubtraction,
@@ -101,11 +101,7 @@ final class ExactDecimal {
     );
   }
 
-  static ExactDecimal _rescale(
-    BigInt value,
-    int valueScale,
-    int resultScale,
-  ) {
+  static ExactDecimal _rescale(BigInt value, int valueScale, int resultScale) {
     if (valueScale <= resultScale) {
       return ExactDecimal.fromScaled(
         value * BigInt.from(10).pow(resultScale - valueScale),
@@ -113,10 +109,7 @@ final class ExactDecimal {
       );
     }
     return ExactDecimal.fromScaled(
-      _divideHalfEven(
-        value,
-        BigInt.from(10).pow(valueScale - resultScale),
-      ),
+      _divideHalfEven(value, BigInt.from(10).pow(valueScale - resultScale)),
       resultScale,
     );
   }

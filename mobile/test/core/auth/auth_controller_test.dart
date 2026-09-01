@@ -25,9 +25,7 @@ void main() {
       loginResult: refreshed,
     );
     final container = ProviderContainer(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(repository),
-      ],
+      overrides: [authRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
 
@@ -62,9 +60,7 @@ void main() {
       loginResult: replacement,
     );
     final container = ProviderContainer(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(repository),
-      ],
+      overrides: [authRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
 

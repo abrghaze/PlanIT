@@ -163,11 +163,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     if (save == true && name.text.trim().isNotEmpty) {
       final sizeValue = size.text.trim().isEmpty
           ? null
-          : ExactDecimal.tryParse(
-              size.text,
-              scale: 6,
-              maximumDigits: 19,
-            );
+          : ExactDecimal.tryParse(size.text, scale: 6, maximumDigits: 19);
       if (size.text.trim().isNotEmpty &&
           (sizeValue == null || !sizeValue.isPositive)) {
         if (mounted) {
