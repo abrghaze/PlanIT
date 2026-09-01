@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import httpx
@@ -197,20 +198,35 @@ async def test_shop_variants_and_exact_itemized_expense(
                             "unit_price": "5.0000",
                             "discount": "0.0000",
                         },
+                        {
+                            "id": str(uuid4()),
+                            "description": "Banker's-rounding boundary",
+                            "quantity": "0.000001",
+                            "unit_price": "50.0000",
+                            "discount": "0.0000",
+                        },
                     ],
                 },
             )
             assert exact.status_code == 201, exact.text
             body = exact.json()
             assert body["merchant_id"] == str(merchant_id)
-            assert len(body["items"]) == 2
+            assert len(body["items"]) == 3
+            tie_item = next(
+                item
+                for item in body["items"]
+                if item["description"] == "Banker's-rounding boundary"
+            )
+            assert tie_item["line_total"] == "0.0000"
             posted = await client.post(
                 f"/api/v1/transactions/{tx_id}/post",
                 headers=_headers(auth, uuid4()),
                 json={"version": body["version"]},
             )
             assert posted.status_code == 200, posted.text
-            assert sum(float(item["line_total"]) for item in posted.json()["items"]) == 25.0
+            assert sum(Decimal(item["line_total"]) for item in posted.json()["items"]) == Decimal(
+                "25.0000"
+            )
     finally:
         if user_id:
             async with db_session_factory() as session, session.begin():

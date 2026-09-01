@@ -33,6 +33,7 @@ mobile/ios/Pods/
 *.iml
 .DS_Store
 Thumbs.db
+*.log
 
 # Local infrastructure data
 .data/

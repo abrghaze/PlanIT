@@ -188,9 +188,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
     controller.dispose();
     if (rate == null || rate.isEmpty) return;
-    final session = ref.read(authControllerProvider).session;
-    if (session == null) return;
     try {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
       await ref
           .read(analyticsRepositoryProvider)
           .api
@@ -606,11 +607,16 @@ class _TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (points.isEmpty) {
+    final hasReportedMovement = points.any(
+      (point) =>
+          point.spending.scaledAmount != BigInt.zero ||
+          point.income.scaledAmount != BigInt.zero,
+    );
+    if (!hasReportedMovement) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(PlanItSpacing.lg),
-          child: Text('No posted activity in this period.'),
+          child: Text('No posted spending or income in this period.'),
         ),
       );
     }

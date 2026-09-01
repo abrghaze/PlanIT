@@ -105,7 +105,7 @@ async def test_migration_head_readiness_decimal_and_timezone_round_trip(
         async with db_session_factory() as session:
             stored = await session.get(TransactionModel, transaction_id)
 
-        assert current_revision == "20260830_0008"
+        assert current_revision == "20260901_0009"
         assert stored is not None
         assert stored.amount == Decimal("0.1000")
         assert isinstance(stored.amount, Decimal)

@@ -12,6 +12,7 @@ import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
 import 'package:planit_mobile/features/planning/application/providers.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
+import 'package:planit_mobile/features/transactions/application/providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,7 @@ class HomeScreen extends ConsumerWidget {
       analyticsDashboardProvider(const AnalyticsFilter()),
     );
     final planning = ref.watch(planningDashboardProvider);
+    final pendingCount = ref.watch(pendingTransactionCountProvider);
     ref.watch(accountBootstrapProvider);
     final firstName =
         auth.session?.user.displayName.split(' ').first ?? 'there';
@@ -50,7 +52,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             sliver: SliverList.list(
               children: <Widget>[
-                _Header(firstName: firstName),
+                _Header(firstName: firstName, pendingCount: pendingCount),
                 if (auth.offline) ...<Widget>[
                   const SizedBox(height: PlanItSpacing.md),
                   const _OfflineBanner(),
@@ -76,9 +78,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.firstName});
+  const _Header({required this.firstName, required this.pendingCount});
 
   final String firstName;
+  final AsyncValue<int> pendingCount;
 
   @override
   Widget build(BuildContext context) {
@@ -102,12 +105,35 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        IconButton.filledTonal(
-          tooltip: 'Notifications',
-          onPressed: () {},
-          icon: const Icon(Icons.notifications_none_rounded),
-        ),
+        _SyncStatusButton(pendingCount: pendingCount),
       ],
+    );
+  }
+}
+
+class _SyncStatusButton extends StatelessWidget {
+  const _SyncStatusButton({required this.pendingCount});
+
+  final AsyncValue<int> pendingCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = pendingCount.value ?? 0;
+    final tooltip = count == 0
+        ? 'Everything is synchronized'
+        : '$count pending ${count == 1 ? 'operation' : 'operations'}';
+    final icon = Icon(
+      count == 0 ? Icons.cloud_done_outlined : Icons.cloud_sync_outlined,
+    );
+    return IconButton.filledTonal(
+      tooltip: tooltip,
+      onPressed: () => context.push('/pending-operations'),
+      icon: count == 0
+          ? icon
+          : Badge(
+              label: Text(count > 99 ? '99+' : '$count'),
+              child: icon,
+            ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:planit_mobile/core/database/app_database.dart';
 import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/transactions/domain/outbox_operation.dart';
+import 'package:planit_mobile/features/transactions/domain/purchase_item_math.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 final class TransactionsLocalDataSource {
@@ -372,10 +373,14 @@ final class TransactionsLocalDataSource {
             final quantity = '${json['quantity']}';
             final unitPrice = '${json['unit_price']}';
             final discount = '${json['discount']}';
-            final lineTotal =
-                (double.parse(quantity) * double.parse(unitPrice) -
-                        double.parse(discount))
-                    .toStringAsFixed(4);
+            final storedLineTotal = json['line_total'];
+            final lineTotal = storedLineTotal == null
+                ? PurchaseItemAmounts.parse(
+                    quantity: quantity,
+                    unitPrice: unitPrice,
+                    discount: discount,
+                  ).lineTotal
+                : '$storedLineTotal';
             return PurchaseItem(
               id: json['id']! as String,
               productId: json['product_id'] as String?,
@@ -383,7 +388,7 @@ final class TransactionsLocalDataSource {
               quantity: quantity,
               unitPrice: unitPrice,
               discount: discount,
-              lineTotal: '${json['line_total'] ?? lineTotal}',
+              lineTotal: lineTotal,
               position: json['position'] as int? ?? entry.key,
             );
           })

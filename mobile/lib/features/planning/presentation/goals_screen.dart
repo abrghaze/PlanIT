@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
+import 'package:planit_mobile/core/money/exact_decimal.dart';
 import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
@@ -141,8 +142,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       ),
     );
     controller.dispose();
-    final parsed = amount == null ? null : double.tryParse(amount);
-    if (parsed == null || parsed == 0) return;
+    final parsed = amount == null
+        ? null
+        : ExactDecimal.tryParse(amount, scale: 4, maximumDigits: 19);
+    if (parsed == null || !parsed.isPositive) return;
     final operation = const Uuid().v4();
     await _run(() async {
       final session = await ref
@@ -156,7 +159,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           'id': const Uuid().v4(),
           'client_operation_id': operation,
           'amount': <String, Object?>{
-            'amount': parsed.toStringAsFixed(4),
+            'amount': parsed.toFixedString(),
             'currency': goal.target.currency,
           },
         },
@@ -351,15 +354,21 @@ class _GoalDialogState extends State<_GoalDialog> {
         ),
         FilledButton(
           onPressed: () {
-            final parsed = double.tryParse(amount.text);
-            if (name.text.trim().isEmpty || parsed == null || parsed <= 0) {
+            final parsed = ExactDecimal.tryParse(
+              amount.text,
+              scale: 4,
+              maximumDigits: 19,
+            );
+            if (name.text.trim().isEmpty ||
+                parsed == null ||
+                !parsed.isPositive) {
               return;
             }
             Navigator.pop(context, <String, Object?>{
               'id': const Uuid().v4(),
               'name': name.text.trim(),
               'target_amount': <String, Object?>{
-                'amount': parsed.toStringAsFixed(4),
+                'amount': parsed.toFixedString(),
                 'currency': currency,
               },
               if (targetDate != null)

@@ -10,6 +10,7 @@ import 'package:planit_mobile/features/purchases/domain/purchase_catalog.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 import 'package:planit_mobile/features/transactions/domain/catalog.dart';
+import 'package:planit_mobile/features/transactions/domain/purchase_item_math.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 import 'package:uuid/uuid.dart';
 
@@ -153,7 +154,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final selectedTagIds = _tagIds
         .where(activeTagIds.contains)
         .toList(growable: false);
-    final purchaseItems = _balancedItems(money.toApiString());
+    final purchaseItems = _balancedItems(money);
     if (purchaseItems == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -216,26 +217,25 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     }
   }
 
-  List<PurchaseItem>? _balancedItems(String amount) {
+  List<PurchaseItem>? _balancedItems(Money target) {
     if (_items.isEmpty) return const <PurchaseItem>[];
-    final target = double.parse(amount);
-    final total = _items.fold<double>(
-      0,
-      (sum, item) => sum + double.parse(item.lineTotal),
+    final total = _items.fold<Money>(
+      Money.zero(target.currency),
+      (sum, item) => sum + Money.parse(item.lineTotal, target.currency),
     );
-    if (total > target + 0.00005) return null;
+    if (total.scaledAmount > target.scaledAmount) return null;
     final result = List<PurchaseItem>.from(_items);
     final difference = target - total;
-    if (difference > 0.00005) {
+    if (difference.scaledAmount > BigInt.zero) {
       result.add(
         PurchaseItem(
           id: const Uuid().v4(),
           productId: null,
           description: 'Unspecified items',
           quantity: '1',
-          unitPrice: difference.toStringAsFixed(4),
+          unitPrice: difference.toApiString(),
           discount: '0.0000',
-          lineTotal: difference.toStringAsFixed(4),
+          lineTotal: difference.toApiString(),
           position: result.length,
         ),
       );
@@ -340,33 +340,29 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       ),
     );
     if (saved == true && mounted) {
-      final qty = double.tryParse(quantity.text.trim());
-      final unit = double.tryParse(price.text.trim());
-      final off = double.tryParse(discount.text.trim()) ?? 0;
+      final amounts = PurchaseItemAmounts.tryParse(
+        quantity: quantity.text.trim(),
+        unitPrice: price.text.trim(),
+        discount: discount.text.trim().isEmpty
+            ? '0'
+            : discount.text.trim(),
+      );
       final label = description.text.trim();
-      if (qty != null &&
-          qty > 0 &&
-          unit != null &&
-          unit >= 0 &&
-          off >= 0 &&
-          label.isNotEmpty) {
-        final total = qty * unit - off;
-        if (total >= 0) {
-          setState(
-            () => _items.add(
-              PurchaseItem(
-                id: const Uuid().v4(),
-                productId: productId,
-                description: label,
-                quantity: quantity.text.trim(),
-                unitPrice: unit.toStringAsFixed(4),
-                discount: off.toStringAsFixed(4),
-                lineTotal: total.toStringAsFixed(4),
-                position: _items.length,
-              ),
+      if (amounts != null && label.isNotEmpty) {
+        setState(
+          () => _items.add(
+            PurchaseItem(
+              id: const Uuid().v4(),
+              productId: productId,
+              description: label,
+              quantity: amounts.quantity,
+              unitPrice: amounts.unitPrice,
+              discount: amounts.discount,
+              lineTotal: amounts.lineTotal,
+              position: _items.length,
             ),
-          );
-        }
+          ),
+        );
       }
     }
     description.dispose();

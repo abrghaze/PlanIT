@@ -76,6 +76,7 @@ void main() {
 
     expect(authRepository.loginCount, 1);
     expect(find.text('Add your first account'), findsOneWidget);
+    expect(find.byTooltip('Everything is synchronized'), findsOneWidget);
     expect(accountsRepository.refreshCount, 1);
 
     await tester.tap(find.widgetWithText(NavigationDestination, 'Activity'));

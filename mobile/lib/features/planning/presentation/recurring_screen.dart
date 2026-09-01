@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
+import 'package:planit_mobile/core/money/exact_decimal.dart';
 import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
@@ -392,8 +393,14 @@ class _RecurringDialogState extends State<_RecurringDialog> {
       ),
       FilledButton(
         onPressed: () {
-          final parsed = double.tryParse(amount.text);
-          if (name.text.trim().isEmpty || parsed == null || parsed <= 0) {
+          final parsed = ExactDecimal.tryParse(
+            amount.text,
+            scale: 4,
+            maximumDigits: 19,
+          );
+          if (name.text.trim().isEmpty ||
+              parsed == null ||
+              !parsed.isPositive) {
             return;
           }
           Navigator.pop(context, <String, Object?>{
@@ -402,7 +409,7 @@ class _RecurringDialogState extends State<_RecurringDialog> {
             'kind': kind,
             'account_id': account.id,
             'amount': <String, Object?>{
-              'amount': parsed.toStringAsFixed(4),
+              'amount': parsed.toFixedString(),
               'currency': account.currency,
             },
             'frequency': frequency,

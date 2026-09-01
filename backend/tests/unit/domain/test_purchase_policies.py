@@ -11,6 +11,12 @@ def test_line_total_uses_four_decimal_bankers_rounding() -> None:
     )
 
 
+def test_line_total_rounds_after_subtracting_discount() -> None:
+    assert calculate_line_total(
+        Decimal("0.000003"), Decimal("50.0000"), Decimal("0.0001")
+    ) == Decimal("0.0000")
+
+
 def test_line_total_rejects_discount_above_gross() -> None:
     with pytest.raises(DomainError, match="discount") as raised:
         calculate_line_total(Decimal("1"), Decimal("2"), Decimal("2.0001"))

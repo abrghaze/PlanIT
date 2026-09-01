@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
+import 'package:planit_mobile/core/money/exact_decimal.dart';
 import 'package:planit_mobile/features/purchases/application/media_controller.dart';
 import 'package:planit_mobile/features/purchases/application/providers.dart';
 import 'package:planit_mobile/features/purchases/domain/purchase_catalog.dart';
@@ -162,9 +163,13 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     if (save == true && name.text.trim().isNotEmpty) {
       final sizeValue = size.text.trim().isEmpty
           ? null
-          : double.tryParse(size.text.trim().replaceAll(',', '.'));
+          : ExactDecimal.tryParse(
+              size.text,
+              scale: 6,
+              maximumDigits: 19,
+            );
       if (size.text.trim().isNotEmpty &&
-          (sizeValue == null || sizeValue <= 0)) {
+          (sizeValue == null || !sizeValue.isPositive)) {
         if (mounted) {
           ScaffoldMessenger.of(this.context).showSnackBar(
             const SnackBar(content: Text('Package size must be positive.')),
@@ -182,7 +187,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             'variant_label': variant.text.trim().isEmpty
                 ? null
                 : variant.text.trim(),
-            'size_value': sizeValue,
+            'size_value': sizeValue?.toFixedString(),
             'size_unit': sizeValue == null ? null : sizeUnit,
             'barcode': barcode.text.trim().isEmpty ? null : barcode.text.trim(),
           }, const Uuid().v4());

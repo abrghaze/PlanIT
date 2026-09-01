@@ -186,7 +186,8 @@ class TransactionItemModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("discount >= 0", name="discount_non_negative"),
         CheckConstraint("line_total >= 0", name="line_total_non_negative"),
         CheckConstraint(
-            "line_total = round(quantity * unit_price - discount, 4)", name="line_total_exact"
+            "line_total = planit_round_half_even(quantity * unit_price - discount, 4)",
+            name="line_total_exact",
         ),
         CheckConstraint("position >= 0", name="position_non_negative"),
         ForeignKeyConstraint(

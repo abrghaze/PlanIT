@@ -22,8 +22,7 @@ final class MediaUploadController extends Notifier<AsyncValue<void>> {
     required String entityId,
     required ImageSource source,
   }) async {
-    final session = ref.read(authControllerProvider).session;
-    if (session == null) return false;
+    if (ref.read(authControllerProvider).session == null) return false;
     final image = await ImagePicker().pickImage(
       source: source,
       imageQuality: 82,
@@ -32,6 +31,9 @@ final class MediaUploadController extends Notifier<AsyncValue<void>> {
     if (image == null) return false;
     state = const AsyncLoading();
     try {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
       final bytes = await image.readAsBytes();
       final mime = switch (image.mimeType?.toLowerCase()) {
         'image/png' => 'image/png',

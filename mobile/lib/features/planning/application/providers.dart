@@ -20,8 +20,11 @@ final planningRepositoryProvider = Provider<PlanningRepository>(
 final planningDashboardProvider = FutureProvider<PlanningDashboard>((
   ref,
 ) async {
-  final session = ref.watch(authControllerProvider).session;
-  if (session == null) throw StateError('Authentication is required.');
+  final current = ref.watch(authControllerProvider).session;
+  if (current == null) throw StateError('Authentication is required.');
+  final session = await ref
+      .read(authControllerProvider.notifier)
+      .requireFreshSession();
   return ref
       .watch(planningRepositoryProvider)
       .load(ownerId: session.user.id, token: session.accessToken);

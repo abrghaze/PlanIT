@@ -62,10 +62,11 @@ final class PurchaseCatalogController extends Notifier<AsyncValue<void>> {
   Future<bool> _run(
     Future<void> Function(PurchaseCatalogRepository, String, String) action,
   ) async {
-    final session = ref.read(authControllerProvider).session;
-    if (session == null) return false;
     state = const AsyncLoading();
     try {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
       await action(
         ref.read(purchaseCatalogRepositoryProvider),
         session.user.id,

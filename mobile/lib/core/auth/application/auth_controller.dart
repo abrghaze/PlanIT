@@ -11,6 +11,9 @@ final NotifierProvider<AuthController, AuthState> authControllerProvider =
     NotifierProvider<AuthController, AuthState>(AuthController.new);
 
 final class AuthController extends Notifier<AuthState> {
+  Future<AuthSession>? _refreshInFlight;
+  String? _refreshTokenInFlight;
+
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
   @override
@@ -105,8 +108,39 @@ final class AuthController extends Notifier<AuthState> {
         statusCode: 401,
       );
     }
+
+    if (session.accessIsFresh()) {
+      return session;
+    }
+
+    final inFlight = _refreshInFlight;
+    if (inFlight != null && _refreshTokenInFlight == session.refreshToken) {
+      return inFlight;
+    }
+
+    final refresh = _refreshSession(session);
+    _refreshInFlight = refresh;
+    _refreshTokenInFlight = session.refreshToken;
+    try {
+      return await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+        _refreshTokenInFlight = null;
+      }
+    }
+  }
+
+  Future<AuthSession> _refreshSession(AuthSession session) async {
     try {
       final refreshed = await _repository.ensureFresh(session);
+      final current = state.session;
+      if (current == null || current.refreshToken != session.refreshToken) {
+        throw const AppException(
+          code: 'SESSION_CHANGED',
+          message: 'The active session changed. Please try again.',
+        );
+      }
       if (!identical(refreshed, session)) {
         state = state.copyWith(
           session: refreshed,

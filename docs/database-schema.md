@@ -64,9 +64,10 @@ prevent cross-user balancing accounts, lines, movements, or group links.
 | media link tables | Private image relationships | ordered links from verified media assets to transactions, products, merchants |
 
 Milestone 5 uses deferred validators to require exact item/expense totals and
-block item changes after posting. Composite foreign keys keep merchant, branch,
-product, transaction, and media ownership coherent. Object bytes never enter
-PostgreSQL.
+block item changes after posting. Item totals use the same half-even rounding in
+the Python domain, Flutter input arithmetic, and PostgreSQL check constraint.
+Composite foreign keys keep merchant, branch, product, transaction, and media
+ownership coherent. Object bytes never enter PostgreSQL.
 
 ## Analytics projections
 
