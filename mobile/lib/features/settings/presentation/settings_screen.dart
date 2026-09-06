@@ -29,7 +29,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .requireFreshSession();
       final download = await action(session.accessToken);
       final savedAt = await savePrivacyFile(download.filename, download.bytes);
-      _message('Export saved to $savedAt');
+      _message(
+        savedAt == null
+            ? 'Export cancelled.'
+            : 'Export saved.',
+      );
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on UnsupportedError catch (error) {
@@ -59,11 +63,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         password: request.password,
         confirmation: request.confirmation,
       );
-      await controller.logout();
+      await controller.logout(clearLocalData: true);
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on Object {
       _message('PlanIT could not delete the profile.', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restorePortableData() async {
+    try {
+      final bytes = await pickPrivacyFile();
+      if (bytes == null || !mounted) return;
+      final password = await showDialog<String>(
+        context: context,
+        builder: (context) => const _RestoreDataDialog(),
+      );
+      if (password == null || !mounted) return;
+      setState(() => _busy = true);
+      final controller = ref.read(authControllerProvider.notifier);
+      final session = await controller.requireFreshSession();
+      final result = await _api.restore(
+        session.accessToken,
+        bytes: bytes,
+        password: password,
+      );
+      if (!mounted) return;
+      final receiptNotice = result.ignoredReceiptFiles == 0
+          ? ''
+          : '${result.ignoredReceiptFiles} receipt image references were not restored because portable JSON does not contain image files. ';
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Restore complete'),
+          content: Text(
+            '${result.restoredRows} records were restored. '
+            '$receiptNotice'
+            'For safety, PlanIT will sign out and reload the restored data when you sign in again.',
+          ),
+          actions: <Widget>[
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      await controller.logout(clearLocalData: true);
+    } on AppException catch (error) {
+      _message(error.message, error: true);
+    } on UnsupportedError catch (error) {
+      _message(error.message?.toString() ?? 'Restore is unavailable.', error: true);
+    } on Object {
+      _message('PlanIT could not restore the selected data.', error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -157,15 +211,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.backup_outlined),
-                title: const Text('Create portable backup'),
+                title: const Text('Export portable data'),
                 subtitle: const Text(
-                  'Private JSON copy without passwords, tokens, or receipt files',
+                  'JSON copy without passwords, tokens, or receipt image files. Choose where to save it.',
                 ),
                 trailing: const Icon(Icons.download_rounded),
                 enabled: enabled,
                 onTap: enabled
                     ? () => _download((token) => _api.backup(token))
                     : null,
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_backup_restore_rounded),
+                title: const Text('Restore portable data'),
+                subtitle: const Text(
+                  'For a fresh profile with no accounts or financial records',
+                ),
+                trailing: const Icon(Icons.upload_file_rounded),
+                enabled: enabled,
+                onTap: enabled ? _restorePortableData : null,
               ),
             ],
           ),
@@ -332,4 +396,69 @@ class _DeleteProfileDialogState extends State<_DeleteProfileDialog> {
       ],
     );
   }
+}
+
+class _RestoreDataDialog extends StatefulWidget {
+  const _RestoreDataDialog();
+
+  @override
+  State<_RestoreDataDialog> createState() => _RestoreDataDialogState();
+}
+
+class _RestoreDataDialogState extends State<_RestoreDataDialog> {
+  final _password = TextEditingController();
+  final _confirmation = TextEditingController();
+
+  bool get _ready =>
+      _password.text.isNotEmpty &&
+      _confirmation.text == 'RESTORE MY PLANIT DATA';
+
+  @override
+  void dispose() {
+    _password.dispose();
+    _confirmation.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Restore portable data?'),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Text(
+            'Restore works only in a fresh profile. PlanIT validates the complete file in one database transaction. Enter your password and type RESTORE MY PLANIT DATA exactly.',
+          ),
+          const SizedBox(height: PlanItSpacing.md),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autofillHints: const <String>[AutofillHints.password],
+            decoration: const InputDecoration(labelText: 'Current password'),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: PlanItSpacing.sm),
+          TextField(
+            controller: _confirmation,
+            autocorrect: false,
+            decoration: const InputDecoration(labelText: 'Confirmation phrase'),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+    ),
+    actions: <Widget>[
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _ready
+            ? () => Navigator.of(context).pop(_password.text)
+            : null,
+        child: const Text('Restore data'),
+      ),
+    ],
+  );
 }

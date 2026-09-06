@@ -69,6 +69,35 @@ final class RecurringTotal {
   );
 }
 
+final class RecurringOccurrence {
+  const RecurringOccurrence({
+    required this.id,
+    required this.ruleId,
+    required this.scheduledFor,
+    required this.transactionId,
+    required this.status,
+  });
+
+  final String id;
+  final String ruleId;
+  final DateTime scheduledFor;
+  final String? transactionId;
+  final String status;
+
+  bool get canRecord => status == 'DUE';
+
+  factory RecurringOccurrence.fromJson(Map<String, Object?> json) =>
+      RecurringOccurrence(
+        id: json['id']! as String,
+        ruleId: json['rule_id']! as String,
+        scheduledFor: DateTime.parse(
+          json['scheduled_for']! as String,
+        ).toUtc(),
+        transactionId: json['transaction_id'] as String?,
+        status: json['status']! as String,
+      );
+}
+
 final class SavingsGoal {
   const SavingsGoal({
     required this.id,
@@ -160,11 +189,13 @@ final class PlanningDashboard {
   const PlanningDashboard({
     required this.rules,
     required this.totals,
+    required this.upcoming,
     required this.goals,
     required this.cachedAt,
   });
   final List<RecurringRule> rules;
   final List<RecurringTotal> totals;
+  final List<RecurringOccurrence> upcoming;
   final List<SavingsGoal> goals;
   final DateTime? cachedAt;
   bool get offline => cachedAt != null;
@@ -175,6 +206,7 @@ final class PlanningDashboard {
   }) => PlanningDashboard(
     rules: _items(json['rules'], RecurringRule.fromJson),
     totals: _items(json['totals'], RecurringTotal.fromJson),
+    upcoming: _optionalItems(json['upcoming'], RecurringOccurrence.fromJson),
     goals: _items(json['goals'], SavingsGoal.fromJson),
     cachedAt: cachedAt,
   );
@@ -189,6 +221,11 @@ List<T> _items<T>(Object? raw, T Function(Map<String, Object?>) parser) =>
     (raw! as List)
         .map((item) => parser(Map<String, Object?>.from(item as Map)))
         .toList(growable: false);
+
+List<T> _optionalItems<T>(
+  Object? raw,
+  T Function(Map<String, Object?>) parser,
+) => raw == null ? const <T>[] : _items(raw, parser);
 
 String _scaledMoneyString(BigInt value) {
   final absolute = value.abs();

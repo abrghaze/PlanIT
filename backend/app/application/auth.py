@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
@@ -23,6 +24,8 @@ from app.domain.identity.policies import (
 from app.infrastructure.repositories.identity import IdentityRepository
 from app.infrastructure.security.passwords import PasswordService
 from app.infrastructure.security.tokens import AccessToken, RefreshToken, TokenService
+
+_PASSWORD_WORK_SLOTS = asyncio.Semaphore(4)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +61,7 @@ class AuthService:
         normalized_currency = normalize_currency(base_currency)
         normalized_timezone = validate_timezone(timezone)
         validate_password(password)
-        password_hash = self._passwords.hash(password)
+        password_hash = await self._hash_password(password)
         normalized_device = self._normalize_device_label(device_label)
 
         result: AuthResult | None = None
@@ -153,7 +156,7 @@ class AuthService:
                     if email_is_valid
                     else None
                 )
-                password_matches = self._passwords.verify(
+                password_matches = await self._verify_password(
                     user.password_hash if user is not None and user.status == "ACTIVE" else None,
                     password,
                 )
@@ -165,8 +168,8 @@ class AuthService:
                     )
                 else:
                     await self._repository.clear_throttle(throttle_key)
-                    if self._passwords.needs_rehash(user.password_hash):
-                        user.password_hash = self._passwords.hash(password)
+                    if await self._password_needs_rehash(user.password_hash):
+                        user.password_hash = await self._hash_password(password)
                     refresh_session, refresh_token = self._new_refresh_session(
                         user_id=user.id,
                         device_label=normalized_device,
@@ -414,6 +417,18 @@ class AuthService:
             "INVALID_REFRESH_TOKEN",
             "The refresh session is invalid or expired. Sign in again.",
         )
+
+    async def _hash_password(self, password: str) -> str:
+        async with _PASSWORD_WORK_SLOTS:
+            return await asyncio.to_thread(self._passwords.hash, password)
+
+    async def _verify_password(self, password_hash: str | None, password: str) -> bool:
+        async with _PASSWORD_WORK_SLOTS:
+            return await asyncio.to_thread(self._passwords.verify, password_hash, password)
+
+    async def _password_needs_rehash(self, password_hash: str) -> bool:
+        async with _PASSWORD_WORK_SLOTS:
+            return await asyncio.to_thread(self._passwords.needs_rehash, password_hash)
 
     @staticmethod
     def _to_user_identity(user: UserModel) -> UserIdentity:

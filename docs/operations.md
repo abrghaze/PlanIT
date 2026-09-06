@@ -47,13 +47,16 @@ person who approved destruction of the temporary recovery database.
   accepts an optional `as_of` timestamp.
 - `GET /api/v1/privacy/backup.json` produces a portable, owner-scoped data copy. It omits
   password hashes, refresh tokens, idempotency state, storage keys, and private image bytes.
+- `POST /api/v1/privacy/restore` accepts portable schema versions 1 and 2 after current-password
+  confirmation. Restore is atomic, idempotent, and restricted to a fresh profile. The original
+  profile must first be deleted on the same server, preventing accidental account cloning.
 - `DELETE /api/v1/privacy/profile` requires the current password and the exact confirmation
   phrase `DELETE MY PLANIT DATA`. Private objects are deleted before the database profile;
   any object-store failure aborts the database deletion for a safe retry.
 
-Export responses are non-cacheable. A database backup is the authoritative disaster
-recovery mechanism; the portable JSON export is designed for user access and future
-provider-neutral import tooling, not direct database replacement.
+Export and restore responses are non-cacheable. A database backup remains the authoritative
+service disaster-recovery mechanism. Portable JSON is the user-controlled financial-data
+recovery path; it does not contain receipt image binaries, credentials, or server operations.
 
 ## Optional automation
 

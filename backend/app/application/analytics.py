@@ -511,8 +511,8 @@ class AnalyticsService:
             if item.quantity > 0:
                 value.unit_prices.append((transaction.occurred_at, converted_line / item.quantity))
             normalized = normalized_package_quantity(
-                products[item.product_id].size_value,
-                products[item.product_id].size_unit,
+                item.package_size_value_snapshot,
+                item.package_size_unit_snapshot,
             )
             if normalized is None:
                 continue

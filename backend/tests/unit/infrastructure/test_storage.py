@@ -29,11 +29,12 @@ def test_private_storage_generates_short_lived_signed_urls() -> None:
     upload = storage.signed_upload_url(
         key="users/owner/transaction/receipt.jpg",
         content_type="image/jpeg",
+        size_bytes=128,
     )
     read = storage.signed_read_url(key="users/owner/transaction/receipt.jpg")
     for value in (upload, read):
         query = parse_qs(urlsplit(value).query)
         assert query["X-Amz-Expires"] == ["300"]
         assert "X-Amz-Signature" in query
-    assert "X-Amz-SignedHeaders=content-type%3Bhost" in upload
+    assert "X-Amz-SignedHeaders=content-length%3Bcontent-type%3Bhost" in upload
     assert "X-Amz-SignedHeaders=host" in read

@@ -47,14 +47,39 @@ async def process_due_once(*, user_limit: int = 100, rule_limit: int = 100) -> i
     return processed
 
 
+async def process_due_forever(
+    *, interval_seconds: int, user_limit: int = 100, rule_limit: int = 100
+) -> None:
+    """Continuously process bounded batches for a long-running deployment worker."""
+    while True:
+        await process_due_once(user_limit=user_limit, rule_limit=rule_limit)
+        await asyncio.sleep(interval_seconds)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Process due PlanIT recurring rules once.")
     parser.add_argument("--user-limit", type=int, default=100)
     parser.add_argument("--rule-limit", type=int, default=100)
+    parser.add_argument(
+        "--interval-seconds",
+        type=int,
+        help="Keep running and wait this many seconds between batches.",
+    )
     args = parser.parse_args()
     if not 1 <= args.user_limit <= 10_000 or not 1 <= args.rule_limit <= 1_000:
         parser.error("Limits must be positive and bounded.")
-    asyncio.run(process_due_once(user_limit=args.user_limit, rule_limit=args.rule_limit))
+    if args.interval_seconds is not None and not 30 <= args.interval_seconds <= 86_400:
+        parser.error("Interval must be between 30 seconds and 24 hours.")
+    if args.interval_seconds is None:
+        asyncio.run(process_due_once(user_limit=args.user_limit, rule_limit=args.rule_limit))
+    else:
+        asyncio.run(
+            process_due_forever(
+                interval_seconds=args.interval_seconds,
+                user_limit=args.user_limit,
+                rule_limit=args.rule_limit,
+            )
+        )
 
 
 if __name__ == "__main__":

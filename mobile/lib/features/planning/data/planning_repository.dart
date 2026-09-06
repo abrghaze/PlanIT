@@ -9,6 +9,17 @@ final class PlanningRepository {
   final PlanningApi api;
   final AppDatabase database;
 
+  Future<PlanningDashboard> loadCached(String ownerId) async {
+    final cached = await database.readPlanningSnapshot(ownerId);
+    if (cached == null) {
+      throw StateError('No saved planning dashboard is available.');
+    }
+    return PlanningDashboard.fromJson(
+      Map<String, Object?>.from(jsonDecode(cached.payloadJson) as Map),
+      cachedAt: cached.updatedAt,
+    );
+  }
+
   Future<PlanningDashboard> load({
     required String ownerId,
     required String token,
@@ -21,12 +32,11 @@ final class PlanningRepository {
       );
       return PlanningDashboard.fromJson(payload);
     } catch (_) {
-      final cached = await database.readPlanningSnapshot(ownerId);
-      if (cached == null) rethrow;
-      return PlanningDashboard.fromJson(
-        Map<String, Object?>.from(jsonDecode(cached.payloadJson) as Map),
-        cachedAt: cached.updatedAt,
-      );
+      try {
+        return await loadCached(ownerId);
+      } on StateError {
+        rethrow;
+      }
     }
   }
 }

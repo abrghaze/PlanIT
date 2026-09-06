@@ -162,14 +162,14 @@ final class AuthController extends Notifier<AuthState> {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({bool clearLocalData = false}) async {
     final session = state.session;
     if (session == null) {
       return;
     }
     state = state.copyWith(busy: true, clearError: true);
     try {
-      await _repository.logout(session);
+      await _repository.logout(session, clearLocalData: clearLocalData);
       state = const AuthState(initialized: true, busy: false, offline: false);
     } on Object {
       state = state.copyWith(

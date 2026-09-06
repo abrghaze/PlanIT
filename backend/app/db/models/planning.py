@@ -37,6 +37,7 @@ class RecurringRuleModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("mode IN ('REMINDER','AUTO_DRAFT')", name="mode_valid"),
         CheckConstraint("status IN ('ACTIVE','PAUSED','ARCHIVED')", name="status_valid"),
         CheckConstraint("version > 0", name="version_positive"),
+        CheckConstraint("anchor_day BETWEEN 1 AND 31", name="anchor_day_valid"),
         ForeignKeyConstraint(
             ("account_id", "user_id", "currency"),
             ("accounts.id", "accounts.user_id", "accounts.currency"),
@@ -72,6 +73,7 @@ class RecurringRuleModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     frequency: Mapped[str] = mapped_column(String(16), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
     next_due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    anchor_day: Mapped[int] = mapped_column(Integer, nullable=False)
     mode: Mapped[str] = mapped_column(String(16), nullable=False, default="REMINDER")
     note: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTIVE")

@@ -117,9 +117,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             PlanItSpacing.lg,
             PlanItSpacing.lg,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            shrinkWrap: true,
             children: <Widget>[
               Text(
                 title,
@@ -159,6 +158,18 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Future<void> _addRate(String baseCurrency, String sourceCurrency) async {
+    final today = DateTime.now();
+    final initialDate = _filter.from == null || _filter.from!.isAfter(today)
+        ? today
+        : _filter.from!;
+    final effectiveDate = await showDatePicker(
+      context: context,
+      helpText: 'FIRST DATE THIS RATE APPLIES',
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: today,
+    );
+    if (effectiveDate == null || !mounted) return;
     final controller = TextEditingController();
     final rate = await showDialog<String>(
       context: context,
@@ -201,7 +212,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             baseCurrency: sourceCurrency,
             quoteCurrency: baseCurrency,
             rate: rate,
-            effectiveAt: DateTime.now(),
+            effectiveAt: DateTime(
+              effectiveDate.year,
+              effectiveDate.month,
+              effectiveDate.day,
+            ),
           );
       ref.invalidate(analyticsDashboardProvider(_filter));
     } catch (_) {
@@ -363,7 +378,6 @@ class _DashboardBody extends StatelessWidget {
           ),
           const SizedBox(height: PlanItSpacing.sm),
           ...dashboard.products
-              .take(8)
               .map(
                 (row) => _ProductCard(
                   row: row,
@@ -648,17 +662,37 @@ class _TrendChart extends StatelessWidget {
                     drawVerticalLine: false,
                   ),
                   borderData: FlBorderData(show: false),
-                  titlesData: const FlTitlesData(
-                    topTitles: AxisTitles(),
-                    rightTitles: AxisTitles(),
-                    leftTitles: AxisTitles(
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(),
+                    rightTitles: const AxisTitles(),
+                    leftTitles: const AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 42,
                       ),
                     ),
                     bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 30,
+                        interval: points.length <= 2
+                            ? 1
+                            : (points.length - 1) / 2,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.round();
+                          if (index < 0 || index >= points.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final point = points[index].periodStart;
+                          return SideTitleWidget(
+                            meta: meta,
+                            child: Text(
+                              '${point.day}/${point.month}',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   lineBarsData: <LineChartBarData>[
@@ -741,7 +775,6 @@ class _BreakdownList extends StatelessWidget {
     return Card(
       child: Column(
         children: rows
-            .take(10)
             .map(
               (row) => InkWell(
                 onTap: () => onSources(row.name, row.sourceTransactionIds),

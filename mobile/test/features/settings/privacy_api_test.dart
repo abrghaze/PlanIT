@@ -42,6 +42,36 @@ void main() {
       });
     },
   );
+
+  test('privacy API validates and uploads a portable restore', () async {
+    final adapter = _RestoreAdapter();
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost/api/v1'));
+    dio.httpClientAdapter = adapter;
+    final api = PrivacyApi(ApiClient(dio: dio));
+    final backup = utf8.encode(
+      jsonEncode(<String, Object?>{
+        'format': 'planit-portable-backup',
+        'schema_version': 1,
+        'profile': <String, Object?>{},
+        'data': <String, Object?>{},
+      }),
+    );
+
+    final result = await api.restore(
+      'private-access-token',
+      bytes: backup,
+      password: 'correct horse battery staple',
+    );
+
+    expect(result.restoredRows, 14);
+    expect(result.ignoredReceiptFiles, 2);
+    expect(adapter.request!.headers['Authorization'], 'Bearer private-access-token');
+    expect(adapter.request!.headers['Idempotency-Key'], isNotEmpty);
+    expect(adapter.request!.data, isA<Map<String, Object?>>());
+    final payload = adapter.request!.data! as Map<String, Object?>;
+    expect(payload['confirmation'], 'RESTORE MY PLANIT DATA');
+    expect(payload['password'], 'correct horse battery staple');
+  });
 }
 
 final class _PrivacyAdapter implements HttpClientAdapter {
@@ -65,6 +95,32 @@ final class _PrivacyAdapter implements HttpClientAdapter {
         'content-disposition': <String>[
           'attachment; filename="planit-transactions-2026-08-30.csv"',
         ],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+final class _RestoreAdapter implements HttpClientAdapter {
+  RequestOptions? request;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    request = options;
+    return ResponseBody.fromString(
+      jsonEncode(<String, int>{
+        'restored_rows': 14,
+        'ignored_receipt_files': 2,
+      }),
+      200,
+      headers: <String, List<String>>{
+        Headers.contentTypeHeader: <String>['application/json'],
       },
     );
   }

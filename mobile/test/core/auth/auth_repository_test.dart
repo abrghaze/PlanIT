@@ -36,31 +36,34 @@ void main() {
       },
     );
 
-    test('revoked refresh tokens clear credentials and owner cache', () async {
-      final stored = _session(accessExpired: true);
-      final tokenStore = _MemoryTokenStore(stored);
-      final remote = _FakeAuthRemote(
-        refreshError: const AppException(
-          code: 'TOKEN_REUSE_DETECTED',
-          message: 'Sign in again.',
-          statusCode: 401,
-        ),
-      );
-      final clearedOwners = <String>[];
-      final repository = DefaultAuthRepository(
-        remote: remote,
-        tokenStore: tokenStore,
-        clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
-      );
+    test(
+      'revoked refresh tokens clear credentials but preserve owner data',
+      () async {
+        final stored = _session(accessExpired: true);
+        final tokenStore = _MemoryTokenStore(stored);
+        final remote = _FakeAuthRemote(
+          refreshError: const AppException(
+            code: 'TOKEN_REUSE_DETECTED',
+            message: 'Sign in again.',
+            statusCode: 401,
+          ),
+        );
+        final clearedOwners = <String>[];
+        final repository = DefaultAuthRepository(
+          remote: remote,
+          tokenStore: tokenStore,
+          clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
+        );
 
-      final result = await repository.restore();
+        final result = await repository.restore();
 
-      expect(result.session, isNull);
-      expect(result.offline, isFalse);
-      expect(tokenStore.value, isNull);
-      expect(tokenStore.clearCount, 1);
-      expect(clearedOwners, <String>['owner-a']);
-    });
+        expect(result.session, isNull);
+        expect(result.offline, isFalse);
+        expect(tokenStore.value, isNull);
+        expect(tokenStore.clearCount, 1);
+        expect(clearedOwners, isEmpty);
+      },
+    );
 
     test('network failures preserve a valid cached refresh session', () async {
       final stored = _session(accessExpired: true);
@@ -88,28 +91,47 @@ void main() {
       expect(clearedOwners, isEmpty);
     });
 
-    test('logout always clears local secrets and cached owner data', () async {
+    test(
+      'logout clears local secrets but preserves recoverable owner data',
+      () async {
+        final stored = _session();
+        final tokenStore = _MemoryTokenStore(stored);
+        final remote = _FakeAuthRemote(
+          logoutError: const AppException(
+            code: 'NETWORK_UNAVAILABLE',
+            message: 'Offline.',
+            isNetworkFailure: true,
+          ),
+        );
+        final clearedOwners = <String>[];
+        final repository = DefaultAuthRepository(
+          remote: remote,
+          tokenStore: tokenStore,
+          clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
+        );
+
+        await repository.logout(stored);
+
+        expect(remote.loggedOutTokens, <String>['refresh-token']);
+        expect(tokenStore.value, isNull);
+        expect(tokenStore.clearCount, 1);
+        expect(clearedOwners, isEmpty);
+      },
+    );
+
+    test('profile deletion can explicitly clear local owner data', () async {
       final stored = _session();
       final tokenStore = _MemoryTokenStore(stored);
-      final remote = _FakeAuthRemote(
-        logoutError: const AppException(
-          code: 'NETWORK_UNAVAILABLE',
-          message: 'Offline.',
-          isNetworkFailure: true,
-        ),
-      );
       final clearedOwners = <String>[];
       final repository = DefaultAuthRepository(
-        remote: remote,
+        remote: _FakeAuthRemote(),
         tokenStore: tokenStore,
         clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
       );
 
-      await repository.logout(stored);
+      await repository.logout(stored, clearLocalData: true);
 
-      expect(remote.loggedOutTokens, <String>['refresh-token']);
       expect(tokenStore.value, isNull);
-      expect(tokenStore.clearCount, 1);
       expect(clearedOwners, <String>['owner-a']);
     });
   });

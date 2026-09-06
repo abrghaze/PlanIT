@@ -12,7 +12,20 @@ import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
 import 'package:planit_mobile/features/planning/application/providers.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
+import 'package:planit_mobile/features/transactions/application/transaction_action_state.dart';
+import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
+
+String _shortDate(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}/'
+    '${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+String _shortTimestamp(DateTime value) {
+  final local = value.toLocal();
+  return '${_shortDate(local)} '
+      '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -26,6 +39,7 @@ class HomeScreen extends ConsumerWidget {
     );
     final planning = ref.watch(planningDashboardProvider);
     final pendingCount = ref.watch(pendingTransactionCountProvider);
+    final sync = ref.watch(transactionControllerProvider);
     ref.watch(accountBootstrapProvider);
     final firstName =
         auth.session?.user.displayName.split(' ').first ?? 'there';
@@ -52,7 +66,11 @@ class HomeScreen extends ConsumerWidget {
             ),
             sliver: SliverList.list(
               children: <Widget>[
-                _Header(firstName: firstName, pendingCount: pendingCount),
+                _Header(
+                  firstName: firstName,
+                  pendingCount: pendingCount,
+                  sync: sync,
+                ),
                 if (auth.offline) ...<Widget>[
                   const SizedBox(height: PlanItSpacing.md),
                   const _OfflineBanner(),
@@ -78,10 +96,15 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.firstName, required this.pendingCount});
+  const _Header({
+    required this.firstName,
+    required this.pendingCount,
+    required this.sync,
+  });
 
   final String firstName;
   final AsyncValue<int> pendingCount;
+  final TransactionActionState sync;
 
   @override
   Widget build(BuildContext context) {
@@ -105,25 +128,35 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        _SyncStatusButton(pendingCount: pendingCount),
+        _SyncStatusButton(pendingCount: pendingCount, sync: sync),
       ],
     );
   }
 }
 
 class _SyncStatusButton extends StatelessWidget {
-  const _SyncStatusButton({required this.pendingCount});
+  const _SyncStatusButton({required this.pendingCount, required this.sync});
 
   final AsyncValue<int> pendingCount;
+  final TransactionActionState sync;
 
   @override
   Widget build(BuildContext context) {
     final count = pendingCount.value ?? 0;
-    final tooltip = count == 0
+    final lastSync = sync.lastSyncedAt;
+    final tooltip = sync.errorMessage != null
+        ? 'Synchronization needs attention: ${sync.errorMessage}'
+        : count > 0
+        ? '$count pending ${count == 1 ? 'operation' : 'operations'}'
+        : lastSync == null
         ? 'Everything is synchronized'
-        : '$count pending ${count == 1 ? 'operation' : 'operations'}';
+        : 'Synchronized ${_shortTimestamp(lastSync)}';
     final icon = Icon(
-      count == 0 ? Icons.cloud_done_outlined : Icons.cloud_sync_outlined,
+      sync.errorMessage != null
+          ? Icons.cloud_off_outlined
+          : count == 0
+          ? Icons.cloud_done_outlined
+          : Icons.cloud_sync_outlined,
     );
     return IconButton.filledTonal(
       tooltip: tooltip,
@@ -179,6 +212,10 @@ class _HomeAccountContent extends StatelessWidget {
           activeCount: active.length,
           partial: totalIsPartial,
         ),
+        if (dashboard != null) ...<Widget>[
+          const SizedBox(height: PlanItSpacing.md),
+          _PositionCard(dashboard: dashboard),
+        ],
         const SizedBox(height: PlanItSpacing.lg),
         Row(
           children: <Widget>[
@@ -236,6 +273,25 @@ class _HomeAccountContent extends StatelessWidget {
           ),
           data: (dashboard) => _MonthlyHealthCard(dashboard: dashboard),
         ),
+        const SizedBox(height: PlanItSpacing.lg),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'Next bill',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push('/recurring'),
+              child: const Text('View schedule'),
+            ),
+          ],
+        ),
+        const SizedBox(height: PlanItSpacing.sm),
+        _NextBillOverview(planning: planning),
         const SizedBox(height: PlanItSpacing.lg),
         Row(
           children: <Widget>[
@@ -312,6 +368,12 @@ class _MonthlyHealthCard extends StatelessWidget {
                         'Largest area: ${top.name} (${top.amount.toDisplayString()})',
                       ),
                     ],
+                    const SizedBox(height: PlanItSpacing.xxs),
+                    Text(
+                      '${dashboard.periodLabel} · Updated ${_shortTimestamp(dashboard.cachedAt ?? dashboard.generatedAt)}'
+                      '${dashboard.isOffline ? ' · Offline copy' : ''}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -322,6 +384,164 @@ class _MonthlyHealthCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PositionCard extends StatelessWidget {
+  const _PositionCard({required this.dashboard});
+
+  final AnalyticsDashboard dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final debt = dashboard.kpis.netReceivables;
+    final owesMoney = debt.scaledAmount.isNegative;
+    final debtLabel = owesMoney ? 'You owe (net)' : 'Owed to you (net)';
+    final debtValue = owesMoney ? -debt : debt;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(PlanItSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Net position',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: PlanItSpacing.xs),
+            _PositionRow(
+              label: 'Money in accounts',
+              value: dashboard.kpis.moneyInAccounts.toDisplayString(),
+            ),
+            _PositionRow(
+              label: debtLabel,
+              value: debtValue.toDisplayString(),
+            ),
+            const Divider(),
+            _PositionRow(
+              label: 'Personal net position',
+              value: dashboard.kpis.personalNetPosition.toDisplayString(),
+              emphasized: true,
+            ),
+            const SizedBox(height: PlanItSpacing.xxs),
+            Text(
+              owesMoney
+                  ? 'What you owe reduces net position, but does not change today\'s account balances until paid.'
+                  : 'Money owed to you is included in net position, but it is not spendable cash.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PositionRow extends StatelessWidget {
+  const _PositionRow({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: PlanItSpacing.xxs),
+    child: Row(
+      children: <Widget>[
+        Expanded(child: Text(label)),
+        const SizedBox(width: PlanItSpacing.sm),
+        Text(
+          value,
+          style: emphasized
+              ? Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)
+              : Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    ),
+  );
+}
+
+class _NextBillOverview extends StatelessWidget {
+  const _NextBillOverview({required this.planning});
+
+  final AsyncValue<PlanningDashboard> planning;
+
+  @override
+  Widget build(BuildContext context) => planning.when(
+    loading: () => const Card(
+      child: SizedBox(
+        height: 92,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    ),
+    error: (_, _) => Card(
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.event_busy_outlined)),
+        title: const Text('Bill schedule is temporarily unavailable'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push('/recurring'),
+      ),
+    ),
+    data: (dashboard) {
+      final expenseRuleIds = dashboard.rules
+          .where((rule) => rule.kind == 'EXPENSE')
+          .map((rule) => rule.id)
+          .toSet();
+      final occurrences = dashboard.upcoming
+          .where((occurrence) => expenseRuleIds.contains(occurrence.ruleId))
+          .toList(growable: false)
+        ..sort((left, right) => left.scheduledFor.compareTo(right.scheduledFor));
+      if (occurrences.isEmpty) {
+        return Card(
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.event_available)),
+            title: const Text('No outstanding scheduled bills'),
+            subtitle: const Text('Add recurring expenses to track what is next.'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/recurring'),
+          ),
+        );
+      }
+      final occurrence = occurrences.first;
+      final rule = dashboard.rules
+          .where((value) => value.id == occurrence.ruleId)
+          .firstOrNull;
+      final due = occurrence.scheduledFor.toLocal();
+      final now = DateTime.now();
+      final overdue = due.isBefore(DateTime(now.year, now.month, now.day));
+      return Card(
+        child: ListTile(
+          leading: CircleAvatar(
+            child: Icon(
+              overdue ? Icons.warning_amber_rounded : Icons.event_outlined,
+            ),
+          ),
+          title: Text(rule?.name ?? 'Scheduled transaction'),
+          subtitle: Text(
+            '${overdue ? 'Overdue' : 'Due'} ${_shortDate(due)}'
+            '${occurrence.status == 'DRAFT_CREATED' ? ' · Draft ready to review' : ''}',
+          ),
+          trailing: rule == null
+              ? const Icon(Icons.chevron_right_rounded)
+              : Text(
+                  rule.amount.toDisplayString(),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+          onTap: () => context.push('/recurring'),
+        ),
+      );
+    },
+  );
 }
 
 class _GoalOverview extends StatelessWidget {

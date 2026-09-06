@@ -372,7 +372,10 @@ final class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> logout(AuthSession session) async {}
+  Future<void> logout(
+    AuthSession session, {
+    bool clearLocalData = false,
+  }) async {}
 
   @override
   Future<AuthSession> register({

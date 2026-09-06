@@ -193,6 +193,73 @@ class TransactionDetailScreen extends ConsumerWidget {
               ),
             ),
           ],
+          if (transaction.type == TransactionType.expense &&
+              synchronized) ...<Widget>[
+            const SizedBox(height: PlanItSpacing.md),
+            Text('Receipts', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: PlanItSpacing.xs),
+            ref
+                .watch(transactionMediaProvider(transaction.id))
+                .when(
+                  data: (receipts) => receipts.isEmpty
+                      ? const _Notice(
+                          message:
+                              'No receipt images yet. Add one below whenever you need proof of purchase.',
+                        )
+                      : Card(
+                          child: Column(
+                            children: <Widget>[
+                              for (var index = 0;
+                                  index < receipts.length;
+                                  index++)
+                                ListTile(
+                                  leading: const Icon(
+                                    Icons.image_outlined,
+                                  ),
+                                  title: Text('Receipt ${index + 1}'),
+                                  subtitle: Text(
+                                    '${_formatTimestamp(receipts[index].createdAt)} · '
+                                    '${_formatFileSize(receipts[index].sizeBytes)}',
+                                  ),
+                                  onTap: () => _openReceipt(
+                                    context,
+                                    ref,
+                                    receipts[index],
+                                  ),
+                                  trailing: IconButton(
+                                    tooltip: 'Delete receipt',
+                                    onPressed: ref
+                                            .watch(
+                                              mediaUploadControllerProvider,
+                                            )
+                                            .isLoading
+                                        ? null
+                                        : () => _deleteReceipt(
+                                            context,
+                                            ref,
+                                            transaction.id,
+                                            receipts[index],
+                                          ),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                  loading: () => const LinearProgressIndicator(
+                    semanticsLabel: 'Loading receipt images',
+                  ),
+                  error: (_, _) => _NoticeWithAction(
+                    message: 'PlanIT could not load receipt images.',
+                    label: 'Retry',
+                    onPressed: () => ref.invalidate(
+                      transactionMediaProvider(transaction.id),
+                    ),
+                  ),
+                ),
+          ],
           if (transaction.reversalOfId != null)
             _DetailRow(label: 'Reverses', value: transaction.reversalOfId!),
           const SizedBox(height: PlanItSpacing.xl),
@@ -431,12 +498,119 @@ class TransactionDetailScreen extends ConsumerWidget {
         .discardConflict(transaction);
   }
 
+  static Future<void> _openReceipt(
+    BuildContext context,
+    WidgetRef ref,
+    MediaAsset receipt,
+  ) async {
+    final url = ref
+        .read(mediaUploadControllerProvider.notifier)
+        .receiptReadUrl(receipt.id);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Receipt image'),
+            leading: IconButton(
+              tooltip: 'Close',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+          body: FutureBuilder<String>(
+            future: url,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError || snapshot.data == null) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(PlanItSpacing.lg),
+                    child: Text(
+                      'PlanIT could not open this private receipt. Close and try again.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+              return InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 5,
+                child: Center(
+                  child: Image.network(
+                    snapshot.data!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const Padding(
+                      padding: EdgeInsets.all(PlanItSpacing.lg),
+                      child: Text(
+                        'The private receipt link expired or the image could not be loaded. Close and open it again for a fresh link.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _deleteReceipt(
+    BuildContext context,
+    WidgetRef ref,
+    String transactionId,
+    MediaAsset receipt,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this receipt?'),
+        content: const Text(
+          'The private image will be permanently removed. The transaction itself will stay unchanged.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete receipt'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final deleted = await ref
+        .read(mediaUploadControllerProvider.notifier)
+        .deleteReceipt(transactionId, receipt.id);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          deleted ? 'Receipt deleted.' : 'PlanIT could not delete the receipt.',
+        ),
+      ),
+    );
+  }
+
   static String _formatTimestamp(DateTime value) {
     final local = value.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
         '${local.day.toString().padLeft(2, '0')} '
         '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  static String _formatFileSize(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024).ceil()} KB';
   }
 
   static String _counterpartyLabel(TransactionType type) => switch (type) {
@@ -491,6 +665,29 @@ class _Notice extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(PlanItSpacing.sm),
         child: Text(message),
+      ),
+    );
+  }
+}
+
+class _NoticeWithAction extends StatelessWidget {
+  const _NoticeWithAction({
+    required this.message,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String message;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.cloud_off_outlined),
+        title: Text(message),
+        trailing: TextButton(onPressed: onPressed, child: Text(label)),
       ),
     );
   }

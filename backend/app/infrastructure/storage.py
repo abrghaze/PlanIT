@@ -14,6 +14,7 @@ from app.domain.errors import DomainError
 class StoredObject:
     size_bytes: int
     content_type: str
+    prefix: bytes
 
 
 class PrivateObjectStorage:
@@ -33,11 +34,18 @@ class PrivateObjectStorage:
             config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
         )
 
-    def signed_upload_url(self, *, key: str, content_type: str, expires: int = 300) -> str:
+    def signed_upload_url(
+        self, *, key: str, content_type: str, size_bytes: int, expires: int = 300
+    ) -> str:
         return str(
             self._client.generate_presigned_url(
                 "put_object",
-                Params={"Bucket": self._bucket, "Key": key, "ContentType": content_type},
+                Params={
+                    "Bucket": self._bucket,
+                    "Key": key,
+                    "ContentType": content_type,
+                    "ContentLength": size_bytes,
+                },
                 ExpiresIn=expires,
             )
         )
@@ -63,10 +71,26 @@ class PrivateObjectStorage:
                 "MEDIA_UPLOAD_INCOMPLETE",
                 "The uploaded file could not be verified. Retry the upload first.",
             ) from exc
+        try:
+            prefix = await asyncio.to_thread(self._read_prefix, key)
+        except Exception as exc:
+            raise DomainError(
+                "MEDIA_UPLOAD_INCOMPLETE",
+                "The uploaded file could not be verified. Retry the upload first.",
+            ) from exc
         return StoredObject(
             size_bytes=int(response.get("ContentLength", 0)),
             content_type=str(response.get("ContentType", "")),
+            prefix=prefix,
         )
+
+    def _read_prefix(self, key: str) -> bytes:
+        response = self._client.get_object(Bucket=self._bucket, Key=key, Range="bytes=0-511")
+        body = response["Body"]
+        try:
+            return bytes(body.read(512))
+        finally:
+            body.close()
 
     async def delete_many(self, *, keys: list[str]) -> None:
         """Permanently remove private objects, reporting partial S3 failures."""

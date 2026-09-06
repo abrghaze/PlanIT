@@ -115,6 +115,11 @@ async def test_recurring_occurrences_are_unique_and_goals_never_create_spending(
             assert recorded.json()["transaction_id"] == replayed.json()["transaction_id"]
             assert replayed.headers["Idempotency-Replayed"] == "true"
 
+            categories = await client.get("/api/v1/categories", headers=headers)
+            assert categories.status_code == 200, categories.text
+            income_category = next(
+                item for item in categories.json()["items"] if item["kind"] == "INCOME"
+            )
             auto_rule = await client.post(
                 "/api/v1/recurring/rules",
                 headers={**headers, "Idempotency-Key": str(uuid4())},
@@ -123,6 +128,7 @@ async def test_recurring_occurrences_are_unique_and_goals_never_create_spending(
                     "name": "Salary",
                     "kind": "INCOME",
                     "account_id": str(account_id),
+                    "category_id": income_category["id"],
                     "amount": {"amount": "8000.0000", "currency": "MAD"},
                     "frequency": "MONTHLY",
                     "timezone": "Africa/Casablanca",
@@ -138,6 +144,18 @@ async def test_recurring_occurrences_are_unique_and_goals_never_create_spending(
             assert auto_process.status_code == 200, auto_process.text
             assert auto_process.json()["items"][0]["status"] == "DRAFT_CREATED"
             assert auto_process.json()["items"][0]["transaction_id"] is not None
+            auto_transaction_id = auto_process.json()["items"][0]["transaction_id"]
+            posted = await client.post(
+                f"/api/v1/transactions/{auto_transaction_id}/post",
+                headers={**headers, "Idempotency-Key": str(uuid4())},
+                json={"version": 1},
+            )
+            assert posted.status_code == 200, posted.text
+            summary = await client.get("/api/v1/recurring/summary", headers=headers)
+            assert summary.status_code == 200, summary.text
+            assert all(
+                item["transaction_id"] != auto_transaction_id for item in summary.json()["upcoming"]
+            )
 
             goal_id = uuid4()
             goal = await client.post(

@@ -50,17 +50,17 @@ Milestones 0 through 8 are complete. The current release provides:
 - Searchable merchant brands with optional branches and owner-safe transaction references.
 - Reusable product families/variants, barcode and package-size metadata, including gram/millilitre normalization.
 - Itemized expense entry with exact quantity/price/discount arithmetic, explicit unspecified-item balancing, immutable posted snapshots, and offline item caching.
-- Private JPEG/PNG/WebP media reservations, five-minute signed URLs, verified finalization, and mobile receipt upload independent from product/transaction creation.
+- Private JPEG/PNG/WebP media reservations, size-bound five-minute signed URLs, content-signature verification, and mobile receipt upload/view/delete workflows.
 - User-timezone reporting presets and custom date ranges over one centralized transaction-classification matrix.
 - Separate money-in-accounts, net-receivables, personal-net-position, personal-spending, income, cash-flow, and reconciliation indicators.
 - Historical user-approved FX rates with explicit partial-result warnings when a required rate is missing.
 - Traceable trend, category, tag, merchant brand/branch, account-flow, and product views linked back to source transactions.
 - Variant-safe product price history and gram/millilitre package normalization, plus an owner-scoped Drift v4 dashboard cache.
 - Weekly, monthly, quarterly, and yearly recurring income/expense rules with timezone-preserving due dates and multi-currency monthly/annual commitment totals.
-- Duplicate-safe due occurrences processed by a bounded scheduler worker or app refresh; reminders remain non-financial and automatic rules create reviewable drafts only.
+- Duplicate-safe due occurrences processed by a bounded continuous deployment worker or app refresh; reminders remain non-financial, automatic rules create reviewable drafts only, and the mobile app exposes record/skip/review states.
 - Manual savings allocations and linked-account goals with exact progress/remaining values; allocations never create ledger spending.
 - Recurring and goal mobile screens backed by an owner-scoped Drift v5 cache for useful offline planning visibility.
-- Owner-scoped transaction and balance CSV exports plus a portable JSON backup that excludes credentials, private storage keys, and receipt bytes.
+- Owner-scoped transaction and balance CSV exports plus Android Save As and a versioned, validated portable JSON export/restore workflow that excludes credentials, private storage keys, and receipt bytes.
 - Password-and-phrase-gated profile deletion that removes private objects, cascades financial data, and invalidates every session.
 - A complete Settings experience with offline-aware data controls, security explanations, scalable Material controls, semantic section labels, and deliberate destructive-action UX.
 - Privacy-safe structured request logs, route-level latency timing, stable request correlation, a protected restore runbook, and a database dump/restore drill in CI.

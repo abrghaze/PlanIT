@@ -28,10 +28,12 @@ access, document backup and log retention, and disclose the countries where proc
 handle data. Infrastructure providers must be listed here before publication.
 
 Authenticated users can export transactions or accounts as CSV and download a portable JSON
-backup from Settings. They can permanently delete their profile after re-entering their
-password and the confirmation phrase. Deletion removes private receipt objects and account
-data and invalidates sessions, subject only to any retention the operator is legally required
-to keep. Backup expiry and deletion schedules must be added before publication.
+data file from Settings. A validated portable file can be restored into a fresh profile; it
+does not include receipt image files. Users can permanently delete their profile after
+re-entering their password and the confirmation phrase. Deletion removes private receipt
+objects and account data and invalidates sessions, subject only to any retention the operator
+is legally required to keep. Backup expiry and deletion schedules must be added before
+publication.
 
 Users should contact **[INSERT PRIVACY EMAIL]** to request access, correction, deletion, or
 other applicable privacy rights. The operator identity and postal address are **[INSERT

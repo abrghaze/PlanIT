@@ -190,6 +190,19 @@ class TransactionItemModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
             name="line_total_exact",
         ),
         CheckConstraint("position >= 0", name="position_non_negative"),
+        CheckConstraint(
+            "(package_size_value_snapshot IS NULL) = (package_size_unit_snapshot IS NULL)",
+            name="package_snapshot_coherent",
+        ),
+        CheckConstraint(
+            "package_size_value_snapshot IS NULL OR package_size_value_snapshot > 0",
+            name="package_snapshot_positive",
+        ),
+        CheckConstraint(
+            "package_size_unit_snapshot IS NULL OR "
+            "package_size_unit_snapshot IN ('COUNT','G','KG','ML','L')",
+            name="package_snapshot_unit_valid",
+        ),
         ForeignKeyConstraint(
             ("transaction_id", "user_id"),
             ("transactions.id", "transactions.user_id"),
@@ -216,6 +229,8 @@ class TransactionItemModel(UuidPrimaryKeyMixin, TimestampMixin, Base):
     discount: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=Decimal("0"))
     line_total: Mapped[Decimal] = mapped_column(MONEY, nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
+    package_size_value_snapshot: Mapped[Decimal | None] = mapped_column(QUANTITY)
+    package_size_unit_snapshot: Mapped[str | None] = mapped_column(String(12))
 
 
 class MediaAssetModel(UuidPrimaryKeyMixin, TimestampMixin, Base):

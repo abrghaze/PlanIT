@@ -61,3 +61,17 @@ services:
       start_period: 10s
       retries: 3
     restart: unless-stopped
+
+  recurring-worker:
+    <<: *api-security
+    environment: *api-environment
+    command:
+      - python
+      - -m
+      - app.workers.recurring
+      - --interval-seconds
+      - ${PLANIT_RECURRING_INTERVAL_SECONDS:-300}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped

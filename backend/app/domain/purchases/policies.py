@@ -29,3 +29,16 @@ def validate_image(*, mime_type: str, size_bytes: int) -> None:
             "Image size must be between 1 byte and 10 MB.",
             details={"maximum_bytes": MAX_IMAGE_BYTES},
         )
+
+
+def validate_image_signature(*, mime_type: str, prefix: bytes) -> None:
+    matches = {
+        "image/jpeg": prefix.startswith(b"\xff\xd8\xff"),
+        "image/png": prefix.startswith(b"\x89PNG\r\n\x1a\n"),
+        "image/webp": len(prefix) >= 12 and prefix.startswith(b"RIFF") and prefix[8:12] == b"WEBP",
+    }.get(mime_type, False)
+    if not matches:
+        raise DomainError(
+            "INVALID_IMAGE_CONTENT",
+            "The uploaded file contents do not match the selected image type.",
+        )

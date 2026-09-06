@@ -15,6 +15,14 @@ def test_monthly_recurrence_clamps_month_end_without_drifting_local_time() -> No
     )
 
 
+def test_monthly_recurrence_restores_original_day_after_short_month() -> None:
+    january = datetime(2027, 1, 31, 14, 30, tzinfo=UTC)
+    february = advance_due(january, RecurringFrequency.MONTHLY, "UTC", anchor_day=31)
+    march = advance_due(february, RecurringFrequency.MONTHLY, "UTC", anchor_day=31)
+    assert february == datetime(2027, 2, 28, 14, 30, tzinfo=UTC)
+    assert march == datetime(2027, 3, 31, 14, 30, tzinfo=UTC)
+
+
 def test_monthly_recurrence_preserves_wall_clock_across_dst() -> None:
     due = datetime(2027, 2, 14, 14, 0, tzinfo=UTC)  # 09:00 New York
     advanced = advance_due(due, RecurringFrequency.MONTHLY, "America/New_York")

@@ -2,7 +2,11 @@ from decimal import Decimal
 
 import pytest
 from app.domain.errors import DomainError
-from app.domain.purchases.policies import calculate_line_total, validate_image
+from app.domain.purchases.policies import (
+    calculate_line_total,
+    validate_image,
+    validate_image_signature,
+)
 
 
 def test_line_total_uses_four_decimal_bankers_rounding() -> None:
@@ -38,3 +42,21 @@ def test_private_image_policy_rejects_oversize_file() -> None:
     with pytest.raises(DomainError) as raised:
         validate_image(mime_type="image/jpeg", size_bytes=10 * 1024 * 1024 + 1)
     assert raised.value.code == "INVALID_MEDIA_SIZE"
+
+
+@pytest.mark.parametrize(
+    ("mime_type", "prefix"),
+    [
+        ("image/jpeg", b"\xff\xd8\xff\xe0"),
+        ("image/png", b"\x89PNG\r\n\x1a\n"),
+        ("image/webp", b"RIFF\x00\x00\x00\x00WEBP"),
+    ],
+)
+def test_private_image_policy_checks_magic_bytes(mime_type: str, prefix: bytes) -> None:
+    validate_image_signature(mime_type=mime_type, prefix=prefix)
+
+
+def test_private_image_policy_rejects_spoofed_content_type() -> None:
+    with pytest.raises(DomainError) as raised:
+        validate_image_signature(mime_type="image/jpeg", prefix=b"<script>alert(1)</script>")
+    assert raised.value.code == "INVALID_IMAGE_CONTENT"

@@ -16,26 +16,39 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
     required String accessToken,
   }) async {
     try {
-      final response = await _client.raw.get<Map<String, Object?>>(
-        _client.url('/transactions'),
-        queryParameters: const <String, Object?>{'limit': 200},
-        options: Options(headers: _authorization(accessToken)),
-      );
-      final items = response.data?['items'];
-      if (items is! List) {
-        throw const AppException(
-          code: 'INVALID_SERVER_RESPONSE',
-          message: 'The server returned an invalid transaction list.',
+      const pageSize = 200;
+      final transactions = <LedgerTransaction>[];
+      final seenIds = <String>{};
+      for (var offset = 0; ; offset += pageSize) {
+        final response = await _client.raw.get<Map<String, Object?>>(
+          _client.url('/transactions'),
+          queryParameters: <String, Object?>{
+            'limit': pageSize,
+            'offset': offset,
+          },
+          options: Options(headers: _authorization(accessToken)),
         );
+        final items = response.data?['items'];
+        if (items is! List) {
+          throw const AppException(
+            code: 'INVALID_SERVER_RESPONSE',
+            message: 'The server returned an invalid transaction list.',
+          );
+        }
+        var added = 0;
+        for (final item in items) {
+          final transaction = LedgerTransaction.fromJson(
+            Map<String, Object?>.from(item as Map),
+            ownerId: ownerId,
+          );
+          if (seenIds.add(transaction.id)) {
+            transactions.add(transaction);
+            added += 1;
+          }
+        }
+        if (items.length < pageSize || added == 0) break;
       }
-      return items
-          .map(
-            (item) => LedgerTransaction.fromJson(
-              Map<String, Object?>.from(item as Map),
-              ownerId: ownerId,
-            ),
-          )
-          .toList(growable: false);
+      return List<LedgerTransaction>.unmodifiable(transactions);
     } on DioException catch (error) {
       throw AppException.fromDio(error);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
+import 'package:planit_mobile/core/data_revision.dart';
 import 'package:planit_mobile/core/errors/app_exception.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/purchases/application/providers.dart';
@@ -80,6 +81,9 @@ final class TransactionController extends Notifier<TransactionActionState> {
         clearNotice: sync.message == null,
         lastSyncedAt: sync.blocked ? null : DateTime.now().toUtc(),
       );
+      if (!sync.blocked || sync.processed > 0) {
+        ref.read(financialDataRevisionProvider.notifier).markChanged();
+      }
     } on AppException catch (error) {
       state = state.copyWith(syncing: false, errorMessage: error.message);
     } on Object {

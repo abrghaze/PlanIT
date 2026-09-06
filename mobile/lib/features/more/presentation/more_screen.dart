@@ -109,7 +109,7 @@ class MoreScreen extends ConsumerWidget {
                     builder: (context) => AlertDialog(
                       title: const Text('Sign out?'),
                       content: const Text(
-                        "Secure tokens and this user's local financial cache will be removed from this device.",
+                        'Secure session keys will be removed. Saved and unsynced financial records remain owner-protected on this device so they can be recovered after signing in to the same account.',
                       ),
                       actions: <Widget>[
                         TextButton(

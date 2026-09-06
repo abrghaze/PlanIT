@@ -11,7 +11,7 @@ from app.application.audit import add_audit_event
 from app.db.models.purchases import EntityMediaModel, MediaAssetModel
 from app.domain.errors import DomainError
 from app.domain.purchases.entities import MediaAssetSnapshot
-from app.domain.purchases.policies import validate_image
+from app.domain.purchases.policies import validate_image, validate_image_signature
 from app.infrastructure.repositories.purchases import PurchaseRepository
 from app.infrastructure.repositories.transactions import TransactionRepository
 from app.infrastructure.storage import PrivateObjectStorage
@@ -97,9 +97,14 @@ class MediaService:
         await self._session.refresh(model)
         return PendingUpload(
             asset=self._repo.media_snapshot(model),
-            upload_url=self._storage.signed_upload_url(key=key, content_type=mime_type),
+            upload_url=self._storage.signed_upload_url(
+                key=key, content_type=mime_type, size_bytes=size_bytes
+            ),
             expires_in_seconds=300,
-            required_headers={"Content-Type": mime_type},
+            required_headers={
+                "Content-Type": mime_type,
+                "Content-Length": str(size_bytes),
+            },
         )
 
     async def finalize(
@@ -120,6 +125,7 @@ class MediaService:
                 "Uploaded file metadata does not match the reserved upload.",
                 details={"expected_size": model.size_bytes, "actual_size": stored.size_bytes},
             )
+        validate_image_signature(mime_type=model.mime_type, prefix=stored.prefix)
         model.status = "FINALIZED"
         model.finalized_at = datetime.now(UTC)
         await self._session.flush()
@@ -156,6 +162,38 @@ class MediaService:
         return await self._repo.media_for_entity(
             user_id=user_id, entity_type=entity_type, entity_id=entity_id
         )
+
+    async def delete(
+        self,
+        *,
+        media_id: UUID,
+        user_id: UUID,
+        request_id: str | None,
+        operation_id: UUID,
+    ) -> None:
+        model = await self._repo.get_media(media_id=media_id, user_id=user_id, for_update=True)
+        if model is None:
+            raise DomainError("MEDIA_NOT_FOUND", "Media file was not found.")
+        storage_key = model.storage_key
+        await self._storage.delete_many(keys=[storage_key])
+        add_audit_event(
+            self._session,
+            user_id=user_id,
+            actor_user_id=user_id,
+            entity_type="media_asset",
+            entity_id=model.id,
+            action="DELETE",
+            before={
+                "kind": model.kind,
+                "status": model.status,
+                "mime_type": model.mime_type,
+                "size_bytes": model.size_bytes,
+            },
+            request_id=request_id,
+            client_operation_id=operation_id,
+        )
+        await self._session.delete(model)
+        await self._session.flush()
 
     async def _require_target(self, user_id: UUID, entity_type: str, entity_id: UUID) -> None:
         found: object | None = None

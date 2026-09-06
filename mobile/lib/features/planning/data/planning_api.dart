@@ -25,8 +25,12 @@ final class PlanningApi {
           ]);
       final rules = responses[0].data?['items'];
       final totals = responses[1].data?['totals'];
+      final upcoming = responses[1].data?['upcoming'];
       final goals = responses[2].data?['items'];
-      if (rules is! List || totals is! List || goals is! List) {
+      if (rules is! List ||
+          totals is! List ||
+          upcoming is! List ||
+          goals is! List) {
         throw const AppException(
           code: 'INVALID_SERVER_RESPONSE',
           message: 'The server returned invalid planning data.',
@@ -35,6 +39,7 @@ final class PlanningApi {
       return <String, Object?>{
         'rules': rules,
         'totals': totals,
+        'upcoming': upcoming,
         'goals': goals,
       };
     } on DioException catch (error) {
@@ -46,6 +51,28 @@ final class PlanningApi {
     token,
     operationId,
     '/recurring/process-due',
+    const <String, Object?>{},
+  );
+
+  Future<void> recordOccurrence(
+    String token,
+    String operationId,
+    String occurrenceId,
+  ) => _write(
+    token,
+    operationId,
+    '/recurring/occurrences/$occurrenceId/record',
+    const <String, Object?>{},
+  );
+
+  Future<void> skipOccurrence(
+    String token,
+    String operationId,
+    String occurrenceId,
+  ) => _write(
+    token,
+    operationId,
+    '/recurring/occurrences/$occurrenceId/skip',
     const <String, Object?>{},
   );
 

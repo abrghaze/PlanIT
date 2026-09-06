@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Header, Query, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentPrincipal, DatabaseSession
@@ -31,15 +32,17 @@ async def dashboard(
     custom_to: Annotated[date | None, Query(alias="to")] = None,
     granularity: AnalyticsGranularity | None = None,
 ) -> AnalyticsDashboardResponse:
-    value = await AnalyticsService(session).dashboard(
-        user_id=principal.user.id,
-        base_currency=principal.user.base_currency,
-        timezone=principal.user.timezone,
-        preset=preset,
-        custom_from=custom_from,
-        custom_to=custom_to,
-        granularity=granularity,
-    )
+    async with session.begin():
+        await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"))
+        value = await AnalyticsService(session).dashboard(
+            user_id=principal.user.id,
+            base_currency=principal.user.base_currency,
+            timezone=principal.user.timezone,
+            preset=preset,
+            custom_from=custom_from,
+            custom_to=custom_to,
+            granularity=granularity,
+        )
     return AnalyticsDashboardResponse.from_domain(value)
 
 

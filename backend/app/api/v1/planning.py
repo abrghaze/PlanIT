@@ -185,6 +185,41 @@ async def record_occurrence(
     return _response(result.status_code, result.body, result.replayed)
 
 
+@recurring_router.post(
+    "/occurrences/{occurrence_id}/skip", response_model=RecurringOccurrenceResponse
+)
+async def skip_occurrence(
+    occurrence_id: UUID,
+    request: Request,
+    principal: CurrentPrincipal,
+    session: DatabaseSession,
+    idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> JSONResponse:
+    async def operation(value: AsyncSession) -> OperationResponse:
+        occurrence = await PlanningService(value).skip_occurrence_in_transaction(
+            occurrence_id=occurrence_id,
+            user_id=principal.user.id,
+            request_id=str(request.state.request_id),
+        )
+        return OperationResponse(
+            200,
+            cast(
+                dict[str, object],
+                RecurringOccurrenceResponse.from_domain(occurrence).model_dump(mode="json"),
+            ),
+        )
+
+    result = await execute_idempotent(
+        session,
+        user_id=principal.user.id,
+        scope=f"recurring.skip:{occurrence_id}",
+        key=idempotency_key,
+        request_payload={},
+        operation=operation,
+    )
+    return _response(result.status_code, result.body, result.replayed)
+
+
 @recurring_router.get("/summary", response_model=RecurringSummaryResponse)
 async def get_recurring_summary(
     principal: CurrentPrincipal, session: DatabaseSession

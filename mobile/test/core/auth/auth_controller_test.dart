@@ -145,7 +145,10 @@ final class _ControlledAuthRepository implements AuthRepository {
   }) async => loginResult;
 
   @override
-  Future<void> logout(AuthSession session) async {}
+  Future<void> logout(
+    AuthSession session, {
+    bool clearLocalData = false,
+  }) async {}
 
   @override
   Future<AuthSession> register({

@@ -164,6 +164,7 @@ class PurchaseRepository:
                 EntityMediaModel.user_id == user_id,
                 EntityMediaModel.entity_type == entity_type,
                 EntityMediaModel.entity_id == entity_id,
+                MediaAssetModel.status == "FINALIZED",
             )
             .order_by(EntityMediaModel.sort_order, MediaAssetModel.created_at)
         )

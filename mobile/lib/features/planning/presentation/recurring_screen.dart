@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/money/exact_decimal.dart';
@@ -8,6 +9,9 @@ import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/planning/application/providers.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
+import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
+import 'package:planit_mobile/features/transactions/application/providers.dart';
+import 'package:planit_mobile/features/transactions/domain/catalog.dart';
 import 'package:uuid/uuid.dart';
 
 class RecurringScreen extends ConsumerStatefulWidget {
@@ -66,9 +70,29 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
                 ),
               const _SafetyCard(),
               for (final total in value.totals) _TotalCard(total: total),
+              if (value.upcoming.isNotEmpty) ...<Widget>[
+                const SizedBox(height: PlanItSpacing.md),
+                Text(
+                  'Needs your attention',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: PlanItSpacing.sm),
+                for (final occurrence in value.upcoming)
+                  _OccurrenceCard(
+                    occurrence: occurrence,
+                    rule: value.rules
+                        .where((rule) => rule.id == occurrence.ruleId)
+                        .firstOrNull,
+                    busy: _busy,
+                    onRecord: _recordOccurrence,
+                    onSkip: _skipOccurrence,
+                  ),
+              ],
               const SizedBox(height: PlanItSpacing.sm),
               Text(
-                'Next due',
+                'Next scheduled',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -100,6 +124,9 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
       await ref
           .read(planningApiProvider)
           .processDue(session.accessToken, const Uuid().v4());
+      await ref
+          .read(transactionControllerProvider.notifier)
+          .refresh(silent: true);
     } catch (_) {
       // Loading below falls back to the owner-scoped local planning cache.
     }
@@ -113,6 +140,7 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
 
   Future<void> _create() async {
     final accounts = await ref.read(accountsProvider.future);
+    final categories = await ref.read(transactionCategoriesProvider.future);
     if (!mounted) return;
     final active = accounts
         .where((account) => account.status == AccountStatus.active)
@@ -127,8 +155,11 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
     if (session == null) return;
     final payload = await showDialog<Map<String, Object?>>(
       context: context,
-      builder: (_) =>
-          _RecurringDialog(accounts: active, timezone: session.user.timezone),
+      builder: (_) => _RecurringDialog(
+        accounts: active,
+        categories: categories.where((value) => value.active).toList(),
+        timezone: session.user.timezone,
+      ),
     );
     if (payload == null) return;
     await _run(() async {
@@ -156,6 +187,41 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
     success: status == 'PAUSED'
         ? 'Recurring rule paused.'
         : 'Recurring rule updated.',
+  );
+
+  Future<void> _recordOccurrence(RecurringOccurrence occurrence) => _run(
+    () async {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
+      await ref
+          .read(planningApiProvider)
+          .recordOccurrence(
+            session.accessToken,
+            const Uuid().v4(),
+            occurrence.id,
+          );
+      await ref
+          .read(transactionControllerProvider.notifier)
+          .refresh(silent: true, force: true);
+    },
+    success: 'A reviewable draft was added to Activity.',
+  );
+
+  Future<void> _skipOccurrence(RecurringOccurrence occurrence) => _run(
+    () async {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
+      await ref
+          .read(planningApiProvider)
+          .skipOccurrence(
+            session.accessToken,
+            const Uuid().v4(),
+            occurrence.id,
+          );
+    },
+    success: 'This occurrence was skipped. Future reminders remain active.',
   );
 
   Future<void> _run(
@@ -250,6 +316,89 @@ class _Metric extends StatelessWidget {
   );
 }
 
+class _OccurrenceCard extends StatelessWidget {
+  const _OccurrenceCard({
+    required this.occurrence,
+    required this.rule,
+    required this.busy,
+    required this.onRecord,
+    required this.onSkip,
+  });
+
+  final RecurringOccurrence occurrence;
+  final RecurringRule? rule;
+  final bool busy;
+  final Future<void> Function(RecurringOccurrence) onRecord;
+  final Future<void> Function(RecurringOccurrence) onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final draftCreated = occurrence.status == 'DRAFT_CREATED';
+    return Card(
+      color: Theme.of(context).colorScheme.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(PlanItSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(
+                  draftCreated
+                      ? Icons.edit_note_rounded
+                      : Icons.notification_important_outlined,
+                ),
+                const SizedBox(width: PlanItSpacing.sm),
+                Expanded(
+                  child: Text(
+                    rule?.name ?? 'Recurring item',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: PlanItSpacing.xs),
+            Text(
+              draftCreated
+                  ? 'Draft created for ${_date(occurrence.scheduledFor)}. Review it in Activity.'
+                  : 'Due ${_date(occurrence.scheduledFor)}${rule == null ? '' : ' · ${rule!.amount.toDisplayString()}'}.',
+            ),
+            if (draftCreated && occurrence.transactionId != null) ...<Widget>[
+              const SizedBox(height: PlanItSpacing.sm),
+              FilledButton.tonalIcon(
+                onPressed: () => context.push(
+                  '/transactions/${occurrence.transactionId}',
+                ),
+                icon: const Icon(Icons.rate_review_outlined),
+                label: const Text('Review draft'),
+              ),
+            ] else ...<Widget>[
+              const SizedBox(height: PlanItSpacing.sm),
+              Wrap(
+                spacing: PlanItSpacing.sm,
+                runSpacing: PlanItSpacing.xs,
+                children: <Widget>[
+                  FilledButton.icon(
+                    onPressed: busy ? null : () => onRecord(occurrence),
+                    icon: const Icon(Icons.add_task_rounded),
+                    label: const Text('Create draft'),
+                  ),
+                  TextButton(
+                    onPressed: busy ? null : () => onSkip(occurrence),
+                    child: const Text('Skip this time'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RuleCard extends StatelessWidget {
   const _RuleCard({
     required this.rule,
@@ -290,8 +439,13 @@ class _RuleCard extends StatelessWidget {
 }
 
 class _RecurringDialog extends StatefulWidget {
-  const _RecurringDialog({required this.accounts, required this.timezone});
+  const _RecurringDialog({
+    required this.accounts,
+    required this.categories,
+    required this.timezone,
+  });
   final List<Account> accounts;
+  final List<TransactionCategory> categories;
   final String timezone;
   @override
   State<_RecurringDialog> createState() => _RecurringDialogState();
@@ -305,6 +459,23 @@ class _RecurringDialogState extends State<_RecurringDialog> {
   var frequency = 'MONTHLY';
   var mode = 'REMINDER';
   DateTime due = DateTime.now().add(const Duration(days: 1));
+  TransactionCategory? category;
+
+  @override
+  void initState() {
+    super.initState();
+    category = _categoriesFor(kind).firstOrNull;
+  }
+
+  List<TransactionCategory> _categoriesFor(String selectedKind) => widget
+      .categories
+      .where(
+        (value) =>
+            value.kind == CategoryKind.both ||
+            (selectedKind == 'EXPENSE' && value.kind == CategoryKind.expense) ||
+            (selectedKind == 'INCOME' && value.kind == CategoryKind.income),
+      )
+      .toList(growable: false);
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -348,7 +519,27 @@ class _RecurringDialogState extends State<_RecurringDialog> {
                 child: Text('Income or salary'),
               ),
             ],
-            onChanged: (value) => setState(() => kind = value!),
+            onChanged: (value) => setState(() {
+              kind = value!;
+              final available = _categoriesFor(kind);
+              if (!available.contains(category)) {
+                category = available.firstOrNull;
+              }
+            }),
+          ),
+          DropdownButtonFormField<TransactionCategory>(
+            key: ValueKey(kind),
+            initialValue: category,
+            decoration: const InputDecoration(labelText: 'Category'),
+            items: _categoriesFor(kind)
+                .map(
+                  (item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(item.name),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => category = value),
           ),
           DropdownButtonFormField<String>(
             initialValue: frequency,
@@ -413,6 +604,7 @@ class _RecurringDialogState extends State<_RecurringDialog> {
               'currency': account.currency,
             },
             'frequency': frequency,
+            if (category != null) 'category_id': category!.id,
             'timezone': widget.timezone,
             'next_due_at': DateTime(
               due.year,

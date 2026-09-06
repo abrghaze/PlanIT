@@ -25,7 +25,7 @@ abstract interface class AuthRepository {
 
   Future<AuthSession> ensureFresh(AuthSession session);
 
-  Future<void> logout(AuthSession session);
+  Future<void> logout(AuthSession session, {bool clearLocalData = false});
 }
 
 final class DefaultAuthRepository implements AuthRepository {
@@ -48,7 +48,7 @@ final class DefaultAuthRepository implements AuthRepository {
       return const AuthRestoreResult(session: null, offline: false);
     }
     if (!stored.canRefresh) {
-      await _clearSession(stored.user.id);
+      await _clearCredentials();
       return const AuthRestoreResult(session: null, offline: false);
     }
     if (stored.accessIsFresh()) {
@@ -61,7 +61,7 @@ final class DefaultAuthRepository implements AuthRepository {
       return AuthRestoreResult(session: refreshed, offline: false);
     } on AppException catch (error) {
       if (error.isAuthenticationFailure) {
-        await _clearSession(stored.user.id);
+        await _clearCredentials();
         return const AuthRestoreResult(session: null, offline: false);
       }
       return AuthRestoreResult(session: stored, offline: true);
@@ -108,7 +108,7 @@ final class DefaultAuthRepository implements AuthRepository {
       return session;
     }
     if (!session.canRefresh) {
-      await _clearSession(session.user.id);
+      await _clearCredentials();
       throw const AppException(
         code: 'SESSION_EXPIRED',
         message: 'Your session expired. Sign in again.',
@@ -121,25 +121,28 @@ final class DefaultAuthRepository implements AuthRepository {
       return refreshed;
     } on AppException catch (error) {
       if (error.isAuthenticationFailure) {
-        await _clearSession(session.user.id);
+        await _clearCredentials();
       }
       rethrow;
     }
   }
 
   @override
-  Future<void> logout(AuthSession session) async {
+  Future<void> logout(
+    AuthSession session, {
+    bool clearLocalData = false,
+  }) async {
     try {
       await _remote.logout(session.refreshToken);
     } on AppException {
       // Local logout must succeed even if the backend is temporarily offline.
     } finally {
-      await _clearSession(session.user.id);
+      await _clearCredentials();
+      if (clearLocalData) {
+        await _clearOwnerData(session.user.id);
+      }
     }
   }
 
-  Future<void> _clearSession(String ownerId) async {
-    await _tokenStore.clear();
-    await _clearOwnerData(ownerId);
-  }
+  Future<void> _clearCredentials() => _tokenStore.clear();
 }

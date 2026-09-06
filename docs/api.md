@@ -55,6 +55,7 @@ The `0.10.0` launch candidate exposes:
 - `POST /api/v1/media/uploads`: reserve a private, size/MIME-bound signed upload for an owned entity.
 - `POST /api/v1/media/uploads/{media_id}/finalize`: verify and finalize a private attachment.
 - `GET /api/v1/media/{media_id}/read-url`: issue a short-lived private read URL after ownership checks.
+- `DELETE /api/v1/media/{media_id}`: idempotently remove one owned private attachment and its object.
 - `GET /api/v1/media`: list media metadata for an owned merchant, product, or transaction.
 - `GET /api/v1/analytics/dashboard`: derive timezone-aware KPIs, trends, explainable median-based spending checks, account flows, and traceable category/tag/merchant/branch/product breakdowns for a preset or custom date range.
 - `GET /api/v1/analytics/exchange-rates`: list the authenticated user's approved historical conversion facts.
@@ -62,14 +63,22 @@ The `0.10.0` launch candidate exposes:
 - `GET/POST/PATCH /api/v1/recurring/rules`: list, create, pause, resume, archive, or reschedule owned recurring income and expense commitments.
 - `POST /api/v1/recurring/process-due`: idempotently materialize due reminders or reviewable transaction drafts without posting money.
 - `POST /api/v1/recurring/occurrences/{occurrence_id}/record`: turn one due reminder into exactly one transaction draft.
+- `POST /api/v1/recurring/occurrences/{occurrence_id}/skip`: explicitly dismiss one due reminder without recording money.
 - `GET /api/v1/recurring/summary`: return per-currency monthly/annual commitments and due reminders.
 - `GET/POST/PATCH /api/v1/goals`: list, create, update, complete, or archive manual and linked-account savings goals.
 - `POST /api/v1/goals/{goal_id}/allocations`: adjust manual goal progress without creating a ledger transaction.
 - `GET /api/v1/privacy/export.csv`: export owner-scoped transactions or calculated account balances as non-cacheable CSV, with optional period/as-of filters.
 - `GET /api/v1/privacy/backup.json`: export a credential-free, owner-scoped portable JSON backup.
+- `POST /api/v1/privacy/restore`: password-confirm and restore a schema-versioned portable backup into a fresh profile; original receipt binaries are intentionally excluded.
 - `DELETE /api/v1/privacy/profile`: irreversibly delete a password-confirmed profile, its financial rows, sessions, and private media objects.
 
-The recurring worker is independently schedulable with `python -m app.workers.recurring`.
+Portable exports currently use schema version 2. Restore accepts versions 1 and 2,
+upgrades legacy recurrence and item-snapshot fields, refuses non-empty targets, and
+refuses to clone a profile that still exists on the same server.
+
+The recurring worker can run once with `python -m app.workers.recurring`, or continuously
+with `python -m app.workers.recurring --interval-seconds 300`. The production Compose
+definition runs the continuous worker after migrations complete.
 
 Authenticated endpoints derive ownership exclusively from the bearer token. They
 do not accept an authoritative `user_id`, and an account owned by another user is

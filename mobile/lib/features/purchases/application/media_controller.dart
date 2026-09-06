@@ -8,6 +8,20 @@ import 'package:uuid/uuid.dart';
 final mediaApiProvider = Provider<MediaApi>(
   (ref) => MediaApi(ref.watch(apiClientProvider)),
 );
+final transactionMediaProvider = FutureProvider.family<List<MediaAsset>, String>(
+  (ref, transactionId) async {
+    final session = await ref
+        .read(authControllerProvider.notifier)
+        .requireFreshSession();
+    return ref
+        .watch(mediaApiProvider)
+        .list(
+          token: session.accessToken,
+          entityType: 'TRANSACTION',
+          entityId: transactionId,
+        );
+  },
+);
 final mediaUploadControllerProvider =
     NotifierProvider<MediaUploadController, AsyncValue<void>>(
       MediaUploadController.new,
@@ -51,6 +65,9 @@ final class MediaUploadController extends Notifier<AsyncValue<void>> {
             mimeType: mime,
             bytes: bytes,
           );
+      if (entityType == 'TRANSACTION') {
+        ref.invalidate(transactionMediaProvider(entityId));
+      }
       state = const AsyncData(null);
       return true;
     } catch (error, stack) {
@@ -64,4 +81,35 @@ final class MediaUploadController extends Notifier<AsyncValue<void>> {
     entityId: transactionId,
     source: source,
   );
+
+  Future<String> receiptReadUrl(String mediaId) async {
+    final session = await ref
+        .read(authControllerProvider.notifier)
+        .requireFreshSession();
+    return ref
+        .read(mediaApiProvider)
+        .readUrl(token: session.accessToken, mediaId: mediaId);
+  }
+
+  Future<bool> deleteReceipt(String transactionId, String mediaId) async {
+    state = const AsyncLoading();
+    try {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
+      await ref
+          .read(mediaApiProvider)
+          .delete(
+            token: session.accessToken,
+            mediaId: mediaId,
+            operationId: const Uuid().v4(),
+          );
+      ref.invalidate(transactionMediaProvider(transactionId));
+      state = const AsyncData(null);
+      return true;
+    } catch (error, stack) {
+      state = AsyncError(error, stack);
+      return false;
+    }
+  }
 }

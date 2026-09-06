@@ -112,6 +112,34 @@ async def media_read_url(
     )
 
 
+@router.delete("/{media_id}")
+async def delete_media(
+    media_id: UUID,
+    request: Request,
+    principal: CurrentPrincipal,
+    session: DatabaseSession,
+    idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> JSONResponse:
+    async def operation(db: AsyncSession) -> OperationResponse:
+        await _service(db, request).delete(
+            media_id=media_id,
+            user_id=principal.user.id,
+            request_id=str(request.state.request_id),
+            operation_id=idempotency_key,
+        )
+        return OperationResponse(200, {"id": str(media_id), "deleted": True})
+
+    result = await execute_idempotent(
+        session,
+        user_id=principal.user.id,
+        scope=f"media.delete:{media_id}",
+        key=idempotency_key,
+        request_payload={"id": str(media_id)},
+        operation=operation,
+    )
+    return _json(result.status_code, result.body, result.replayed)
+
+
 @router.get("", response_model=MediaListResponse)
 async def list_media(
     request: Request,

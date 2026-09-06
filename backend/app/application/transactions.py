@@ -5,11 +5,13 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.audit import add_audit_event
 from app.db.models.ledger import AccountModel, CategoryModel, TransactionModel
+from app.db.models.planning import RecurringOccurrenceModel
 from app.db.models.purchases import TransactionItemModel
 from app.domain.catalog.enums import CategoryKind
 from app.domain.catalog.policies import category_accepts
@@ -31,6 +33,7 @@ from app.domain.ledger.transactions import (
     require_reversible,
 )
 from app.domain.money import Money
+from app.domain.planning.enums import OccurrenceStatus
 from app.domain.purchases.policies import calculate_line_total
 from app.infrastructure.repositories.accounts import AccountRepository
 from app.infrastructure.repositories.catalog import CatalogRepository
@@ -422,6 +425,32 @@ class TransactionService:
         model.version += 1
         account.version += 1
         await self._flush_transaction()
+        occurrence = (
+            await self._session.execute(
+                select(RecurringOccurrenceModel)
+                .where(
+                    RecurringOccurrenceModel.user_id == user_id,
+                    RecurringOccurrenceModel.transaction_id == model.id,
+                    RecurringOccurrenceModel.status == OccurrenceStatus.DRAFT_CREATED.value,
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if occurrence is not None:
+            occurrence.status = OccurrenceStatus.RECORDED.value
+            add_audit_event(
+                self._session,
+                user_id=user_id,
+                actor_user_id=user_id,
+                entity_type="recurring_occurrence",
+                entity_id=occurrence.id,
+                action="RECORDED",
+                before={"status": OccurrenceStatus.DRAFT_CREATED.value},
+                after={"status": OccurrenceStatus.RECORDED.value},
+                request_id=request_id,
+                client_operation_id=client_operation_id,
+            )
+            await self._session.flush()
         add_audit_event(
             self._session,
             user_id=user_id,
@@ -692,10 +721,20 @@ class TransactionService:
         user_id: UUID,
         items: tuple[TransactionItemCommand, ...],
     ) -> None:
-        await self._purchases.replace_items(
-            transaction_id=transaction_id,
-            user_id=user_id,
-            items=[
+        models: list[TransactionItemModel] = []
+        for index, item in enumerate(items):
+            package_size_value: Decimal | None = None
+            package_size_unit: str | None = None
+            if item.product_id is not None:
+                product = await self._purchases.get_product(
+                    product_id=item.product_id,
+                    user_id=user_id,
+                )
+                if product is None or product.archived_at is not None:
+                    raise DomainError("PRODUCT_NOT_FOUND", "Product was not found.")
+                package_size_value = product.size_value
+                package_size_unit = product.size_unit
+            models.append(
                 TransactionItemModel(
                     id=item.id,
                     user_id=user_id,
@@ -711,9 +750,14 @@ class TransactionService:
                         item.discount,
                     ),
                     position=index,
+                    package_size_value_snapshot=package_size_value,
+                    package_size_unit_snapshot=package_size_unit,
                 )
-                for index, item in enumerate(items)
-            ],
+            )
+        await self._purchases.replace_items(
+            transaction_id=transaction_id,
+            user_id=user_id,
+            items=models,
         )
 
     async def _require_projected_balance(

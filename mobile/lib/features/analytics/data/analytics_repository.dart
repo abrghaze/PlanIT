@@ -9,6 +9,23 @@ final class AnalyticsRepository {
   final AnalyticsApi api;
   final AppDatabase database;
 
+  Future<AnalyticsDashboard> loadCached({
+    required String ownerId,
+    required AnalyticsFilter filter,
+  }) async {
+    final cached = await database.readAnalyticsDashboard(
+      ownerId,
+      filter.cacheKey,
+    );
+    if (cached == null) {
+      throw StateError('No saved analytics dashboard is available.');
+    }
+    final payload = Map<String, Object?>.from(
+      jsonDecode(cached.payloadJson) as Map,
+    );
+    return AnalyticsDashboard.fromJson(payload).asCached(cached.updatedAt);
+  }
+
   Future<AnalyticsDashboard> load({
     required String ownerId,
     required String accessToken,
@@ -23,15 +40,11 @@ final class AnalyticsRepository {
       );
       return AnalyticsDashboard.fromJson(payload);
     } catch (_) {
-      final cached = await database.readAnalyticsDashboard(
-        ownerId,
-        filter.cacheKey,
-      );
-      if (cached == null) rethrow;
-      final payload = Map<String, Object?>.from(
-        jsonDecode(cached.payloadJson) as Map,
-      );
-      return AnalyticsDashboard.fromJson(payload).asCached(cached.updatedAt);
+      try {
+        return await loadCached(ownerId: ownerId, filter: filter);
+      } on StateError {
+        rethrow;
+      }
     }
   }
 }

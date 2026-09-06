@@ -148,7 +148,7 @@ async def test_private_exports_are_owner_scoped_and_preserve_money(
             assert backup.status_code == 200
             document = json.loads(backup.content)
             assert document["format"] == "planit-portable-backup"
-            assert document["schema_version"] == 1
+            assert document["schema_version"] == 2
             assert document["data"]["accounts"][0]["name"] == "Owner wallet"
             serialized = backup.text.casefold()
             assert "password_hash" not in serialized
@@ -265,6 +265,95 @@ async def test_profile_deletion_requires_password_and_preserves_other_users(
             )
             assert owner_data is None
         user_ids.remove(owner_id)
+    finally:
+        await app.state.db_engine.dispose()
+        await _cleanup(db_session_factory, user_ids)
+
+
+async def test_portable_backup_restores_into_fresh_profile_and_replays_safely(
+    db_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    app = create_app(_settings())
+    transport = httpx.ASGITransport(app=app)
+    user_ids: list[UUID] = []
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            source = await _register(client, f"restore-source-{uuid4()}@example.com")
+            source_id = UUID(str(source["user"]["id"]))  # type: ignore[index]
+            user_ids.append(source_id)
+            account_id = uuid4()
+            created = await client.post(
+                "/api/v1/accounts",
+                headers={**_headers(source), "Idempotency-Key": str(uuid4())},
+                json={
+                    "id": str(account_id),
+                    "name": "Restored wallet",
+                    "type": "CASH",
+                    "opening_balance": {"amount": "42.5000", "currency": "MAD"},
+                    "opened_at": datetime.now(UTC).isoformat(),
+                    "include_in_total": True,
+                    "allow_negative": False,
+                    "sort_order": 0,
+                },
+            )
+            assert created.status_code == 201, created.text
+            backup = await client.get("/api/v1/privacy/backup.json", headers=_headers(source))
+            assert backup.status_code == 200, backup.text
+
+            removed = await client.request(
+                "DELETE",
+                "/api/v1/privacy/profile",
+                headers=_headers(source),
+                json={
+                    "password": "Correct horse battery staple 9!",
+                    "confirmation": "DELETE MY PLANIT DATA",
+                },
+            )
+            assert removed.status_code == 204, removed.text
+            user_ids.remove(source_id)
+
+            target = await _register(client, f"restore-target-{uuid4()}@example.com")
+            target_id = UUID(str(target["user"]["id"]))  # type: ignore[index]
+            user_ids.append(target_id)
+            operation_id = str(uuid4())
+            restore_payload = {
+                "password": "Correct horse battery staple 9!",
+                "confirmation": "RESTORE MY PLANIT DATA",
+                "backup": backup.json(),
+            }
+            restore_headers = {
+                **_headers(target),
+                "Idempotency-Key": operation_id,
+            }
+            restored = await client.post(
+                "/api/v1/privacy/restore",
+                headers=restore_headers,
+                json=restore_payload,
+            )
+            replayed = await client.post(
+                "/api/v1/privacy/restore",
+                headers=restore_headers,
+                json=restore_payload,
+            )
+            assert restored.status_code == replayed.status_code == 200, restored.text
+            assert restored.json()["restored_rows"] > 0
+            assert replayed.headers["Idempotency-Replayed"] == "true"
+
+            accounts = await client.get("/api/v1/accounts", headers=_headers(target))
+            assert accounts.status_code == 200, accounts.text
+            restored_account = next(
+                item for item in accounts.json()["items"] if item["id"] == str(account_id)
+            )
+            assert restored_account["name"] == "Restored wallet"
+            assert restored_account["calculated_balance"]["amount"] == "42.5000"
+
+            refused = await client.post(
+                "/api/v1/privacy/restore",
+                headers={**_headers(target), "Idempotency-Key": str(uuid4())},
+                json=restore_payload,
+            )
+            assert refused.status_code == 409
+            assert refused.json()["error"]["code"] == "BACKUP_RESTORE_TARGET_NOT_EMPTY"
     finally:
         await app.state.db_engine.dispose()
         await _cleanup(db_session_factory, user_ids)

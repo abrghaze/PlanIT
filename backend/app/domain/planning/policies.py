@@ -35,7 +35,17 @@ def normalize_due(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def advance_due(value: datetime, frequency: RecurringFrequency, timezone: str) -> datetime:
+def recurrence_anchor_day(value: datetime, timezone: str) -> int:
+    return normalize_due(value).astimezone(ZoneInfo(normalize_timezone(timezone))).day
+
+
+def advance_due(
+    value: datetime,
+    frequency: RecurringFrequency,
+    timezone: str,
+    *,
+    anchor_day: int | None = None,
+) -> datetime:
     local = normalize_due(value).astimezone(ZoneInfo(normalize_timezone(timezone)))
     if frequency is RecurringFrequency.WEEKLY:
         return (local + timedelta(days=7)).astimezone(UTC)
@@ -47,7 +57,10 @@ def advance_due(value: datetime, frequency: RecurringFrequency, timezone: str) -
     month_index = local.year * 12 + local.month - 1 + months
     year, zero_month = divmod(month_index, 12)
     month = zero_month + 1
-    day = min(local.day, calendar.monthrange(year, month)[1])
+    intended_day = anchor_day if anchor_day is not None else local.day
+    if not 1 <= intended_day <= 31:
+        raise DomainError("INVALID_RECURRENCE_ANCHOR", "Recurring day must be between 1 and 31.")
+    day = min(intended_day, calendar.monthrange(year, month)[1])
     return local.replace(year=year, month=month, day=day).astimezone(UTC)
 
 

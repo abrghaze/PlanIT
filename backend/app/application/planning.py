@@ -43,6 +43,7 @@ from app.domain.planning.policies import (
     normalize_name,
     normalize_timezone,
     progress_percent,
+    recurrence_anchor_day,
     recurring_equivalents,
 )
 from app.infrastructure.repositories.accounts import AccountRepository
@@ -138,6 +139,7 @@ class PlanningService:
             frequency=command.frequency.value,
             timezone=normalize_timezone(command.timezone),
             next_due_at=normalize_due(command.next_due_at),
+            anchor_day=recurrence_anchor_day(command.next_due_at, command.timezone),
             mode=command.mode.value,
             note=normalize_optional_text(command.note, field="note", maximum=2000),
             status=RecurringStatus.ACTIVE.value,
@@ -200,6 +202,7 @@ class PlanningService:
             if not isinstance(value, datetime):
                 raise DomainError("INVALID_TIMESTAMP", "Next due time is invalid.")
             model.next_due_at = normalize_due(value)
+            model.anchor_day = recurrence_anchor_day(value, model.timezone)
         if "frequency" in values:
             model.frequency = RecurringFrequency(str(values["frequency"])).value
         if "mode" in values:
@@ -272,7 +275,10 @@ class PlanningService:
                 )
                 results.append(self._occurrence_snapshot(occurrence))
             rule.next_due_at = advance_due(
-                scheduled, RecurringFrequency(rule.frequency), rule.timezone
+                scheduled,
+                RecurringFrequency(rule.frequency),
+                rule.timezone,
+                anchor_day=rule.anchor_day,
             )
             rule.version += 1
         await self._session.flush()
@@ -321,6 +327,36 @@ class PlanningService:
         await self._session.refresh(occurrence)
         return self._occurrence_snapshot(occurrence)
 
+    async def skip_occurrence_in_transaction(
+        self,
+        *,
+        occurrence_id: UUID,
+        user_id: UUID,
+        request_id: str | None,
+    ) -> RecurringOccurrenceSnapshot:
+        occurrence = await self._planning.get_occurrence(
+            occurrence_id=occurrence_id, user_id=user_id, for_update=True
+        )
+        if occurrence is None:
+            raise DomainError("OCCURRENCE_NOT_FOUND", "Recurring occurrence was not found.")
+        if occurrence.status != OccurrenceStatus.DUE.value:
+            raise DomainError("OCCURRENCE_NOT_SKIPPABLE", "Only a due reminder can be skipped.")
+        occurrence.status = OccurrenceStatus.SKIPPED.value
+        await self._session.flush()
+        add_audit_event(
+            self._session,
+            user_id=user_id,
+            actor_user_id=user_id,
+            entity_type="recurring_occurrence",
+            entity_id=occurrence.id,
+            action="SKIP",
+            after={"status": OccurrenceStatus.SKIPPED.value},
+            request_id=request_id,
+        )
+        await self._session.flush()
+        await self._session.refresh(occurrence)
+        return self._occurrence_snapshot(occurrence)
+
     async def recurring_summary(self, *, user_id: UUID) -> RecurringSummary:
         rules = await self._planning.list_rules(user_id=user_id)
         active = [value for value in rules if value.status == RecurringStatus.ACTIVE.value]
@@ -337,7 +373,9 @@ class PlanningService:
             totals[rule.currency][rule.kind][0] = totals[rule.currency][rule.kind][0] + monthly
             totals[rule.currency][rule.kind][1] = totals[rule.currency][rule.kind][1] + annual
         upcoming = await self._planning.list_occurrences(
-            user_id=user_id, statuses={OccurrenceStatus.DUE.value}, limit=20
+            user_id=user_id,
+            statuses={OccurrenceStatus.DUE.value, OccurrenceStatus.DRAFT_CREATED.value},
+            limit=20,
         )
         return RecurringSummary(
             totals=tuple(
