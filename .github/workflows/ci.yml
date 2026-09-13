@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      preview_api_url:
+        description: API URL compiled into the installable debug APK
+        required: false
+        default: http://10.0.2.2:8000/api/v1
+        type: string
 
 permissions:
   contents: read
@@ -94,7 +101,9 @@ jobs:
         run: flutter test --no-pub
       - name: Compile Android debug app
         working-directory: mobile
-        run: flutter build apk --debug --no-pub
+        env:
+          PREVIEW_API_URL: ${{ inputs.preview_api_url || 'http://10.0.2.2:8000/api/v1' }}
+        run: flutter build apk --debug --no-pub --dart-define="PLANIT_API_BASE_URL=${PREVIEW_API_URL}"
       - name: Upload installable Android preview
         uses: actions/upload-artifact@v7
         with:
