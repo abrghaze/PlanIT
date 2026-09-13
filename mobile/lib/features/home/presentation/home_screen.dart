@@ -414,10 +414,7 @@ class _PositionCard extends StatelessWidget {
               label: 'Money in accounts',
               value: dashboard.kpis.moneyInAccounts.toDisplayString(),
             ),
-            _PositionRow(
-              label: debtLabel,
-              value: debtValue.toDisplayString(),
-            ),
+            _PositionRow(label: debtLabel, value: debtValue.toDisplayString()),
             const Divider(),
             _PositionRow(
               label: 'Personal net position',
@@ -495,16 +492,21 @@ class _NextBillOverview extends StatelessWidget {
           .where((rule) => rule.kind == 'EXPENSE')
           .map((rule) => rule.id)
           .toSet();
-      final occurrences = dashboard.upcoming
-          .where((occurrence) => expenseRuleIds.contains(occurrence.ruleId))
-          .toList(growable: false)
-        ..sort((left, right) => left.scheduledFor.compareTo(right.scheduledFor));
+      final occurrences =
+          dashboard.upcoming
+              .where((occurrence) => expenseRuleIds.contains(occurrence.ruleId))
+              .toList(growable: false)
+            ..sort(
+              (left, right) => left.scheduledFor.compareTo(right.scheduledFor),
+            );
       if (occurrences.isEmpty) {
         return Card(
           child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.event_available)),
             title: const Text('No outstanding scheduled bills'),
-            subtitle: const Text('Add recurring expenses to track what is next.'),
+            subtitle: const Text(
+              'Add recurring expenses to track what is next.',
+            ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push('/recurring'),
           ),

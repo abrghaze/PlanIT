@@ -189,40 +189,33 @@ class _RecurringScreenState extends ConsumerState<RecurringScreen> {
         : 'Recurring rule updated.',
   );
 
-  Future<void> _recordOccurrence(RecurringOccurrence occurrence) => _run(
-    () async {
-      final session = await ref
-          .read(authControllerProvider.notifier)
-          .requireFreshSession();
-      await ref
-          .read(planningApiProvider)
-          .recordOccurrence(
-            session.accessToken,
-            const Uuid().v4(),
-            occurrence.id,
-          );
-      await ref
-          .read(transactionControllerProvider.notifier)
-          .refresh(silent: true, force: true);
-    },
-    success: 'A reviewable draft was added to Activity.',
-  );
+  Future<void> _recordOccurrence(RecurringOccurrence occurrence) =>
+      _run(() async {
+        final session = await ref
+            .read(authControllerProvider.notifier)
+            .requireFreshSession();
+        await ref
+            .read(planningApiProvider)
+            .recordOccurrence(
+              session.accessToken,
+              const Uuid().v4(),
+              occurrence.id,
+            );
+        await ref
+            .read(transactionControllerProvider.notifier)
+            .refresh(silent: true, force: true);
+      }, success: 'A reviewable draft was added to Activity.');
 
-  Future<void> _skipOccurrence(RecurringOccurrence occurrence) => _run(
-    () async {
-      final session = await ref
-          .read(authControllerProvider.notifier)
-          .requireFreshSession();
-      await ref
-          .read(planningApiProvider)
-          .skipOccurrence(
-            session.accessToken,
-            const Uuid().v4(),
-            occurrence.id,
-          );
-    },
-    success: 'This occurrence was skipped. Future reminders remain active.',
-  );
+  Future<void> _skipOccurrence(
+    RecurringOccurrence occurrence,
+  ) => _run(() async {
+    final session = await ref
+        .read(authControllerProvider.notifier)
+        .requireFreshSession();
+    await ref
+        .read(planningApiProvider)
+        .skipOccurrence(session.accessToken, const Uuid().v4(), occurrence.id);
+  }, success: 'This occurrence was skipped. Future reminders remain active.');
 
   Future<void> _run(
     Future<void> Function() action, {
@@ -368,9 +361,8 @@ class _OccurrenceCard extends StatelessWidget {
             if (draftCreated && occurrence.transactionId != null) ...<Widget>[
               const SizedBox(height: PlanItSpacing.sm),
               FilledButton.tonalIcon(
-                onPressed: () => context.push(
-                  '/transactions/${occurrence.transactionId}',
-                ),
+                onPressed: () =>
+                    context.push('/transactions/${occurrence.transactionId}'),
                 icon: const Icon(Icons.rate_review_outlined),
                 label: const Text('Review draft'),
               ),
@@ -533,10 +525,8 @@ class _RecurringDialogState extends State<_RecurringDialog> {
             decoration: const InputDecoration(labelText: 'Category'),
             items: _categoriesFor(kind)
                 .map(
-                  (item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item.name),
-                  ),
+                  (item) =>
+                      DropdownMenuItem(value: item, child: Text(item.name)),
                 )
                 .toList(),
             onChanged: (value) => setState(() => category = value),

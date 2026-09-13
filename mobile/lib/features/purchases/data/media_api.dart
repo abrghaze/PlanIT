@@ -56,9 +56,8 @@ final class MediaApi {
       }
       return values
           .map(
-            (value) => MediaAsset.fromJson(
-              Map<String, Object?>.from(value! as Map),
-            ),
+            (value) =>
+                MediaAsset.fromJson(Map<String, Object?>.from(value! as Map)),
           )
           .toList(growable: false);
     } on DioException catch (error) {

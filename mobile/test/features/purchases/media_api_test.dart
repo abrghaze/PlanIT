@@ -36,10 +36,7 @@ void main() {
       'entity_type': 'TRANSACTION',
       'entity_id': 'transaction-1',
     });
-    expect(
-      adapter.requests[2].headers['Idempotency-Key'],
-      'operation-1',
-    );
+    expect(adapter.requests[2].headers['Idempotency-Key'], 'operation-1');
     for (final request in adapter.requests) {
       expect(request.headers['Authorization'], 'Bearer private-token');
     }

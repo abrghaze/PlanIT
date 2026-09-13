@@ -90,9 +90,7 @@ final class RecurringOccurrence {
       RecurringOccurrence(
         id: json['id']! as String,
         ruleId: json['rule_id']! as String,
-        scheduledFor: DateTime.parse(
-          json['scheduled_for']! as String,
-        ).toUtc(),
+        scheduledFor: DateTime.parse(json['scheduled_for']! as String).toUtc(),
         transactionId: json['transaction_id'] as String?,
         status: json['status']! as String,
       );

@@ -29,11 +29,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .requireFreshSession();
       final download = await action(session.accessToken);
       final savedAt = await savePrivacyFile(download.filename, download.bytes);
-      _message(
-        savedAt == null
-            ? 'Export cancelled.'
-            : 'Export saved.',
-      );
+      _message(savedAt == null ? 'Export cancelled.' : 'Export saved.');
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on UnsupportedError catch (error) {
@@ -115,7 +111,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on UnsupportedError catch (error) {
-      _message(error.message?.toString() ?? 'Restore is unavailable.', error: true);
+      _message(
+        error.message?.toString() ?? 'Restore is unavailable.',
+        error: true,
+      );
     } on Object {
       _message('PlanIT could not restore the selected data.', error: true);
     } finally {

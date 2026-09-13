@@ -32,7 +32,10 @@ final planningDashboardProvider = FutureProvider<PlanningDashboard>((
     final session = await ref
         .read(authControllerProvider.notifier)
         .requireFreshSession();
-    return repository.load(ownerId: session.user.id, token: session.accessToken);
+    return repository.load(
+      ownerId: session.user.id,
+      token: session.accessToken,
+    );
   } on AppException catch (error) {
     if (!error.isNetworkFailure) rethrow;
     return repository.loadCached(current.user.id);

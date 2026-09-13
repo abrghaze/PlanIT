@@ -377,13 +377,12 @@ class _DashboardBody extends StatelessWidget {
                 'Variants stay separate; compatible pack sizes are normalized',
           ),
           const SizedBox(height: PlanItSpacing.sm),
-          ...dashboard.products
-              .map(
-                (row) => _ProductCard(
-                  row: row,
-                  onTap: () => onSources(row.name, row.sourceTransactionIds),
-                ),
-              ),
+          ...dashboard.products.map(
+            (row) => _ProductCard(
+              row: row,
+              onTap: () => onSources(row.name, row.sourceTransactionIds),
+            ),
+          ),
         ],
         if (dashboard.accounts.isNotEmpty) ...<Widget>[
           const SizedBox(height: PlanItSpacing.lg),

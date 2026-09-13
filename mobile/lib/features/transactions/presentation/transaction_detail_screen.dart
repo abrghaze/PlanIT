@@ -209,13 +209,13 @@ class TransactionDetailScreen extends ConsumerWidget {
                       : Card(
                           child: Column(
                             children: <Widget>[
-                              for (var index = 0;
-                                  index < receipts.length;
-                                  index++)
+                              for (
+                                var index = 0;
+                                index < receipts.length;
+                                index++
+                              )
                                 ListTile(
-                                  leading: const Icon(
-                                    Icons.image_outlined,
-                                  ),
+                                  leading: const Icon(Icons.image_outlined),
                                   title: Text('Receipt ${index + 1}'),
                                   subtitle: Text(
                                     '${_formatTimestamp(receipts[index].createdAt)} · '
@@ -228,7 +228,8 @@ class TransactionDetailScreen extends ConsumerWidget {
                                   ),
                                   trailing: IconButton(
                                     tooltip: 'Delete receipt',
-                                    onPressed: ref
+                                    onPressed:
+                                        ref
                                             .watch(
                                               mediaUploadControllerProvider,
                                             )

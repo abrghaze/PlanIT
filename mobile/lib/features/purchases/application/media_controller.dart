@@ -8,20 +8,19 @@ import 'package:uuid/uuid.dart';
 final mediaApiProvider = Provider<MediaApi>(
   (ref) => MediaApi(ref.watch(apiClientProvider)),
 );
-final transactionMediaProvider = FutureProvider.family<List<MediaAsset>, String>(
-  (ref, transactionId) async {
-    final session = await ref
-        .read(authControllerProvider.notifier)
-        .requireFreshSession();
-    return ref
-        .watch(mediaApiProvider)
-        .list(
-          token: session.accessToken,
-          entityType: 'TRANSACTION',
-          entityId: transactionId,
-        );
-  },
-);
+final transactionMediaProvider =
+    FutureProvider.family<List<MediaAsset>, String>((ref, transactionId) async {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
+      return ref
+          .watch(mediaApiProvider)
+          .list(
+            token: session.accessToken,
+            entityType: 'TRANSACTION',
+            entityId: transactionId,
+          );
+    });
 final mediaUploadControllerProvider =
     NotifierProvider<MediaUploadController, AsyncValue<void>>(
       MediaUploadController.new,

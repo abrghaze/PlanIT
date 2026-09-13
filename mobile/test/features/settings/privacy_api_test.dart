@@ -65,7 +65,10 @@ void main() {
 
     expect(result.restoredRows, 14);
     expect(result.ignoredReceiptFiles, 2);
-    expect(adapter.request!.headers['Authorization'], 'Bearer private-access-token');
+    expect(
+      adapter.request!.headers['Authorization'],
+      'Bearer private-access-token',
+    );
     expect(adapter.request!.headers['Idempotency-Key'], isNotEmpty);
     expect(adapter.request!.data, isA<Map<String, Object?>>());
     final payload = adapter.request!.data! as Map<String, Object?>;
