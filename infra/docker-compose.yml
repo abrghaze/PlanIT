@@ -11,7 +11,7 @@ services:
       PLANIT_ACCESS_TOKEN_SECRET: local-compose-access-secret-change-before-deploying
       PLANIT_REFRESH_TOKEN_PEPPER: local-compose-refresh-secret-change-before-deploying
     ports:
-      - "8000:8000"
+      - "${PLANIT_API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
       POSTGRES_USER: planit
       POSTGRES_PASSWORD: planit_dev_only
     ports:
-      - "5432:5432"
+      - "${PLANIT_POSTGRES_PORT:-5432}:5432"
     volumes:
       - planit_postgres:/var/lib/postgresql
     healthcheck:
