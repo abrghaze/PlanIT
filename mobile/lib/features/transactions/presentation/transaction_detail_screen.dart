@@ -7,6 +7,7 @@ import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/purchases/application/media_controller.dart';
 import 'package:planit_mobile/features/purchases/application/providers.dart';
+import 'package:planit_mobile/features/purchases/data/media_api.dart';
 import 'package:planit_mobile/features/purchases/domain/purchase_catalog.dart';
 import 'package:planit_mobile/features/purchases/presentation/image_source_sheet.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';

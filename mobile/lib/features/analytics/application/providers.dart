@@ -32,7 +32,7 @@ final analyticsDashboardProvider =
         final session = await ref
             .read(authControllerProvider.notifier)
             .requireFreshSession();
-        return repository.load(
+        return await repository.load(
           ownerId: session.user.id,
           accessToken: session.accessToken,
           filter: filter,

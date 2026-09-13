@@ -223,7 +223,7 @@ List<T> _items<T>(Object? raw, T Function(Map<String, Object?>) parser) =>
 List<T> _optionalItems<T>(
   Object? raw,
   T Function(Map<String, Object?>) parser,
-) => raw == null ? const <T>[] : _items(raw, parser);
+) => raw == null ? <T>[] : _items(raw, parser);
 
 String _scaledMoneyString(BigInt value) {
   final absolute = value.abs();

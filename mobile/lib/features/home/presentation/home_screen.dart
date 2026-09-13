@@ -12,9 +12,9 @@ import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
 import 'package:planit_mobile/features/planning/application/providers.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
+import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_action_state.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
-import 'package:planit_mobile/features/transactions/application/providers.dart';
 
 String _shortDate(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/'
