@@ -31,7 +31,7 @@ services:
       POSTGRES_USER: planit
       POSTGRES_PASSWORD: planit_dev_only
     ports:
-      - "${PLANIT_POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${PLANIT_POSTGRES_PORT:-5432}:5432"
     volumes:
       - planit_postgres:/var/lib/postgresql
     healthcheck:
