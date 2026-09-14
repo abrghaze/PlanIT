@@ -840,12 +840,12 @@ class _OfflineBanner extends StatelessWidget {
         color: Theme.of(context).colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(PlanItRadius.sm),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(PlanItSpacing.sm),
+      child: Padding(
+        padding: const EdgeInsets.all(PlanItSpacing.sm),
         child: Row(
           children: <Widget>[
-            Icon(Icons.cloud_off_outlined),
-            SizedBox(width: PlanItSpacing.xs),
+            const Icon(Icons.cloud_off_outlined),
+            const SizedBox(width: PlanItSpacing.xs),
             Expanded(
               child: Text(
                 pendingCount == 0

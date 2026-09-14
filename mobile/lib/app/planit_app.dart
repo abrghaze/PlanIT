@@ -35,6 +35,11 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
       onHide: _pauseForegroundWork,
       onDetach: _pauseForegroundWork,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleAuthState(ref.read(authControllerProvider));
+      }
+    });
   }
 
   @override
@@ -119,7 +124,6 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
     ref.listen<AuthState>(
       authControllerProvider,
       (_, next) => _handleAuthState(next),
-      fireImmediately: true,
     );
     final auth = ref.watch(authControllerProvider);
     if (!auth.initialized) {
