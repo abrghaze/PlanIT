@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/money/money.dart';
+import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/offline_finance/application/providers.dart';

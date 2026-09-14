@@ -72,19 +72,15 @@ final class _MemoryPrivacyStore implements AppPrivacyStore {
 }
 
 final class _FakeDeviceAuthenticator implements DeviceAuthenticator {
-  _FakeDeviceAuthenticator({
-    this.available = true,
-    this.authenticationSucceeds = true,
-  });
+  _FakeDeviceAuthenticator({this.available = true});
 
   final bool available;
-  final bool authenticationSucceeds;
   int authenticationRequests = 0;
 
   @override
   Future<bool> authenticate() async {
     authenticationRequests += 1;
-    return authenticationSucceeds;
+    return true;
   }
 
   @override

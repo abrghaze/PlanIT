@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/money/money.dart';
-import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/offline_finance/data/offline_finance_store.dart';
 import 'package:planit_mobile/features/offline_finance/domain/offline_finance.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
