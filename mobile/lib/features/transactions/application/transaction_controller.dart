@@ -123,9 +123,10 @@ final class TransactionController extends Notifier<TransactionActionState> {
           .queueCreate(
             ownerId: session.user.id,
             draft: draft,
-            postAfterCreate: postAfterCreate,
-            postOperationId: postOperationId,
-          );
+          postAfterCreate: postAfterCreate,
+          postOperationId: postOperationId,
+        );
+      ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(
         busy: false,
         noticeMessage: 'Saved locally. Synchronization is pending.',
@@ -151,6 +152,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
       await ref
           .read(transactionsRepositoryProvider)
           .queueUpdate(current: current, edit: edit, operationId: operationId);
+      ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(
         busy: false,
         noticeMessage: 'Draft update queued.',
@@ -175,6 +177,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
       await ref
           .read(transactionsRepositoryProvider)
           .queuePost(current: current, operationId: operationId);
+      ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(busy: false, noticeMessage: 'Posting queued.');
       await refresh(silent: true);
       return true;
@@ -196,6 +199,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
       await ref
           .read(transactionsRepositoryProvider)
           .queueReversal(current: current, reversal: reversal);
+      ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(busy: false, noticeMessage: 'Reversal queued.');
       await refresh(silent: true);
       return true;
@@ -214,6 +218,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
       await ref
           .read(transactionsRepositoryProvider)
           .discardPending(transaction);
+      ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(
         busy: false,
         noticeMessage: 'Local conflict discarded. Reloading server state.',

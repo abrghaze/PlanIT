@@ -2,15 +2,19 @@ package com.abrghaze.planit
 
 import android.app.Activity
 import android.content.Intent
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import java.io.ByteArrayOutputStream
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingBytes: ByteArray? = null
     private var pendingOpenResult: MethodChannel.Result? = null
+    private var pendingAuthenticationResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -24,6 +28,62 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.abrghaze.planit/privacy_lock",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "canAuthenticate" -> result.success(canAuthenticate())
+                "authenticate" -> authenticate(result)
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun canAuthenticate(): Boolean =
+        BiometricManager.from(this).canAuthenticate(DEVICE_AUTHENTICATORS) ==
+            BiometricManager.BIOMETRIC_SUCCESS
+
+    private fun authenticate(result: MethodChannel.Result) {
+        if (pendingAuthenticationResult != null) {
+            result.error("AUTH_IN_PROGRESS", "A device-unlock request is already open.", null)
+            return
+        }
+        if (!canAuthenticate()) {
+            result.success(false)
+            return
+        }
+        pendingAuthenticationResult = result
+        val executor = ContextCompat.getMainExecutor(this)
+        val prompt = BiometricPrompt(
+            this,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(
+                    authenticationResult: BiometricPrompt.AuthenticationResult,
+                ) {
+                    super.onAuthenticationSucceeded(authenticationResult)
+                    finishAuthentication(true)
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    finishAuthentication(false)
+                }
+            },
+        )
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock PlanIT")
+            .setSubtitle("Confirm your device unlock to continue.")
+            .setAllowedAuthenticators(DEVICE_AUTHENTICATORS)
+            .build()
+        prompt.authenticate(promptInfo)
+    }
+
+    private fun finishAuthentication(succeeded: Boolean) {
+        val result = pendingAuthenticationResult
+        pendingAuthenticationResult = null
+        result?.success(succeeded)
     }
 
     private fun startSave(arguments: Map<*, *>?, result: MethodChannel.Result) {
@@ -123,5 +183,8 @@ class MainActivity : FlutterActivity() {
         private const val SAVE_FILE_REQUEST = 4817
         private const val OPEN_FILE_REQUEST = 4818
         private const val MAX_RESTORE_BYTES = 20 * 1024 * 1024
+        private const val DEVICE_AUTHENTICATORS =
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL
     }
 }

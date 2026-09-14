@@ -10,11 +10,15 @@ import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
 import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
+import 'package:planit_mobile/features/home/presentation/offline_dashboard_cards.dart';
+import 'package:planit_mobile/features/offline_finance/application/providers.dart';
+import 'package:planit_mobile/features/offline_finance/domain/offline_finance.dart';
 import 'package:planit_mobile/features/planning/application/providers.dart';
 import 'package:planit_mobile/features/planning/domain/planning.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_action_state.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
+import 'package:planit_mobile/features/transactions/domain/catalog.dart';
 
 String _shortDate(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/'
@@ -40,6 +44,11 @@ class HomeScreen extends ConsumerWidget {
     final planning = ref.watch(planningDashboardProvider);
     final pendingCount = ref.watch(pendingTransactionCountProvider);
     final sync = ref.watch(transactionControllerProvider);
+    final localSummary = ref.watch(localMonthlySummaryProvider);
+    final budgetProgress = ref.watch(offlineBudgetProgressProvider);
+    final categories =
+        ref.watch(transactionCategoriesProvider).value ??
+        const <TransactionCategory>[];
     ref.watch(accountBootstrapProvider);
     final firstName =
         auth.session?.user.displayName.split(' ').first ?? 'there';
@@ -84,6 +93,9 @@ class HomeScreen extends ConsumerWidget {
                     baseCurrency: auth.session?.user.baseCurrency ?? 'MAD',
                     analytics: analytics,
                     planning: planning,
+                    localSummary: localSummary,
+                    budgetProgress: budgetProgress,
+                    categories: categories,
                   ),
                 ),
               ],
@@ -174,12 +186,18 @@ class _HomeAccountContent extends StatelessWidget {
     required this.baseCurrency,
     required this.analytics,
     required this.planning,
+    required this.localSummary,
+    required this.budgetProgress,
+    required this.categories,
   });
 
   final List<Account> accounts;
   final String baseCurrency;
   final AsyncValue<AnalyticsDashboard> analytics;
   final AsyncValue<PlanningDashboard> planning;
+  final LocalMonthlySummary? localSummary;
+  final List<CategoryBudgetProgress> budgetProgress;
+  final List<TransactionCategory> categories;
 
   @override
   Widget build(BuildContext context) {
@@ -256,23 +274,51 @@ class _HomeAccountContent extends StatelessWidget {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: PlanItSpacing.sm),
-        analytics.when(
-          loading: () => const Card(
-            child: SizedBox(
-              height: 104,
-              child: Center(child: CircularProgressIndicator()),
+        if (localSummary != null &&
+            (localSummary!.pendingPostedCount > 0 ||
+                localSummary!.hasCurrencyWarning))
+          LocalMonthlyHealthCard(summary: localSummary!)
+        else
+          analytics.when(
+            loading: () => const Card(
+              child: SizedBox(
+                height: 104,
+                child: Center(child: CircularProgressIndicator()),
+              ),
             ),
+            error: (error, stackTrace) => localSummary == null
+                ? Card(
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.insights_outlined),
+                      ),
+                      title: const Text('Analytics is temporarily unavailable'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.go('/analytics'),
+                    ),
+                  )
+                : LocalMonthlyHealthCard(summary: localSummary!),
+            data: (dashboard) => _MonthlyHealthCard(dashboard: dashboard),
           ),
-          error: (error, stackTrace) => Card(
-            child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.insights_outlined)),
-              title: const Text('Analytics is temporarily unavailable'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.go('/analytics'),
+        const SizedBox(height: PlanItSpacing.lg),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'Budgets',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
             ),
-          ),
-          data: (dashboard) => _MonthlyHealthCard(dashboard: dashboard),
+            TextButton(
+              onPressed: () => context.push('/budgets'),
+              child: Text(budgetProgress.isEmpty ? 'Set budgets' : 'See all'),
+            ),
+          ],
         ),
+        const SizedBox(height: PlanItSpacing.sm),
+        BudgetOverview(progress: budgetProgress, categories: categories),
         const SizedBox(height: PlanItSpacing.lg),
         Row(
           children: <Widget>[

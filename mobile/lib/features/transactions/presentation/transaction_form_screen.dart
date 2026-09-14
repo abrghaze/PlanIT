@@ -5,6 +5,8 @@ import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/offline_finance/application/providers.dart';
+import 'package:planit_mobile/features/offline_finance/domain/offline_finance.dart';
 import 'package:planit_mobile/features/purchases/application/providers.dart';
 import 'package:planit_mobile/features/purchases/domain/purchase_catalog.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
@@ -129,6 +131,73 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         local.hour,
         local.minute,
       ).toUtc();
+    });
+  }
+
+  Future<void> _chooseTemplate({
+    required List<QuickTransactionTemplate> templates,
+    required List<Account> accounts,
+    required List<TransactionCategory> categories,
+    required List<TransactionTag> tags,
+  }) async {
+    final selected = await showModalBottomSheet<QuickTransactionTemplate>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (context) => ListView(
+        shrinkWrap: true,
+        children: <Widget>[
+          const ListTile(
+            title: Text('Use a quick template'),
+            subtitle: Text('You can adjust every value before saving.'),
+          ),
+          for (final template in templates)
+            ListTile(
+              leading: Icon(
+                template.type == TransactionType.expense
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+              ),
+              title: Text(template.name),
+              subtitle: Text(
+                template.amount?.toDisplayString() ?? 'Enter amount each time',
+              ),
+              onTap: () => Navigator.pop(context, template),
+            ),
+        ],
+      ),
+    );
+    if (selected == null || !mounted) return;
+    final account = accounts
+        .where((value) => value.id == selected.accountId)
+        .firstOrNull;
+    final matchingCategoryIds = categories
+        .where(
+          (value) =>
+              value.active &&
+              (value.kind == CategoryKind.both ||
+                  (selected.type == TransactionType.expense &&
+                      value.kind == CategoryKind.expense) ||
+                  (selected.type == TransactionType.income &&
+                      value.kind == CategoryKind.income)),
+        )
+        .map((value) => value.id)
+        .toSet();
+    final activeTagIds = tags.where((value) => value.active).map((value) => value.id).toSet();
+    setState(() {
+      _type = selected.type;
+      _accountId = account?.id ?? _accountId;
+      _categoryId = matchingCategoryIds.contains(selected.categoryId)
+          ? selected.categoryId
+          : null;
+      if (selected.amount != null && account?.currency == selected.amount!.currency) {
+        _amountController.text = selected.amount!.toApiString();
+      }
+      _counterpartyController.text = selected.counterparty ?? '';
+      _noteController.text = selected.note ?? '';
+      _tagIds
+        ..clear()
+        ..addAll(selected.tagIds.where(activeTagIds.contains));
     });
   }
 
@@ -377,6 +446,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     final tagsAsync = ref.watch(transactionTagsProvider);
     final merchants = ref.watch(merchantsProvider).value ?? const <Merchant>[];
     final products = ref.watch(productsProvider).value ?? const <Product>[];
+    final templates =
+        ref.watch(offlineTemplatesProvider).value ??
+        const <QuickTransactionTemplate>[];
     final transactionsAsync = ref.watch(transactionsProvider);
     final action = ref.watch(transactionControllerProvider);
     final accounts = accountsAsync.value ?? const <Account>[];
@@ -426,6 +498,21 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 const _MessageCard(
                   message:
                       'This draft has pending synchronization and cannot be edited yet.',
+                ),
+                const SizedBox(height: PlanItSpacing.md),
+              ],
+              if (!_editing && templates.isNotEmpty) ...<Widget>[
+                OutlinedButton.icon(
+                  onPressed: action.busy
+                      ? null
+                      : () => _chooseTemplate(
+                          templates: templates,
+                          accounts: activeAccounts,
+                          categories: categories,
+                          tags: tags,
+                        ),
+                  icon: const Icon(Icons.bolt_outlined),
+                  label: const Text('Use a quick template'),
                 ),
                 const SizedBox(height: PlanItSpacing.md),
               ],

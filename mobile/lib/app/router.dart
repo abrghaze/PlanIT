@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/app/shell/planit_scaffold.dart';
+import 'package:planit_mobile/core/privacy/privacy_settings_screen.dart';
 import 'package:planit_mobile/features/accounts/presentation/account_form_screen.dart';
 import 'package:planit_mobile/features/accounts/presentation/accounts_screen.dart';
 import 'package:planit_mobile/features/activity/presentation/activity_screen.dart';
@@ -17,6 +18,8 @@ import 'package:planit_mobile/features/financial_operations/presentation/reconci
 import 'package:planit_mobile/features/financial_operations/presentation/transfer_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
+import 'package:planit_mobile/features/offline_finance/presentation/budgets_screen.dart';
+import 'package:planit_mobile/features/offline_finance/presentation/templates_screen.dart';
 import 'package:planit_mobile/features/planning/presentation/goals_screen.dart';
 import 'package:planit_mobile/features/planning/presentation/recurring_screen.dart';
 import 'package:planit_mobile/features/purchases/presentation/merchants_screen.dart';
@@ -109,6 +112,10 @@ final GoRouter authenticatedRouter = GoRouter(
       builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
+      path: '/privacy',
+      builder: (context, state) => const PrivacySettingsScreen(),
+    ),
+    GoRoute(
       path: '/transactions/new',
       builder: (context, state) => TransactionFormScreen(
         initialType: state.uri.queryParameters['type'] == 'INCOME'
@@ -133,6 +140,11 @@ final GoRouter authenticatedRouter = GoRouter(
     GoRoute(
       path: '/pending-operations',
       builder: (context, state) => const PendingOperationsScreen(),
+    ),
+    GoRoute(path: '/budgets', builder: (context, state) => const BudgetsScreen()),
+    GoRoute(
+      path: '/quick-templates',
+      builder: (context, state) => const TemplatesScreen(),
     ),
     GoRoute(
       path: '/transactions/:transactionId',

@@ -7,6 +7,8 @@ import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/auth/application/auth_state.dart';
 import 'package:planit_mobile/core/design_system/app_theme.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
+import 'package:planit_mobile/core/privacy/app_privacy_controller.dart';
+import 'package:planit_mobile/core/privacy/app_privacy_gate.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 
 class PlanItApp extends ConsumerStatefulWidget {
@@ -79,6 +81,7 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
     _isForeground = false;
     _retryTimer?.cancel();
     _retryTimer = null;
+    ref.read(appPrivacyControllerProvider.notifier).lockForBackground();
   }
 
   void _startForegroundRetries() {
@@ -137,6 +140,9 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
       darkTheme: PlanItTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: auth.isAuthenticated ? authenticatedRouter : publicRouter,
+      builder: (context, child) => AppPrivacyGate(
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
