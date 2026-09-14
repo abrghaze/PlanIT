@@ -66,7 +66,6 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
     }
     if (_isForeground) {
       _startForegroundRetries();
-      _scheduleSynchronization();
     }
   }
 
