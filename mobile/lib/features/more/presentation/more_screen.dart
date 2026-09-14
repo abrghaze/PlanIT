@@ -48,16 +48,6 @@ class MoreScreen extends ConsumerWidget {
         onTap: () => context.push('/goals'),
       ),
       (
-        icon: Icons.pie_chart_outline_rounded,
-        label: 'Monthly budgets',
-        onTap: () => context.push('/budgets'),
-      ),
-      (
-        icon: Icons.bolt_outlined,
-        label: 'Quick entry templates',
-        onTap: () => context.push('/quick-templates'),
-      ),
-      (
         icon: Icons.settings_outlined,
         label: 'Settings',
         onTap: () => context.push('/settings'),
@@ -66,6 +56,16 @@ class MoreScreen extends ConsumerWidget {
         icon: Icons.lock_outline_rounded,
         label: 'Security & privacy',
         onTap: () => context.push('/privacy'),
+      ),
+      (
+        icon: Icons.pie_chart_outline_rounded,
+        label: 'Monthly budgets',
+        onTap: () => context.push('/budgets'),
+      ),
+      (
+        icon: Icons.bolt_outlined,
+        label: 'Quick entry templates',
+        onTap: () => context.push('/quick-templates'),
       ),
     ];
 
