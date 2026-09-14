@@ -89,25 +89,29 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
 
   void _scheduleSynchronization() {
     final ownerId = _activeOwnerId;
-    if (!mounted || !_isForeground || ownerId == null || _synchronizationScheduled) {
+    if (!mounted ||
+        !_isForeground ||
+        ownerId == null ||
+        _synchronizationScheduled) {
       return;
     }
     _synchronizationScheduled = true;
-    unawaited(Future<void>.microtask(() async {
-      try {
-        if (!mounted ||
-            !_isForeground ||
-            ref.read(authControllerProvider).session?.user.id != ownerId) {
-          return;
+    unawaited(
+      Future<void>.microtask(() async {
+        try {
+          if (!mounted ||
+              !_isForeground ||
+              ref.read(authControllerProvider).session?.user.id != ownerId) {
+            return;
+          }
+          await ref
+              .read(transactionControllerProvider.notifier)
+              .refresh(silent: true, suppressNetworkErrors: true);
+        } finally {
+          _synchronizationScheduled = false;
         }
-        await ref.read(transactionControllerProvider.notifier).refresh(
-          silent: true,
-          suppressNetworkErrors: true,
-        );
-      } finally {
-        _synchronizationScheduled = false;
-      }
-    }));
+      }),
+    );
   }
 
   @override

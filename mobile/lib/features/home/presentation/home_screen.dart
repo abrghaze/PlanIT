@@ -73,9 +73,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 if (auth.offline) ...<Widget>[
                   const SizedBox(height: PlanItSpacing.md),
-                  _OfflineBanner(
-                    pendingCount: pendingCount.value ?? 0,
-                  ),
+                  _OfflineBanner(pendingCount: pendingCount.value ?? 0),
                 ],
                 const SizedBox(height: PlanItSpacing.lg),
                 accounts.when(
