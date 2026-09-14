@@ -73,7 +73,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 if (auth.offline) ...<Widget>[
                   const SizedBox(height: PlanItSpacing.md),
-                  const _OfflineBanner(),
+                  _OfflineBanner(
+                    pendingCount: pendingCount.value ?? 0,
+                  ),
                 ],
                 const SizedBox(height: PlanItSpacing.lg),
                 accounts.when(
@@ -829,7 +831,9 @@ class _EmptyAccountCard extends StatelessWidget {
 }
 
 class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner();
+  const _OfflineBanner({required this.pendingCount});
+
+  final int pendingCount;
 
   @override
   Widget build(BuildContext context) {
@@ -846,7 +850,9 @@ class _OfflineBanner extends StatelessWidget {
             SizedBox(width: PlanItSpacing.xs),
             Expanded(
               child: Text(
-                'Offline: cached account balances are still available.',
+                pendingCount == 0
+                    ? 'Offline: your cached accounts and dashboards remain available.'
+                    : 'Offline: $pendingCount local ${pendingCount == 1 ? 'change is' : 'changes are'} saved on this phone and will synchronize when PlanIT reconnects. Keep the app installed until they are synced.',
               ),
             ),
           ],

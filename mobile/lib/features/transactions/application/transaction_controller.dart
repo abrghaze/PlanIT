@@ -30,7 +30,11 @@ final class TransactionController extends Notifier<TransactionActionState> {
   @override
   TransactionActionState build() => const TransactionActionState.idle();
 
-  Future<void> refresh({bool silent = false, bool force = false}) async {
+  Future<void> refresh({
+    bool silent = false,
+    bool force = false,
+    bool suppressNetworkErrors = false,
+  }) async {
     if (!silent) {
       state = state.copyWith(
         syncing: true,
@@ -85,6 +89,14 @@ final class TransactionController extends Notifier<TransactionActionState> {
         ref.read(financialDataRevisionProvider.notifier).markChanged();
       }
     } on AppException catch (error) {
+      if (suppressNetworkErrors && error.isNetworkFailure) {
+        state = state.copyWith(
+          syncing: false,
+          clearError: true,
+          clearNotice: true,
+        );
+        return;
+      }
       state = state.copyWith(syncing: false, errorMessage: error.message);
     } on Object {
       state = state.copyWith(
