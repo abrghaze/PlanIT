@@ -142,10 +142,7 @@ final class LocalMonthlySummary {
 }
 
 final class CategoryBudgetProgress {
-  const CategoryBudgetProgress({
-    required this.budget,
-    required this.spent,
-  });
+  const CategoryBudgetProgress({required this.budget, required this.spent});
 
   final CategoryBudget budget;
   final Money spent;

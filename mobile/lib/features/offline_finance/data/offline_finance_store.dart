@@ -25,9 +25,7 @@ final class SecureOfflineFinanceStore implements OfflineFinanceStore {
   @override
   Future<List<CategoryBudget>> readBudgets(String ownerId) async {
     final values = await _readList(_budgetPrefix + ownerId);
-    return values
-        .map(CategoryBudget.fromJson)
-        .toList(growable: false)
+    return values.map(CategoryBudget.fromJson).toList(growable: false)
       ..sort((left, right) => left.categoryId.compareTo(right.categoryId));
   }
 
@@ -42,9 +40,7 @@ final class SecureOfflineFinanceStore implements OfflineFinanceStore {
   @override
   Future<List<QuickTransactionTemplate>> readTemplates(String ownerId) async {
     final values = await _readList(_templatePrefix + ownerId);
-    return values
-        .map(QuickTransactionTemplate.fromJson)
-        .toList(growable: false)
+    return values.map(QuickTransactionTemplate.fromJson).toList(growable: false)
       ..sort((left, right) => left.name.compareTo(right.name));
   }
 

@@ -3,33 +3,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:planit_mobile/core/privacy/app_privacy_controller.dart';
 
 void main() {
-  test('enabled app lock requires device authentication after backgrounding', () async {
-    final store = _MemoryPrivacyStore();
-    final authenticator = _FakeDeviceAuthenticator();
-    final container = ProviderContainer(
-      overrides: [
-        appPrivacyStoreProvider.overrideWithValue(store),
-        deviceAuthenticatorProvider.overrideWithValue(authenticator),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'enabled app lock requires device authentication after backgrounding',
+    () async {
+      final store = _MemoryPrivacyStore();
+      final authenticator = _FakeDeviceAuthenticator();
+      final container = ProviderContainer(
+        overrides: [
+          appPrivacyStoreProvider.overrideWithValue(store),
+          deviceAuthenticatorProvider.overrideWithValue(authenticator),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    container.read(appPrivacyControllerProvider);
-    await pumpEventQueue();
-    final controller = container.read(appPrivacyControllerProvider.notifier);
+      container.read(appPrivacyControllerProvider);
+      await pumpEventQueue();
+      final controller = container.read(appPrivacyControllerProvider.notifier);
 
-    expect(container.read(appPrivacyControllerProvider).available, isTrue);
-    expect(await controller.enable(), isTrue);
-    expect(container.read(appPrivacyControllerProvider).locked, isFalse);
+      expect(container.read(appPrivacyControllerProvider).available, isTrue);
+      expect(await controller.enable(), isTrue);
+      expect(container.read(appPrivacyControllerProvider).locked, isFalse);
 
-    controller.lockForBackground();
-    expect(container.read(appPrivacyControllerProvider).locked, isTrue);
+      controller.lockForBackground();
+      expect(container.read(appPrivacyControllerProvider).locked, isTrue);
 
-    expect(await controller.unlock(), isTrue);
-    expect(container.read(appPrivacyControllerProvider).locked, isFalse);
-    expect(authenticator.authenticationRequests, 2);
-    expect(store.enabled, isTrue);
-  });
+      expect(await controller.unlock(), isTrue);
+      expect(container.read(appPrivacyControllerProvider).locked, isFalse);
+      expect(authenticator.authenticationRequests, 2);
+      expect(store.enabled, isTrue);
+    },
+  );
 
   test('unavailable device authentication cannot enable an app lock', () async {
     final container = ProviderContainer(
@@ -69,7 +72,10 @@ final class _MemoryPrivacyStore implements AppPrivacyStore {
 }
 
 final class _FakeDeviceAuthenticator implements DeviceAuthenticator {
-  _FakeDeviceAuthenticator({this.available = true, this.authenticationSucceeds = true});
+  _FakeDeviceAuthenticator({
+    this.available = true,
+    this.authenticationSucceeds = true,
+  });
 
   final bool available;
   final bool authenticationSucceeds;

@@ -141,7 +141,10 @@ final GoRouter authenticatedRouter = GoRouter(
       path: '/pending-operations',
       builder: (context, state) => const PendingOperationsScreen(),
     ),
-    GoRoute(path: '/budgets', builder: (context, state) => const BudgetsScreen()),
+    GoRoute(
+      path: '/budgets',
+      builder: (context, state) => const BudgetsScreen(),
+    ),
     GoRoute(
       path: '/quick-templates',
       builder: (context, state) => const TemplatesScreen(),

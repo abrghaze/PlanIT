@@ -33,9 +33,8 @@ class AppPrivacyGate extends ConsumerWidget {
                       const SizedBox(height: PlanItSpacing.md),
                       Text(
                         'PlanIT is locked',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: PlanItSpacing.xs),
                       const Text(

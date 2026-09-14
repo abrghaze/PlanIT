@@ -14,7 +14,8 @@ class BudgetsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authControllerProvider).session;
-    final categories = ref.watch(transactionCategoriesProvider).value ??
+    final categories =
+        ref.watch(transactionCategoriesProvider).value ??
         const <TransactionCategory>[];
     final budgets = ref.watch(offlineBudgetsProvider);
     final progress = ref.watch(offlineBudgetProgressProvider);
@@ -36,11 +37,11 @@ class BudgetsScreen extends ConsumerWidget {
         onPressed: session == null || expenseCategories.isEmpty
             ? null
             : () => _editBudget(
-                  context: context,
-                  ref: ref,
-                  categories: expenseCategories,
-                  currency: session.user.baseCurrency,
-                ),
+                context: context,
+                ref: ref,
+                categories: expenseCategories,
+                currency: session.user.baseCurrency,
+              ),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Set budget'),
       ),
@@ -87,7 +88,8 @@ class BudgetsScreen extends ConsumerWidget {
                     context: context,
                     ref: ref,
                     categories: expenseCategories,
-                    currency: session?.user.baseCurrency ?? budget.limit.currency,
+                    currency:
+                        session?.user.baseCurrency ?? budget.limit.currency,
                     initial: budget,
                   ),
                   onDelete: () => ref
@@ -142,7 +144,9 @@ class BudgetsScreen extends ConsumerWidget {
     } on FormatException {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter a positive amount with up to 4 decimals.')),
+          const SnackBar(
+            content: Text('Enter a positive amount with up to 4 decimals.'),
+          ),
         );
       }
     }
@@ -181,9 +185,9 @@ class _EmptyBudgets extends StatelessWidget {
           const SizedBox(height: PlanItSpacing.md),
           Text(
             'Set a spending limit',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: PlanItSpacing.xs),
           const Text(
@@ -218,7 +222,8 @@ class _BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final calculated = progress ??
+    final calculated =
+        progress ??
         CategoryBudgetProgress(
           budget: budget,
           spent: Money.zero(budget.limit.currency),
@@ -312,7 +317,8 @@ class _BudgetEditorState extends State<_BudgetEditor> {
   @override
   void initState() {
     super.initState();
-    _categoryId = widget.categories
+    _categoryId =
+        widget.categories
             .where((item) => item.id == widget.initial?.categoryId)
             .firstOrNull
             ?.id ??
@@ -350,7 +356,9 @@ class _BudgetEditorState extends State<_BudgetEditor> {
             controller: _amount,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: 'Monthly limit (${widget.currency})'),
+            decoration: InputDecoration(
+              labelText: 'Monthly limit (${widget.currency})',
+            ),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: PlanItSpacing.md),
@@ -379,13 +387,13 @@ class _BudgetEditorState extends State<_BudgetEditor> {
         onPressed: _categoryId == null || _amount.text.trim().isEmpty
             ? null
             : () => Navigator.pop(
-                  context,
-                  _BudgetInput(
-                    categoryId: _categoryId!,
-                    amount: _amount.text.trim(),
-                    warningPercent: _warningPercent,
-                  ),
+                context,
+                _BudgetInput(
+                  categoryId: _categoryId!,
+                  amount: _amount.text.trim(),
+                  warningPercent: _warningPercent,
                 ),
+              ),
         child: const Text('Save'),
       ),
     ],

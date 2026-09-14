@@ -81,7 +81,9 @@ class BudgetOverview extends StatelessWidget {
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.pie_chart_outline)),
           title: const Text('Give your spending a limit'),
-          subtitle: const Text('Set a monthly limit for groceries, transport, or any category.'),
+          subtitle: const Text(
+            'Set a monthly limit for groceries, transport, or any category.',
+          ),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => context.push('/budgets'),
         ),
@@ -138,9 +140,9 @@ class _BudgetRow extends StatelessWidget {
             Expanded(
               child: Text(
                 categoryName,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
             Text(progress.spent.toDisplayString()),

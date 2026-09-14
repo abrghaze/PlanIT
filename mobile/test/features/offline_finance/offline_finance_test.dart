@@ -41,26 +41,29 @@ void main() {
     expect(summary.pendingPostedCount, 1);
   });
 
-  test('local dashboard excludes other currencies instead of mixing totals', () {
-    final now = DateTime(2026, 9, 14);
-    final summary = buildLocalMonthlySummary(
-      currency: 'MAD',
-      now: now,
-      transactions: <LedgerTransaction>[
-        _transaction(id: 'mad', amount: '20', occurredAt: now),
-        _transaction(
-          id: 'eur',
-          amount: '7',
-          currency: 'EUR',
-          occurredAt: now,
-        ),
-      ],
-    );
+  test(
+    'local dashboard excludes other currencies instead of mixing totals',
+    () {
+      final now = DateTime(2026, 9, 14);
+      final summary = buildLocalMonthlySummary(
+        currency: 'MAD',
+        now: now,
+        transactions: <LedgerTransaction>[
+          _transaction(id: 'mad', amount: '20', occurredAt: now),
+          _transaction(
+            id: 'eur',
+            amount: '7',
+            currency: 'EUR',
+            occurredAt: now,
+          ),
+        ],
+      );
 
-    expect(summary.spending, Money.parse('20', 'MAD'));
-    expect(summary.omittedCurrencies, <String>{'EUR'});
-    expect(summary.hasCurrencyWarning, isTrue);
-  });
+      expect(summary.spending, Money.parse('20', 'MAD'));
+      expect(summary.omittedCurrencies, <String>{'EUR'});
+      expect(summary.hasCurrencyWarning, isTrue);
+    },
+  );
 
   test('refunds cannot make a category budget show negative spending', () {
     final now = DateTime(2026, 9, 14);

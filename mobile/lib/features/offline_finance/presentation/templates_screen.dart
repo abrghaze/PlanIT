@@ -19,7 +19,8 @@ class TemplatesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final templates = ref.watch(offlineTemplatesProvider);
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
-    final categories = ref.watch(transactionCategoriesProvider).value ??
+    final categories =
+        ref.watch(transactionCategoriesProvider).value ??
         const <TransactionCategory>[];
     final session = ref.watch(authControllerProvider).session;
     return Scaffold(
@@ -28,11 +29,11 @@ class TemplatesScreen extends ConsumerWidget {
         onPressed: session == null || accounts.isEmpty
             ? null
             : () => _editTemplate(
-                  context: context,
-                  ref: ref,
-                  accounts: accounts,
-                  categories: categories,
-                ),
+                context: context,
+                ref: ref,
+                accounts: accounts,
+                categories: categories,
+              ),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New template'),
       ),
@@ -63,7 +64,9 @@ class TemplatesScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: Icon(Icons.phone_android_rounded),
                       title: Text('Available without internet'),
-                      subtitle: Text('Use templates from the Add transaction screen.'),
+                      subtitle: Text(
+                        'Use templates from the Add transaction screen.',
+                      ),
                     ),
                   ),
                   const SizedBox(height: PlanItSpacing.md),
@@ -71,7 +74,10 @@ class TemplatesScreen extends ConsumerWidget {
                     _TemplateCard(
                       template: template,
                       accountName: _accountName(accounts, template.accountId),
-                      categoryName: _categoryName(categories, template.categoryId),
+                      categoryName: _categoryName(
+                        categories,
+                        template.categoryId,
+                      ),
                       onEdit: () => _editTemplate(
                         context: context,
                         ref: ref,
@@ -110,7 +116,9 @@ class TemplatesScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            initial == null ? 'Template saved on this phone.' : 'Template updated.',
+            initial == null
+                ? 'Template saved on this phone.'
+                : 'Template updated.',
           ),
         ),
       );
@@ -124,7 +132,10 @@ class TemplatesScreen extends ConsumerWidget {
     return 'Choose when used';
   }
 
-  static String _categoryName(List<TransactionCategory> categories, String? id) {
+  static String _categoryName(
+    List<TransactionCategory> categories,
+    String? id,
+  ) {
     for (final category in categories) {
       if (category.id == id) return category.name;
     }
@@ -149,9 +160,9 @@ class _EmptyTemplates extends StatelessWidget {
           const SizedBox(height: PlanItSpacing.md),
           Text(
             'Make repeated expenses faster',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: PlanItSpacing.xs),
           const Text(
@@ -242,15 +253,19 @@ class _TemplateEditorState extends State<_TemplateEditor> {
   @override
   void initState() {
     super.initState();
-    _accountId = widget.accounts
+    _accountId =
+        widget.accounts
             .where((account) => account.id == widget.initial?.accountId)
             .firstOrNull
             ?.id ??
-        widget.accounts.where((item) => item.status == AccountStatus.active).firstOrNull?.id;
-    _categoryId = widget.categories
-            .where((category) => category.id == widget.initial?.categoryId)
+        widget.accounts
+            .where((item) => item.status == AccountStatus.active)
             .firstOrNull
             ?.id;
+    _categoryId = widget.categories
+        .where((category) => category.id == widget.initial?.categoryId)
+        .firstOrNull
+        ?.id;
   }
 
   @override
@@ -286,7 +301,9 @@ class _TemplateEditorState extends State<_TemplateEditor> {
         ? _categoryId
         : null;
     return AlertDialog(
-      title: Text(widget.initial == null ? 'New quick template' : 'Edit template'),
+      title: Text(
+        widget.initial == null ? 'New quick template' : 'Edit template',
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -333,7 +350,9 @@ class _TemplateEditorState extends State<_TemplateEditor> {
             const SizedBox(height: PlanItSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: categoryId,
-              decoration: const InputDecoration(labelText: 'Category (optional)'),
+              decoration: const InputDecoration(
+                labelText: 'Category (optional)',
+              ),
               items: categories
                   .map(
                     (category) => DropdownMenuItem<String>(
@@ -347,9 +366,12 @@ class _TemplateEditorState extends State<_TemplateEditor> {
             const SizedBox(height: PlanItSpacing.md),
             TextField(
               controller: _amount,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
-                labelText: 'Amount (${selectedAccount?.currency ?? 'choose account'})',
+                labelText:
+                    'Amount (${selectedAccount?.currency ?? 'choose account'})',
                 helperText: 'Leave empty to enter an amount each time.',
               ),
               onChanged: (_) => setState(() {}),
@@ -401,7 +423,9 @@ class _TemplateEditorState extends State<_TemplateEditor> {
                       categoryId: categoryId,
                       amount: amount,
                       counterparty: null,
-                      note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+                      note: _note.text.trim().isEmpty
+                          ? null
+                          : _note.text.trim(),
                       tagIds: widget.initial?.tagIds ?? const <String>[],
                       updatedAt: DateTime.now().toUtc(),
                     ),

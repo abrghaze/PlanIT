@@ -31,9 +31,9 @@ class PrivacySettingsScreen extends ConsumerWidget {
                             .read(appPrivacyControllerProvider)
                             .errorMessage;
                         if (message != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(message)),
-                          );
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(message)));
                         }
                       }
                     },

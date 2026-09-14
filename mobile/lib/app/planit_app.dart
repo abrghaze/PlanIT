@@ -140,9 +140,8 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
       darkTheme: PlanItTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: auth.isAuthenticated ? authenticatedRouter : publicRouter,
-      builder: (context, child) => AppPrivacyGate(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) =>
+          AppPrivacyGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

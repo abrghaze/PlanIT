@@ -123,9 +123,9 @@ final class TransactionController extends Notifier<TransactionActionState> {
           .queueCreate(
             ownerId: session.user.id,
             draft: draft,
-          postAfterCreate: postAfterCreate,
-          postOperationId: postOperationId,
-        );
+            postAfterCreate: postAfterCreate,
+            postOperationId: postOperationId,
+          );
       ref.read(financialDataRevisionProvider.notifier).markChanged();
       state = state.copyWith(
         busy: false,

@@ -16,10 +16,15 @@ offlineBudgetsProvider =
       OfflineBudgetsController.new,
     );
 
-final AsyncNotifierProvider<OfflineTemplatesController,
-        List<QuickTransactionTemplate>>
-    offlineTemplatesProvider = AsyncNotifierProvider<OfflineTemplatesController,
-        List<QuickTransactionTemplate>>(OfflineTemplatesController.new);
+final AsyncNotifierProvider<
+  OfflineTemplatesController,
+  List<QuickTransactionTemplate>
+>
+offlineTemplatesProvider =
+    AsyncNotifierProvider<
+      OfflineTemplatesController,
+      List<QuickTransactionTemplate>
+    >(OfflineTemplatesController.new);
 
 final Provider<LocalMonthlySummary?> localMonthlySummaryProvider =
     Provider<LocalMonthlySummary?>((ref) {
@@ -52,9 +57,7 @@ final Provider<List<CategoryBudgetProgress>> offlineBudgetProgressProvider =
             ),
           )
           .toList(growable: false)
-        ..sort(
-          (left, right) => right.percentUsed.compareTo(left.percentUsed),
-        );
+        ..sort((left, right) => right.percentUsed.compareTo(left.percentUsed));
     });
 
 final class OfflineBudgetsController
@@ -159,5 +162,6 @@ List<CategoryBudget> _sortedBudgets(Iterable<CategoryBudget> budgets) =>
 
 List<QuickTransactionTemplate> _sortedTemplates(
   Iterable<QuickTransactionTemplate> templates,
-) => templates.toList(growable: false)
-  ..sort((left, right) => left.name.compareTo(right.name));
+) =>
+    templates.toList(growable: false)
+      ..sort((left, right) => left.name.compareTo(right.name));

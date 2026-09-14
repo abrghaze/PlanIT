@@ -121,7 +121,8 @@ final class AppPrivacyController extends Notifier<AppPrivacyState> {
 
   Future<void> _load() async {
     final available = await ref.read(deviceAuthenticatorProvider).isAvailable();
-    final enabled = available && await ref.read(appPrivacyStoreProvider).readLockEnabled();
+    final enabled =
+        available && await ref.read(appPrivacyStoreProvider).readLockEnabled();
     state = AppPrivacyState(
       ready: true,
       enabled: enabled,
@@ -133,7 +134,8 @@ final class AppPrivacyController extends Notifier<AppPrivacyState> {
   Future<bool> enable() async {
     if (!state.available) {
       state = state.copyWith(
-        errorMessage: 'Set up a screen lock or fingerprint on this phone first.',
+        errorMessage:
+            'Set up a screen lock or fingerprint on this phone first.',
       );
       return false;
     }
@@ -168,7 +170,8 @@ final class AppPrivacyController extends Notifier<AppPrivacyState> {
     final unlocked = await ref.read(deviceAuthenticatorProvider).authenticate();
     if (!unlocked) {
       state = state.copyWith(
-        errorMessage: 'PlanIT stays locked until your phone unlock is confirmed.',
+        errorMessage:
+            'PlanIT stays locked until your phone unlock is confirmed.',
       );
       return false;
     }

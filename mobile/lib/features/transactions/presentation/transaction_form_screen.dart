@@ -183,14 +183,18 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         )
         .map((value) => value.id)
         .toSet();
-    final activeTagIds = tags.where((value) => value.active).map((value) => value.id).toSet();
+    final activeTagIds = tags
+        .where((value) => value.active)
+        .map((value) => value.id)
+        .toSet();
     setState(() {
       _type = selected.type;
       _accountId = account?.id ?? _accountId;
       _categoryId = matchingCategoryIds.contains(selected.categoryId)
           ? selected.categoryId
           : null;
-      if (selected.amount != null && account?.currency == selected.amount!.currency) {
+      if (selected.amount != null &&
+          account?.currency == selected.amount!.currency) {
         _amountController.text = selected.amount!.toApiString();
       }
       _counterpartyController.text = selected.counterparty ?? '';
