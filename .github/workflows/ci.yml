@@ -55,7 +55,7 @@ jobs:
           python -m ruff check backend
           python -m ruff format --check backend
           python -m mypy --config-file backend/pyproject.toml backend/app
-          python -m pip_audit --strict --disable-pip
+          python -m pip_audit --strict --skip-editable
       - name: Verify migrations in both directions
         run: |
           python -m alembic -c backend/alembic.ini upgrade head
