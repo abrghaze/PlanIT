@@ -77,7 +77,7 @@ jobs:
 
       - name: Verify backend and migrations
         run: |
-          python -m pip install -e "./backend[dev]"
+          python -m pip install "./backend[dev]"
           python -m pip check
           python -m ruff check backend
           python -m ruff format --check backend
