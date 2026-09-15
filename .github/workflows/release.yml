@@ -82,6 +82,7 @@ jobs:
           python -m ruff check backend
           python -m ruff format --check backend
           python -m mypy --config-file backend/pyproject.toml backend/app
+          python -m pip_audit --strict --disable-pip
           python -m alembic -c backend/alembic.ini upgrade head
           python -m alembic -c backend/alembic.ini check
           python -m pytest backend/tests

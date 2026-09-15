@@ -24,7 +24,7 @@ never requires a paid OCR or bank-connection service. Manual entry remains fully
 
 - Category: Finance
 - Ads: none
-- In-app purchases: none in version 0.10.0
+- In-app purchases: none in version 0.10.1
 - Account creation: required for server synchronization
 - Account deletion: available in Settings inside the app
 - Financial features: tracking and personal organization only; no lending, brokerage,

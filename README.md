@@ -4,7 +4,7 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** all roadmap milestones are complete. `main` is the `0.10.0`
+> **Implementation status:** all roadmap milestones are complete. `main` is the `0.10.1`
 > production-launch candidate; the latest published source tag remains `v0.9.0` until real
 > deployment and Android-signing secrets pass the protected release workflow.
 
@@ -63,6 +63,7 @@ Milestones 0 through 8 are complete. The current release provides:
 - Owner-scoped transaction and balance CSV exports plus Android Save As and a versioned, validated portable JSON export/restore workflow that excludes credentials, private storage keys, and receipt bytes.
 - Password-and-phrase-gated profile deletion that removes private objects, cascades financial data, and invalidates every session.
 - A complete Settings experience with offline-aware data controls, security explanations, scalable Material controls, semantic section labels, and deliberate destructive-action UX.
+- Local monthly budgets, one-tap transaction templates, and a device fingerprint/PIN lock for private offline finance use.
 - Privacy-safe structured request logs, route-level latency timing, stable request correlation, a protected restore runbook, and a database dump/restore drill in CI.
 - Explainable spending checks that flag expenses above twice the period median only after a useful history exists, always linking back to the source transaction.
 - Provider-neutral OCR and bank-import contracts that remain disabled without explicit provider configuration, consent, and cost review; manual entry is always available.

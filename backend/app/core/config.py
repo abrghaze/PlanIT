@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "PlanIT API"
-    app_version: str = "0.10.0"
+    app_version: str = "0.10.1"
     app_env: Literal["local", "test", "staging", "production"] = "local"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     debug: bool = True
