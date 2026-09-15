@@ -48,9 +48,7 @@ final class AccountController extends Notifier<AccountActionState> {
       ref.read(financialDataRevisionProvider.notifier).markChanged();
     } on AppException catch (error) {
       if (error.isNetworkFailure) {
-        ref
-            .read(authControllerProvider.notifier)
-            .markNetworkUnavailable();
+        ref.read(authControllerProvider.notifier).markNetworkUnavailable();
       }
       state = state.copyWith(busy: false, errorMessage: error.message);
     } on Object {
@@ -88,9 +86,7 @@ final class AccountController extends Notifier<AccountActionState> {
       return true;
     } on AppException catch (error) {
       if (error.isNetworkFailure) {
-        ref
-            .read(authControllerProvider.notifier)
-            .markNetworkUnavailable();
+        ref.read(authControllerProvider.notifier).markNetworkUnavailable();
       }
       state = state.copyWith(busy: false, errorMessage: error.message);
       return false;
@@ -130,9 +126,7 @@ final class AccountController extends Notifier<AccountActionState> {
       return true;
     } on AppException catch (error) {
       if (error.isNetworkFailure) {
-        ref
-            .read(authControllerProvider.notifier)
-            .markNetworkUnavailable();
+        ref.read(authControllerProvider.notifier).markNetworkUnavailable();
       }
       state = state.copyWith(busy: false, errorMessage: error.message);
       return false;

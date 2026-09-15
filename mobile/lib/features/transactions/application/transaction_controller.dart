@@ -54,9 +54,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
             force: force,
           );
       if (sync.networkUnavailable) {
-        ref
-            .read(authControllerProvider.notifier)
-            .markNetworkUnavailable();
+        ref.read(authControllerProvider.notifier).markNetworkUnavailable();
       }
       if (!sync.blocked || sync.processed > 0) {
         await Future.wait<void>(<Future<void>>[
@@ -96,9 +94,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
       }
     } on AppException catch (error) {
       if (error.isNetworkFailure) {
-        ref
-            .read(authControllerProvider.notifier)
-            .markNetworkUnavailable();
+        ref.read(authControllerProvider.notifier).markNetworkUnavailable();
       }
       if (suppressNetworkErrors && error.isNetworkFailure) {
         state = state.copyWith(
