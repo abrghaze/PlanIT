@@ -9,7 +9,7 @@ import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 void main() {
   test(
-    'queued offline financial data survives a local database restart',
+    'queued financial data and dashboards survive a local database restart',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'planit-offline-',
@@ -39,6 +39,15 @@ void main() {
         postAfterCreate: true,
         postOperationId: 'offline-post',
       );
+      await firstDatabase.saveAnalyticsDashboard(
+        ownerId: 'offline-owner',
+        cacheKey: 'THIS_MONTH',
+        payloadJson: '{"cached":"analytics"}',
+      );
+      await firstDatabase.savePlanningSnapshot(
+        ownerId: 'offline-owner',
+        payloadJson: '{"cached":"planning"}',
+      );
       await firstDatabase.close();
 
       final reopenedDatabase = AppDatabase(
@@ -63,6 +72,19 @@ void main() {
         'offline-create',
         'offline-post',
       ]);
+      expect(
+        (await reopenedDatabase.readAnalyticsDashboard(
+          'offline-owner',
+          'THIS_MONTH',
+        ))?.payloadJson,
+        '{"cached":"analytics"}',
+      );
+      expect(
+        (await reopenedDatabase.readPlanningSnapshot(
+          'offline-owner',
+        ))?.payloadJson,
+        '{"cached":"planning"}',
+      );
     },
   );
 }

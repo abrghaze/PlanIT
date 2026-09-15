@@ -93,6 +93,54 @@ void main() {
     );
     expect(container.read(authControllerProvider).session, same(replacement));
   });
+
+  test(
+    'network refresh failure preserves the session and marks it offline',
+    () async {
+      final expired = _session(
+        accessToken: 'expired-access',
+        refreshToken: 'refresh-offline',
+        accessExpired: true,
+      );
+      final repository = _ControlledAuthRepository(
+        restored: expired,
+        loginResult: expired,
+      );
+      final container = ProviderContainer(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      container.read(authControllerProvider);
+      await pumpEventQueue();
+      final controller = container.read(authControllerProvider.notifier);
+      final refresh = controller.requireFreshSession();
+      final expectation = expectLater(
+        refresh,
+        throwsA(
+          isA<AppException>().having(
+            (error) => error.isNetworkFailure,
+            'isNetworkFailure',
+            isTrue,
+          ),
+        ),
+      );
+      repository.refreshCompleter.completeError(
+        const AppException(
+          code: 'NETWORK_UNAVAILABLE',
+          message: 'Offline.',
+          isNetworkFailure: true,
+        ),
+      );
+      await expectation;
+
+      expect(container.read(authControllerProvider).session, same(expired));
+      expect(container.read(authControllerProvider).offline, isTrue);
+
+      controller.markServerReachable();
+      expect(container.read(authControllerProvider).offline, isFalse);
+    },
+  );
 }
 
 AuthSession _session({

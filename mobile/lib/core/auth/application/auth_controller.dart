@@ -157,9 +157,25 @@ final class AuthController extends Notifier<AuthState> {
           clearSession: true,
           errorMessage: error.message,
         );
+      } else if (error.isNetworkFailure) {
+        markNetworkUnavailable();
       }
       rethrow;
     }
+  }
+
+  void markNetworkUnavailable() {
+    if (state.session == null || state.offline) {
+      return;
+    }
+    state = state.copyWith(offline: true);
+  }
+
+  void markServerReachable() {
+    if (state.session == null || !state.offline) {
+      return;
+    }
+    state = state.copyWith(offline: false);
   }
 
   Future<void> logout({bool clearLocalData = false}) async {

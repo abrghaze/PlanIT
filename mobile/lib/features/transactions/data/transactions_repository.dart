@@ -9,11 +9,13 @@ final class TransactionSyncResult {
     required this.processed,
     required this.blocked,
     this.message,
+    this.networkUnavailable = false,
   });
 
   final int processed;
   final bool blocked;
   final String? message;
+  final bool networkUnavailable;
 }
 
 abstract interface class TransactionsRepository {
@@ -276,6 +278,7 @@ final class DefaultTransactionsRepository
           processed: processed,
           blocked: true,
           message: error.message,
+          networkUnavailable: error.isNetworkFailure,
         );
       } on Object {
         const message = 'PlanIT could not synchronize this operation.';

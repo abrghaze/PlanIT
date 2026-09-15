@@ -39,6 +39,7 @@ final class AccountController extends Notifier<AccountActionState> {
       await ref
           .read(accountsRepositoryProvider)
           .refresh(ownerId: session.user.id, accessToken: session.accessToken);
+      ref.read(authControllerProvider.notifier).markServerReachable();
       state = state.copyWith(
         busy: false,
         clearError: true,
@@ -46,6 +47,11 @@ final class AccountController extends Notifier<AccountActionState> {
       );
       ref.read(financialDataRevisionProvider.notifier).markChanged();
     } on AppException catch (error) {
+      if (error.isNetworkFailure) {
+        ref
+            .read(authControllerProvider.notifier)
+            .markNetworkUnavailable();
+      }
       state = state.copyWith(busy: false, errorMessage: error.message);
     } on Object {
       state = state.copyWith(
@@ -72,6 +78,7 @@ final class AccountController extends Notifier<AccountActionState> {
             idempotencyKey: idempotencyKey,
             draft: draft,
           );
+      ref.read(authControllerProvider.notifier).markServerReachable();
       state = state.copyWith(
         busy: false,
         clearError: true,
@@ -80,6 +87,11 @@ final class AccountController extends Notifier<AccountActionState> {
       ref.read(financialDataRevisionProvider.notifier).markChanged();
       return true;
     } on AppException catch (error) {
+      if (error.isNetworkFailure) {
+        ref
+            .read(authControllerProvider.notifier)
+            .markNetworkUnavailable();
+      }
       state = state.copyWith(busy: false, errorMessage: error.message);
       return false;
     } on Object {
@@ -108,6 +120,7 @@ final class AccountController extends Notifier<AccountActionState> {
             accountId: accountId,
             patch: patch,
           );
+      ref.read(authControllerProvider.notifier).markServerReachable();
       state = state.copyWith(
         busy: false,
         clearError: true,
@@ -116,6 +129,11 @@ final class AccountController extends Notifier<AccountActionState> {
       ref.read(financialDataRevisionProvider.notifier).markChanged();
       return true;
     } on AppException catch (error) {
+      if (error.isNetworkFailure) {
+        ref
+            .read(authControllerProvider.notifier)
+            .markNetworkUnavailable();
+      }
       state = state.copyWith(busy: false, errorMessage: error.message);
       return false;
     } on Object {

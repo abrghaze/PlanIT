@@ -53,6 +53,11 @@ final class TransactionController extends Notifier<TransactionActionState> {
             accessToken: session.accessToken,
             force: force,
           );
+      if (sync.networkUnavailable) {
+        ref
+            .read(authControllerProvider.notifier)
+            .markNetworkUnavailable();
+      }
       if (!sync.blocked || sync.processed > 0) {
         await Future.wait<void>(<Future<void>>[
           ref
@@ -77,6 +82,7 @@ final class TransactionController extends Notifier<TransactionActionState> {
               .read(purchaseCatalogRepositoryProvider)
               .refresh(session.user.id, session.accessToken),
         ]);
+        ref.read(authControllerProvider.notifier).markServerReachable();
       }
       state = state.copyWith(
         syncing: false,
@@ -89,6 +95,11 @@ final class TransactionController extends Notifier<TransactionActionState> {
         ref.read(financialDataRevisionProvider.notifier).markChanged();
       }
     } on AppException catch (error) {
+      if (error.isNetworkFailure) {
+        ref
+            .read(authControllerProvider.notifier)
+            .markNetworkUnavailable();
+      }
       if (suppressNetworkErrors && error.isNetworkFailure) {
         state = state.copyWith(
           syncing: false,

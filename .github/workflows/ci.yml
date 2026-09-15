@@ -126,7 +126,7 @@ jobs:
       - name: Validate Compose configuration
         env:
           PLANIT_API_IMAGE: ghcr.io/abrghaze/planit-api:0.10.0
-          PLANIT_APP_VERSION: 0.10.1
+          PLANIT_APP_VERSION: 0.10.2
           PLANIT_DATABASE_URL: postgresql+asyncpg://planit:real-password@database.example:5432/planit
           PLANIT_ALLOWED_ORIGINS: '["https://app.example.com"]'
           PLANIT_ACCESS_TOKEN_SECRET: ci-production-access-secret-with-at-least-32-characters

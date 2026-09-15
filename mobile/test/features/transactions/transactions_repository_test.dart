@@ -54,7 +54,9 @@ void main() {
       );
 
       expect(first.blocked, isTrue);
+      expect(first.networkUnavailable, isTrue);
       expect(second.blocked, isFalse);
+      expect(second.networkUnavailable, isFalse);
       expect(remote.operationIds, <String>['operation-1', 'operation-1']);
       expect((await repository.watch('owner-a').first), hasLength(1));
       expect(await repository.watchPendingCount('owner-a').first, 0);
@@ -96,6 +98,7 @@ void main() {
       );
 
       expect(first.blocked, isTrue);
+      expect(first.networkUnavailable, isTrue);
       expect(second.blocked, isFalse);
       expect(remote.operationIds, <String>[
         'operation-transfer',
