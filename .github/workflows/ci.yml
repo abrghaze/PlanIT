@@ -55,7 +55,8 @@ jobs:
           python -m ruff check backend
           python -m ruff format --check backend
           python -m mypy --config-file backend/pyproject.toml backend/app
-          python -m pip_audit --strict --skip-editable
+          python -m pip freeze --all | grep -Evi '^planit-backend([ @=]|$)' > /tmp/planit-audit-requirements.txt
+          python -m pip_audit --strict -r /tmp/planit-audit-requirements.txt
       - name: Verify migrations in both directions
         run: |
           python -m alembic -c backend/alembic.ini upgrade head
