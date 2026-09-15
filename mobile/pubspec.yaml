@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   dio: ^5.11.0
-  drift: ^2.34.3
+  drift: ^2.35.0
   fl_chart: ^1.1.1
   flutter:
     sdk: flutter
