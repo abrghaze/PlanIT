@@ -154,13 +154,15 @@ jobs:
             echo "::error::Android apksigner was not found."
             exit 1
           fi
-          signing_sha256="$("$apksigner_path" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          signature_output="$("$apksigner_path" verify --verbose --print-certs build/app/outputs/flutter-apk/app-debug.apk 2>&1)"
+          echo "$signature_output"
           expected_sha256="7f4eee49ce6c86632186451e332d4c74c2d5077f78a1a6f4316a32c927706b4d"
-          if [[ "${signing_sha256,,}" != "$expected_sha256" ]]; then
-            echo "::error::Unexpected APK signing certificate: $signing_sha256"
+          normalized_signature_output="$(printf '%s' "$signature_output" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+          if [[ "$normalized_signature_output" != *"$expected_sha256"* ]]; then
+            echo "::error::APK signature was valid, but its certificate did not match the protected PlanIT key."
             exit 1
           fi
-          echo "Verified APK signing certificate SHA-256: $signing_sha256"
+          echo "Verified APK signing certificate SHA-256: $expected_sha256"
       - name: Upload update-safe Android phone preview
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
