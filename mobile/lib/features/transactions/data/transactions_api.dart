@@ -159,6 +159,20 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
             data: payload,
             options: Options(headers: headers),
           );
+        case OutboxOperationType.accountCreate:
+          response = await _client.raw.post<Map<String, Object?>>(
+            _client.url('/accounts'),
+            data: operation.payload,
+            options: Options(headers: headers),
+          );
+        case OutboxOperationType.accountUpdate:
+          final payload = Map<String, Object?>.from(operation.payload)
+            ..remove('_local_before');
+          response = await _client.raw.patch<Map<String, Object?>>(
+            _client.url('/accounts/${Uri.encodeComponent(operation.entityId)}'),
+            data: payload,
+            options: Options(headers: headers),
+          );
       }
       final data = response.data;
       if (data == null) {
@@ -206,6 +220,8 @@ final class TransactionsApi implements TransactionsRemoteDataSource {
         OutboxOperationType.refundCreate => <LedgerTransaction>[
           _parseNamedTransaction(data, 'refund_transaction', operation.ownerId),
         ],
+        OutboxOperationType.accountCreate ||
+        OutboxOperationType.accountUpdate => const <LedgerTransaction>[],
         _ => <LedgerTransaction>[
           LedgerTransaction.fromJson(data, ownerId: operation.ownerId),
         ],

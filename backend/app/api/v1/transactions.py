@@ -18,7 +18,11 @@ from app.api.schemas.transactions import (
     TransactionReverseRequest,
     TransactionUpdateRequest,
 )
-from app.application.idempotency import OperationResponse, execute_idempotent
+from app.application.idempotency import (
+    FINANCIAL_IDEMPOTENCY_TTL,
+    OperationResponse,
+    execute_idempotent,
+)
 from app.application.transactions import TransactionService
 from app.domain.errors import DomainError
 from app.domain.ledger.enums import TransactionKind, TransactionStatus
@@ -55,6 +59,7 @@ async def create_transaction(
             payload.model_dump(mode="json", exclude_unset=True),
         ),
         operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
     return _json_response(result.status_code, result.body, replayed=result.replayed)
 
@@ -139,6 +144,7 @@ async def update_transaction(
             payload.model_dump(mode="json", exclude_unset=True),
         ),
         operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
     return _json_response(result.status_code, result.body, replayed=result.replayed)
 
@@ -170,6 +176,7 @@ async def post_transaction(
         key=idempotency_key,
         request_payload=cast(dict[str, object], payload.model_dump(mode="json")),
         operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
     return _json_response(result.status_code, result.body, replayed=result.replayed)
 
@@ -202,6 +209,7 @@ async def reverse_transaction(
         key=idempotency_key,
         request_payload=cast(dict[str, object], payload.model_dump(mode="json")),
         operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
     return _json_response(result.status_code, result.body, replayed=result.replayed)
 

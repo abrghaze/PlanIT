@@ -4,7 +4,7 @@ PlanIT is an offline-capable personal-finance mobile application built around an
 
 The planning documents in [`plans/`](plans/) are the product source of truth. Implementation decisions and resolved assumptions are recorded in [`docs/`](docs/).
 
-> **Implementation status:** all roadmap milestones are complete. `main` is the `0.10.2`
+> **Implementation status:** all roadmap milestones are complete. `main` is the `0.11.0`
 > production-launch candidate; the latest published source tag remains `v0.9.0` until real
 > deployment and Android-signing secrets pass the protected release workflow.
 

@@ -45,6 +45,7 @@ class HomeScreen extends ConsumerWidget {
     final pendingCount = ref.watch(pendingTransactionCountProvider);
     final sync = ref.watch(transactionControllerProvider);
     final localSummary = ref.watch(localMonthlySummaryProvider);
+    final pendingBalances = ref.watch(pendingAccountBalancesProvider);
     final budgetProgress = ref.watch(offlineBudgetProgressProvider);
     final categories =
         ref.watch(transactionCategoriesProvider).value ??
@@ -94,6 +95,7 @@ class HomeScreen extends ConsumerWidget {
                     analytics: analytics,
                     planning: planning,
                     localSummary: localSummary,
+                    pendingBalances: pendingBalances,
                     budgetProgress: budgetProgress,
                     categories: categories,
                   ),
@@ -187,6 +189,7 @@ class _HomeAccountContent extends StatelessWidget {
     required this.analytics,
     required this.planning,
     required this.localSummary,
+    required this.pendingBalances,
     required this.budgetProgress,
     required this.categories,
   });
@@ -196,6 +199,7 @@ class _HomeAccountContent extends StatelessWidget {
   final AsyncValue<AnalyticsDashboard> analytics;
   final AsyncValue<PlanningDashboard> planning;
   final LocalMonthlySummary? localSummary;
+  final Map<String, PendingAccountBalance> pendingBalances;
   final List<CategoryBudgetProgress> budgetProgress;
   final List<TransactionCategory> categories;
 
@@ -205,6 +209,8 @@ class _HomeAccountContent extends StatelessWidget {
         .where((account) => account.status == AccountStatus.active)
         .toList(growable: false);
     var baseTotal = Money.zero(baseCurrency);
+    var estimatedBaseTotal = Money.zero(baseCurrency);
+    var pendingAccountCount = 0;
     var hasUnconvertedAccounts = false;
     for (final account in active) {
       if (!account.includeInTotal) {
@@ -212,12 +218,20 @@ class _HomeAccountContent extends StatelessWidget {
       }
       if (account.currency == baseCurrency) {
         baseTotal += account.calculatedBalance;
+        final pending = pendingBalances[account.id];
+        estimatedBaseTotal +=
+            account.calculatedBalance +
+            (pending?.delta ?? Money.zero(account.currency));
+        if (pending != null) pendingAccountCount += 1;
       } else {
         hasUnconvertedAccounts = true;
       }
     }
     final dashboard = analytics.whenOrNull(data: (value) => value);
-    final displayedTotal = dashboard?.kpis.moneyInAccounts ?? baseTotal;
+    final hasPendingBalances = pendingAccountCount > 0;
+    final displayedTotal = hasPendingBalances
+        ? estimatedBaseTotal
+        : dashboard?.kpis.moneyInAccounts ?? baseTotal;
     final totalIsPartial = dashboard == null
         ? hasUnconvertedAccounts
         : !dashboard.kpis.complete;
@@ -229,6 +243,8 @@ class _HomeAccountContent extends StatelessWidget {
           total: displayedTotal,
           activeCount: active.length,
           partial: totalIsPartial,
+          estimated: hasPendingBalances,
+          confirmedTotal: hasPendingBalances ? baseTotal : null,
         ),
         if (dashboard != null) ...<Widget>[
           const SizedBox(height: PlanItSpacing.md),
@@ -256,14 +272,16 @@ class _HomeAccountContent extends StatelessWidget {
           _EmptyAccountCard(onAdd: () => context.push('/accounts/new'))
         else
           SizedBox(
-            height: 132,
+            height: 150,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: active.length,
               separatorBuilder: (context, index) =>
                   const SizedBox(width: PlanItSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _AccountMiniCard(account: active[index]),
+              itemBuilder: (context, index) => _AccountMiniCard(
+                account: active[index],
+                pending: pendingBalances[active[index].id],
+              ),
             ),
           ),
         const SizedBox(height: PlanItSpacing.lg),
@@ -701,11 +719,15 @@ class _BalanceCard extends StatelessWidget {
     required this.total,
     required this.activeCount,
     required this.partial,
+    required this.estimated,
+    required this.confirmedTotal,
   });
 
   final Money total;
   final int activeCount;
   final bool partial;
+  final bool estimated;
+  final Money? confirmedTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -731,7 +753,11 @@ class _BalanceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              partial ? 'BASE-CURRENCY SUBTOTAL' : 'MONEY IN ACCOUNTS',
+              estimated
+                  ? 'ESTIMATED MONEY IN ACCOUNTS'
+                  : partial
+                  ? 'BASE-CURRENCY SUBTOTAL'
+                  : 'MONEY IN ACCOUNTS',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Colors.white70,
                 letterSpacing: 1.1,
@@ -745,6 +771,13 @@ class _BalanceCard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
+            if (confirmedTotal case final confirmed?) ...<Widget>[
+              const SizedBox(height: PlanItSpacing.xs),
+              Text(
+                'Confirmed after last sync: ${confirmed.toDisplayString()}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
             const SizedBox(height: PlanItSpacing.lg),
             Row(
               children: <Widget>[
@@ -786,12 +819,16 @@ class _BalanceCardLoading extends StatelessWidget {
 }
 
 class _AccountMiniCard extends StatelessWidget {
-  const _AccountMiniCard({required this.account});
+  const _AccountMiniCard({required this.account, required this.pending});
 
   final Account account;
+  final PendingAccountBalance? pending;
 
   @override
   Widget build(BuildContext context) {
+    final projected =
+        account.calculatedBalance +
+        (pending?.delta ?? Money.zero(account.currency));
     return SizedBox(
       width: 220,
       child: Card(
@@ -822,11 +859,18 @@ class _AccountMiniCard extends StatelessWidget {
                 ),
                 const SizedBox(height: PlanItSpacing.xxs),
                 Text(
-                  account.calculatedBalance.toDisplayString(),
+                  pending == null
+                      ? account.calculatedBalance.toDisplayString()
+                      : '${projected.toDisplayString()} estimated',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+                if (pending != null)
+                  Text(
+                    '${account.calculatedBalance.toDisplayString()} confirmed',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
               ],
             ),
           ),

@@ -112,6 +112,10 @@ final GoRouter authenticatedRouter = GoRouter(
       builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
+      path: '/reauthenticate',
+      builder: (context, state) => const SignInScreen(reauthentication: true),
+    ),
+    GoRoute(
       path: '/privacy',
       builder: (context, state) => const PrivacySettingsScreen(),
     ),

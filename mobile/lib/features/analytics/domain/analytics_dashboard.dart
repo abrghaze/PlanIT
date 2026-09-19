@@ -30,11 +30,33 @@ final class AnalyticsFilter {
   final DateTime? from;
   final DateTime? to;
 
-  String get cacheKey => <String>[
-    preset.apiValue,
-    if (from != null) _date(from!),
-    if (to != null) _date(to!),
-  ].join(':');
+  String get cacheKey {
+    final now = DateTime.now();
+    return <String>[
+      preset.apiValue,
+      if (preset != AnalyticsPreset.custom) _cacheAnchor(now),
+      if (from != null) _date(from!),
+      if (to != null) _date(to!),
+    ].join(':');
+  }
+
+  String _cacheAnchor(DateTime now) => switch (preset) {
+    AnalyticsPreset.today ||
+    AnalyticsPreset.last7Days ||
+    AnalyticsPreset.last30Days => _date(now),
+    AnalyticsPreset.yesterday => _date(now.subtract(const Duration(days: 1))),
+    AnalyticsPreset.thisWeek => _date(
+      now.subtract(Duration(days: now.weekday - DateTime.monday)),
+    ),
+    AnalyticsPreset.thisMonth =>
+      '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}',
+    AnalyticsPreset.lastMonth =>
+      '${DateTime(now.year, now.month - 1).year.toString().padLeft(4, '0')}-${DateTime(now.year, now.month - 1).month.toString().padLeft(2, '0')}',
+    AnalyticsPreset.thisYear => now.year.toString().padLeft(4, '0'),
+    AnalyticsPreset.custom => throw StateError(
+      'Custom cache keys use explicit dates.',
+    ),
+  };
 
   Map<String, Object?> get queryParameters => <String, Object?>{
     'preset': preset.apiValue,

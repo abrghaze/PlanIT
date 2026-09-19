@@ -10,6 +10,8 @@ enum OutboxOperationType {
   debtPayment,
   shareCreate,
   refundCreate,
+  accountCreate,
+  accountUpdate,
 }
 
 extension OutboxOperationTypeContract on OutboxOperationType {
@@ -25,6 +27,8 @@ extension OutboxOperationTypeContract on OutboxOperationType {
     OutboxOperationType.debtPayment => 'DEBT_PAYMENT',
     OutboxOperationType.shareCreate => 'SHARE_CREATE',
     OutboxOperationType.refundCreate => 'REFUND_CREATE',
+    OutboxOperationType.accountCreate => 'ACCOUNT_CREATE',
+    OutboxOperationType.accountUpdate => 'ACCOUNT_UPDATE',
   };
 
   String get label => switch (this) {
@@ -39,7 +43,15 @@ extension OutboxOperationTypeContract on OutboxOperationType {
     OutboxOperationType.debtPayment => 'Debt repayment',
     OutboxOperationType.shareCreate => 'Expense share',
     OutboxOperationType.refundCreate => 'Refund',
+    OutboxOperationType.accountCreate => 'Create account',
+    OutboxOperationType.accountUpdate => 'Update account',
   };
+
+  bool get isAccountWrite =>
+      this == OutboxOperationType.accountCreate ||
+      this == OutboxOperationType.accountUpdate;
+
+  bool get isDurableWrite => isSpecializedFinancialCommit || isAccountWrite;
 
   bool get isSpecializedFinancialCommit => switch (this) {
     OutboxOperationType.transferCommit ||

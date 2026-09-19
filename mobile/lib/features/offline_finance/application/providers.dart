@@ -36,6 +36,15 @@ final Provider<LocalMonthlySummary?> localMonthlySummaryProvider =
       );
     });
 
+final Provider<Map<String, PendingAccountBalance>>
+pendingAccountBalancesProvider = Provider<Map<String, PendingAccountBalance>>((
+  ref,
+) {
+  final transactions = ref.watch(transactionsProvider).value;
+  if (transactions == null) return const <String, PendingAccountBalance>{};
+  return buildPendingAccountBalances(transactions);
+});
+
 final Provider<List<CategoryBudgetProgress>> offlineBudgetProgressProvider =
     Provider<List<CategoryBudgetProgress>>((ref) {
       final summary = ref.watch(localMonthlySummaryProvider);

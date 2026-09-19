@@ -39,63 +39,7 @@ final class AccountsApi implements AccountsRemoteDataSource {
     }
   }
 
-  @override
-  Future<Account> createAccount({
-    required String ownerId,
-    required String accessToken,
-    required String idempotencyKey,
-    required AccountDraft draft,
-  }) async {
-    try {
-      final response = await _client.raw.post<Map<String, Object?>>(
-        _client.url('/accounts'),
-        data: draft.toJson(),
-        options: Options(
-          headers: <String, String>{
-            ..._authorization(accessToken),
-            'Idempotency-Key': idempotencyKey,
-          },
-        ),
-      );
-      return _parseAccount(response.data, ownerId: ownerId);
-    } on DioException catch (error) {
-      throw AppException.fromDio(error);
-    }
-  }
-
-  @override
-  Future<Account> updateAccount({
-    required String ownerId,
-    required String accessToken,
-    required String accountId,
-    required AccountPatch patch,
-  }) async {
-    try {
-      final response = await _client.raw.patch<Map<String, Object?>>(
-        _client.url('/accounts/$accountId'),
-        data: patch.toJson(),
-        options: Options(headers: _authorization(accessToken)),
-      );
-      return _parseAccount(response.data, ownerId: ownerId);
-    } on DioException catch (error) {
-      throw AppException.fromDio(error);
-    }
-  }
-
   static Map<String, String> _authorization(String accessToken) {
     return <String, String>{'Authorization': 'Bearer $accessToken'};
-  }
-
-  static Account _parseAccount(
-    Map<String, Object?>? data, {
-    required String ownerId,
-  }) {
-    if (data == null) {
-      throw const AppException(
-        code: 'INVALID_SERVER_RESPONSE',
-        message: 'The server returned an incomplete account response.',
-      );
-    }
-    return Account.fromJson(data, ownerId: ownerId);
   }
 }

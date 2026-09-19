@@ -155,44 +155,59 @@ class AccountService:
         command: UpdateAccountCommand,
         request_id: str | None,
     ) -> AccountSnapshot:
-        result: AccountSnapshot | None = None
         async with self._session.begin():
-            account = await self._repository.get_owned(
+            return await self.update_in_transaction(
                 account_id=account_id,
                 user_id=user_id,
-                for_update=True,
+                command=command,
+                request_id=request_id,
             )
-            if account is None:
-                raise self._not_found()
-            if account.version != command.version:
-                raise DomainError(
-                    "VERSION_CONFLICT",
-                    "The account changed since it was loaded.",
-                    details={"current_version": account.version},
-                )
 
-            before = self._audit_snapshot(account)
-            changed_fields = await self._apply_changes(account, command.values)
-            if changed_fields:
-                account.version += 1
-                await self._session.flush()
-                add_audit_event(
-                    self._session,
-                    user_id=user_id,
-                    actor_user_id=user_id,
-                    entity_type="account",
-                    entity_id=account.id,
-                    action=self._audit_action(before["status"], account.status),
-                    before=before,
-                    after=self._audit_snapshot(account),
-                    request_id=request_id,
-                )
+    async def update_in_transaction(
+        self,
+        *,
+        account_id: UUID,
+        user_id: UUID,
+        command: UpdateAccountCommand,
+        request_id: str | None,
+    ) -> AccountSnapshot:
+        """Update an account inside a transaction owned by the caller."""
+        account = await self._repository.get_owned(
+            account_id=account_id,
+            user_id=user_id,
+            for_update=True,
+        )
+        if account is None:
+            raise self._not_found()
+        if account.version != command.version:
+            raise DomainError(
+                "VERSION_CONFLICT",
+                "The account changed since it was loaded.",
+                details={"current_version": account.version},
+            )
 
-            result = await self._repository.get_snapshot(
-                account_id=account.id,
+        before = self._audit_snapshot(account)
+        changed_fields = await self._apply_changes(account, command.values)
+        if changed_fields:
+            account.version += 1
+            await self._session.flush()
+            add_audit_event(
+                self._session,
                 user_id=user_id,
-                as_of=datetime.now(UTC),
+                actor_user_id=user_id,
+                entity_type="account",
+                entity_id=account.id,
+                action=self._audit_action(before["status"], account.status),
+                before=before,
+                after=self._audit_snapshot(account),
+                request_id=request_id,
             )
+
+        result = await self._repository.get_snapshot(
+            account_id=account.id,
+            user_id=user_id,
+            as_of=datetime.now(UTC),
+        )
 
         if result is None:
             raise RuntimeError("Updated account could not be read back.")

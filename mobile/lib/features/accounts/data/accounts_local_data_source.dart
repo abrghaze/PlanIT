@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:planit_mobile/core/database/app_database.dart';
 import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/transactions/domain/outbox_operation.dart';
 
 final class AccountsLocalDataSource {
   const AccountsLocalDataSource(this._database);
@@ -38,6 +41,116 @@ final class AccountsLocalDataSource {
     return _database.upsertAccount(
       _toCompanion(account, DateTime.now().toUtc()),
     );
+  }
+
+  Future<Account> queueCreate({
+    required String ownerId,
+    required AccountDraft draft,
+    required String operationId,
+  }) async {
+    final now = DateTime.now().toUtc();
+    final account = Account(
+      id: draft.id,
+      ownerId: ownerId,
+      name: draft.name,
+      type: draft.type,
+      currency: draft.openingBalance.currency,
+      openingBalance: draft.openingBalance,
+      calculatedBalance: draft.openingBalance,
+      balanceAsOf: now,
+      openedAt: draft.openedAt.toUtc(),
+      includeInTotal: draft.includeInTotal,
+      allowNegative: draft.allowNegative,
+      status: AccountStatus.active,
+      sortOrder: draft.sortOrder,
+      archivedAt: null,
+      closedAt: null,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _database.transaction(() async {
+      await _database.upsertAccount(_toCompanion(account, now));
+      await _database.queueOutboxOperation(
+        _operation(
+          id: operationId,
+          ownerId: ownerId,
+          entityId: account.id,
+          type: OutboxOperationType.accountCreate,
+          payload: draft.toJson(),
+          now: now,
+        ),
+      );
+    });
+    return account;
+  }
+
+  Future<Account> queueUpdate({
+    required Account current,
+    required AccountPatch patch,
+    required String operationId,
+  }) async {
+    final hasPendingUpdate = await _database.hasPendingEntityOperation(
+      current.ownerId,
+      current.id,
+      types: <String>{OutboxOperationType.accountUpdate.storageValue},
+    );
+    if (hasPendingUpdate) {
+      throw StateError(
+        'Synchronize the previous account change before editing it again.',
+      );
+    }
+    final now = DateTime.now().toUtc();
+    final opening = patch.openingBalance ?? current.openingBalance;
+    final calculated = patch.openingBalance == null
+        ? current.calculatedBalance
+        : current.calculatedBalance - current.openingBalance + opening;
+    final status = patch.status ?? current.status;
+    final account = Account(
+      id: current.id,
+      ownerId: current.ownerId,
+      name: patch.name ?? current.name,
+      type: patch.type ?? current.type,
+      currency: opening.currency,
+      openingBalance: opening,
+      calculatedBalance: calculated,
+      balanceAsOf: current.balanceAsOf,
+      openedAt: patch.openedAt?.toUtc() ?? current.openedAt,
+      includeInTotal: patch.includeInTotal ?? current.includeInTotal,
+      allowNegative: patch.allowNegative ?? current.allowNegative,
+      status: status,
+      sortOrder: patch.sortOrder ?? current.sortOrder,
+      archivedAt: status == AccountStatus.archived
+          ? current.archivedAt ?? now
+          : status == AccountStatus.active
+          ? null
+          : current.archivedAt,
+      closedAt: status == AccountStatus.closed
+          ? current.closedAt ?? now
+          : status == AccountStatus.active
+          ? null
+          : current.closedAt,
+      version: current.version,
+      createdAt: current.createdAt,
+      updatedAt: now,
+    );
+    await _database.transaction(() async {
+      await _database.upsertAccount(_toCompanion(account, now));
+      await _database.queueOutboxOperation(
+        _operation(
+          id: operationId,
+          ownerId: current.ownerId,
+          entityId: current.id,
+          type: OutboxOperationType.accountUpdate,
+          payload: <String, Object?>{
+            ...patch.toJson(),
+            '_local_before': _snapshot(current),
+          },
+          now: now,
+        ),
+      );
+    });
+    return account;
   }
 
   Account _fromRow(CachedAccount row) {
@@ -86,4 +199,44 @@ final class AccountsLocalDataSource {
       cachedAt: Value(cachedAt),
     );
   }
+
+  static OutboxOperationsCompanion _operation({
+    required String id,
+    required String ownerId,
+    required String entityId,
+    required OutboxOperationType type,
+    required Map<String, Object?> payload,
+    required DateTime now,
+  }) => OutboxOperationsCompanion.insert(
+    id: id,
+    ownerId: ownerId,
+    entityId: entityId,
+    type: type.storageValue,
+    payloadJson: jsonEncode(payload),
+    state: 'PENDING',
+    attemptCount: 0,
+    nextAttemptAt: now,
+    createdAt: now,
+    updatedAt: now,
+  );
+
+  static Map<String, Object?> _snapshot(Account account) => <String, Object?>{
+    'id': account.id,
+    'name': account.name,
+    'type': account.type.apiValue,
+    'currency': account.currency,
+    'opening_balance_amount': account.openingBalance.toApiString(),
+    'calculated_balance_amount': account.calculatedBalance.toApiString(),
+    'balance_as_of': account.balanceAsOf.toUtc().toIso8601String(),
+    'opened_at': account.openedAt.toUtc().toIso8601String(),
+    'include_in_total': account.includeInTotal,
+    'allow_negative': account.allowNegative,
+    'status': account.status.apiValue,
+    'sort_order': account.sortOrder,
+    'archived_at': account.archivedAt?.toUtc().toIso8601String(),
+    'closed_at': account.closedAt?.toUtc().toIso8601String(),
+    'version': account.version,
+    'created_at': account.createdAt.toUtc().toIso8601String(),
+    'updated_at': account.updatedAt.toUtc().toIso8601String(),
+  };
 }

@@ -53,6 +53,11 @@ android {
             }
         }
         buildTypes {
+            getByName("debug") {
+                // Workflow-dispatched phone previews use the same protected key
+                // as releases so later APKs can update in place without data loss.
+                signingConfig = signingConfigs.getByName("release")
+            }
             getByName("release") {
                 signingConfig = signingConfigs.getByName("release")
             }

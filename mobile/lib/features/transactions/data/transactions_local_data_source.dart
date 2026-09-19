@@ -173,23 +173,28 @@ final class TransactionsLocalDataSource {
     required OutboxOperationType type,
     required Map<String, Object?> payload,
   }) {
-    if (!type.isSpecializedFinancialCommit) {
+    if (!type.isDurableWrite) {
       throw ArgumentError.value(
         type,
         'type',
-        'Only specialized financial commits can use this queue.',
+        'Only supported durable writes can use this queue.',
       );
     }
     if (ownerId.isEmpty || operationId.isEmpty || entityId.isEmpty) {
       throw ArgumentError('Owner, operation, and entity IDs are required.');
     }
-    if (payload['client_operation_id'] != operationId) {
-      throw ArgumentError(
-        'Payload client_operation_id must match the outbox operation ID.',
-      );
-    }
-    if (payload['id'] != entityId) {
-      throw ArgumentError('Payload id must match the outbox entity ID.');
+    if (type.isSpecializedFinancialCommit) {
+      if (payload['client_operation_id'] != operationId) {
+        throw ArgumentError(
+          'Payload client_operation_id must match the outbox operation ID.',
+        );
+      }
+      if (payload['id'] != entityId) {
+        throw ArgumentError('Payload id must match the outbox entity ID.');
+      }
+    } else if (type == OutboxOperationType.accountCreate &&
+        payload['id'] != entityId) {
+      throw ArgumentError('Account payload id must match its entity ID.');
     }
     final now = DateTime.now().toUtc();
     return _database.queueOutboxOperation(
@@ -288,6 +293,19 @@ final class TransactionsLocalDataSource {
     if (!operation.state.canDiscard) {
       throw StateError('An operation cannot be discarded while it is syncing.');
     }
+    if (operation.type.isAccountWrite) {
+      final restoreAccount = operation.type == OutboxOperationType.accountUpdate
+          ? _accountSnapshotCompanion(operation)
+          : null;
+      return _database.discardAccountOperation(
+        ownerId: operation.ownerId,
+        operationId: operation.id,
+        accountId: operation.entityId,
+        removeOptimisticAccount:
+            operation.type == OutboxOperationType.accountCreate,
+        restoreAccount: restoreAccount,
+      );
+    }
     if (operation.type.isSpecializedFinancialCommit) {
       return _database.discardOutboxOperation(
         ownerId: operation.ownerId,
@@ -344,6 +362,53 @@ final class TransactionsLocalDataSource {
       pendingAction: Value(value.pendingAction),
       lastSyncError: Value(value.lastSyncError),
     );
+  }
+
+  static CachedAccountsCompanion? _accountSnapshotCompanion(
+    PendingOperation operation,
+  ) {
+    final raw = operation.payload['_local_before'];
+    if (raw is! Map) return null;
+    final value = Map<String, Object?>.from(raw);
+
+    DateTime? optionalDate(String key) {
+      final rawDate = value[key];
+      return rawDate is String ? DateTime.parse(rawDate).toUtc() : null;
+    }
+
+    try {
+      return CachedAccountsCompanion(
+        id: Value(value['id']! as String),
+        ownerId: Value(operation.ownerId),
+        name: Value(value['name']! as String),
+        type: Value(value['type']! as String),
+        currency: Value(value['currency']! as String),
+        openingBalanceAmount: Value(value['opening_balance_amount']! as String),
+        calculatedBalanceAmount: Value(
+          value['calculated_balance_amount']! as String,
+        ),
+        balanceAsOf: Value(
+          DateTime.parse(value['balance_as_of']! as String).toUtc(),
+        ),
+        openedAt: Value(DateTime.parse(value['opened_at']! as String).toUtc()),
+        includeInTotal: Value(value['include_in_total']! as bool),
+        allowNegative: Value(value['allow_negative']! as bool),
+        status: Value(value['status']! as String),
+        sortOrder: Value(value['sort_order']! as int),
+        archivedAt: Value(optionalDate('archived_at')),
+        closedAt: Value(optionalDate('closed_at')),
+        version: Value(value['version']! as int),
+        createdAt: Value(
+          DateTime.parse(value['created_at']! as String).toUtc(),
+        ),
+        updatedAt: Value(
+          DateTime.parse(value['updated_at']! as String).toUtc(),
+        ),
+        cachedAt: Value(DateTime.now().toUtc()),
+      );
+    } on Object {
+      return null;
+    }
   }
 
   static LedgerTransaction _fromRow(

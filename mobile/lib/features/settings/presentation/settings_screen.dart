@@ -4,8 +4,10 @@ import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/auth/application/providers.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/errors/app_exception.dart';
+import 'package:planit_mobile/features/offline_finance/application/providers.dart';
 import 'package:planit_mobile/features/settings/data/privacy_api.dart';
 import 'package:planit_mobile/features/settings/data/privacy_file_saver.dart';
+import 'package:planit_mobile/features/transactions/application/providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -69,6 +71,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _downloadPortableData() async {
+    setState(() => _busy = true);
+    try {
+      final session = await ref
+          .read(authControllerProvider.notifier)
+          .requireFreshSession();
+      await _requireEmptyOutbox(session.user.id);
+      final store = ref.read(offlineFinanceStoreProvider);
+      final download = await _api.backup(
+        session.accessToken,
+        budgets: await store.readBudgets(session.user.id),
+        templates: await store.readTemplates(session.user.id),
+      );
+      final savedAt = await savePrivacyFile(download.filename, download.bytes);
+      _message(
+        savedAt == null ? 'Backup cancelled.' : 'Complete backup saved.',
+      );
+    } on AppException catch (error) {
+      _message(error.message, error: true);
+    } on UnsupportedError catch (error) {
+      _message(
+        error.message?.toString() ?? 'Backup is unavailable.',
+        error: true,
+      );
+    } on Object {
+      _message('PlanIT could not save the complete backup.', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _restorePortableData() async {
     try {
       final bytes = await pickPrivacyFile();
@@ -81,11 +114,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() => _busy = true);
       final controller = ref.read(authControllerProvider.notifier);
       final session = await controller.requireFreshSession();
+      await _requireEmptyOutbox(session.user.id);
       final result = await _api.restore(
         session.accessToken,
         bytes: bytes,
         password: password,
       );
+      final store = ref.read(offlineFinanceStoreProvider);
+      await store.saveBudgets(session.user.id, result.budgets);
+      await store.saveTemplates(session.user.id, result.templates);
       if (!mounted) return;
       final receiptNotice = result.ignoredReceiptFiles == 0
           ? ''
@@ -107,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
       );
-      await controller.logout(clearLocalData: true);
+      await controller.logout();
     } on AppException catch (error) {
       _message(error.message, error: true);
     } on UnsupportedError catch (error) {
@@ -119,6 +156,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _message('PlanIT could not restore the selected data.', error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _requireEmptyOutbox(String ownerId) async {
+    final pending = await ref
+        .read(transactionsRepositoryProvider)
+        .watchPendingCount(ownerId)
+        .first;
+    if (pending != 0) {
+      throw AppException(
+        code: 'PENDING_SYNC_REQUIRED',
+        message:
+            'Synchronize all $pending pending operation${pending == 1 ? '' : 's'} before backup or restore.',
+      );
     }
   }
 
@@ -212,13 +263,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 leading: const Icon(Icons.backup_outlined),
                 title: const Text('Export portable data'),
                 subtitle: const Text(
-                  'JSON copy without passwords, tokens, or receipt image files. Choose where to save it.',
+                  'Complete JSON copy of server records, budgets, and quick templates. Receipt image files are not included.',
                 ),
                 trailing: const Icon(Icons.download_rounded),
                 enabled: enabled,
-                onTap: enabled
-                    ? () => _download((token) => _api.backup(token))
-                    : null,
+                onTap: enabled ? _downloadPortableData : null,
               ),
               ListTile(
                 leading: const Icon(Icons.settings_backup_restore_rounded),

@@ -37,7 +37,7 @@ void main() {
     );
 
     test(
-      'revoked refresh tokens clear credentials but preserve owner data',
+      'revoked refresh tokens preserve the offline workspace for reauthentication',
       () async {
         final stored = _session(accessExpired: true);
         final tokenStore = _MemoryTokenStore(stored);
@@ -57,11 +57,34 @@ void main() {
 
         final result = await repository.restore();
 
-        expect(result.session, isNull);
-        expect(result.offline, isFalse);
-        expect(tokenStore.value, isNull);
-        expect(tokenStore.clearCount, 1);
+        expect(result.session, same(stored));
+        expect(result.offline, isTrue);
+        expect(result.reauthenticationRequired, isTrue);
+        expect(tokenStore.value, same(stored));
+        expect(tokenStore.clearCount, 0);
         expect(clearedOwners, isEmpty);
+      },
+    );
+
+    test(
+      'expired refresh session still opens the saved offline workspace',
+      () async {
+        final stored = _session(accessExpired: true, refreshExpired: true);
+        final tokenStore = _MemoryTokenStore(stored);
+        final remote = _FakeAuthRemote();
+        final repository = DefaultAuthRepository(
+          remote: remote,
+          tokenStore: tokenStore,
+          clearOwnerData: (_) async {},
+        );
+
+        final result = await repository.restore();
+
+        expect(result.session, same(stored));
+        expect(result.offline, isTrue);
+        expect(result.reauthenticationRequired, isTrue);
+        expect(remote.refreshedTokens, isEmpty);
+        expect(tokenStore.value, same(stored));
       },
     );
 
@@ -139,6 +162,7 @@ void main() {
 
 AuthSession _session({
   bool accessExpired = false,
+  bool refreshExpired = false,
   String accessToken = 'access-token',
   String refreshToken = 'refresh-token',
 }) {
@@ -150,7 +174,9 @@ AuthSession _session({
     accessExpiresAt: accessExpired
         ? now.subtract(const Duration(minutes: 1))
         : now.add(const Duration(minutes: 15)),
-    refreshExpiresAt: now.add(const Duration(days: 30)),
+    refreshExpiresAt: refreshExpired
+        ? now.subtract(const Duration(minutes: 1))
+        : now.add(const Duration(days: 30)),
     user: AuthUser(
       id: 'owner-a',
       email: 'owner@example.com',

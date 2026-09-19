@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/app/shell/widgets/add_action_sheet.dart';
+import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 
-class PlanItScaffold extends StatelessWidget {
+class PlanItScaffold extends ConsumerWidget {
   const PlanItScaffold({
     required this.location,
     required this.child,
@@ -26,9 +28,32 @@ class PlanItScaffold extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reconnect = ref.watch(
+      authControllerProvider.select((state) => state.reauthenticationRequired),
+    );
     return Scaffold(
-      body: SafeArea(bottom: false, child: child),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: <Widget>[
+            if (reconnect)
+              MaterialBanner(
+                content: const Text(
+                  'Saved phone data is available. Reconnect your account to synchronize.',
+                ),
+                leading: const Icon(Icons.sync_problem_rounded),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => context.push('/reauthenticate'),
+                    child: const Text('Reconnect'),
+                  ),
+                ],
+              ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (int index) {

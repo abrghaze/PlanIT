@@ -156,6 +156,49 @@ void main() {
     expect(results.every((result) => !result.blocked), isTrue);
     expect(remote.calls, 1);
   });
+
+  test('different owners synchronize independently', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final local = TransactionsLocalDataSource(database);
+    final remote = _BlockingOwnersRemote();
+    final repository = DefaultTransactionsRepository(
+      remote: remote,
+      local: local,
+    );
+    for (final ownerId in <String>['owner-a', 'owner-b']) {
+      await repository.queueFinancialOperation(
+        ownerId: ownerId,
+        operationId: 'operation-$ownerId',
+        entityId: 'transfer-$ownerId',
+        type: OutboxOperationType.transferCommit,
+        payload: <String, Object?>{
+          'id': 'transfer-$ownerId',
+          'client_operation_id': 'operation-$ownerId',
+        },
+      );
+    }
+
+    final first = repository.synchronize(
+      ownerId: 'owner-a',
+      accessToken: 'token-a',
+      force: true,
+    );
+    final second = repository.synchronize(
+      ownerId: 'owner-b',
+      accessToken: 'token-b',
+      force: true,
+    );
+    await remote.bothStarted.future;
+
+    expect(remote.calls, 2);
+    remote.release.complete();
+    final results = await Future.wait(<Future<TransactionSyncResult>>[
+      first,
+      second,
+    ]);
+    expect(results.every((result) => !result.blocked), isTrue);
+  });
 }
 
 final class _RetryingRemote implements TransactionsRemoteDataSource {
@@ -289,6 +332,48 @@ final class _BlockingTransferRemote implements TransactionsRemoteDataSource {
         _movement(
           operation: operation,
           id: 'destination-transaction',
+          accountId: 'account-b',
+          type: TransactionType.transferIn,
+          effect: TransactionEffect.inflow,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<List<LedgerTransaction>> fetchTransactions({
+    required String ownerId,
+    required String accessToken,
+  }) async {
+    return const <LedgerTransaction>[];
+  }
+}
+
+final class _BlockingOwnersRemote implements TransactionsRemoteDataSource {
+  final Completer<void> bothStarted = Completer<void>();
+  final Completer<void> release = Completer<void>();
+  var calls = 0;
+
+  @override
+  Future<RemoteOperationResult> execute({
+    required String accessToken,
+    required PendingOperation operation,
+  }) async {
+    calls += 1;
+    if (calls == 2 && !bothStarted.isCompleted) bothStarted.complete();
+    await release.future;
+    return RemoteOperationResult(
+      transactions: <LedgerTransaction>[
+        _movement(
+          operation: operation,
+          id: 'source-${operation.ownerId}',
+          accountId: 'account-a',
+          type: TransactionType.transferOut,
+          effect: TransactionEffect.outflow,
+        ),
+        _movement(
+          operation: operation,
+          id: 'destination-${operation.ownerId}',
           accountId: 'account-b',
           type: TransactionType.transferIn,
           effect: TransactionEffect.inflow,

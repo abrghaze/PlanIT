@@ -4,6 +4,7 @@ import 'package:planit_mobile/core/database/app_database.dart';
 import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/features/accounts/data/accounts_local_data_source.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/transactions/data/transactions_local_data_source.dart';
 
 void main() {
   late AppDatabase database;
@@ -97,6 +98,107 @@ void main() {
       throwsA(isA<Exception>()),
     );
   });
+
+  test(
+    'offline account creation is atomic with its durable operation',
+    () async {
+      final account = await local.queueCreate(
+        ownerId: 'owner-a',
+        operationId: 'operation-account-create',
+        draft: AccountDraft(
+          id: 'offline-account',
+          name: 'Offline wallet',
+          type: AccountType.cash,
+          openingBalance: Money.parse('75', 'MAD'),
+          openedAt: DateTime.utc(2026, 9, 18),
+          includeInTotal: true,
+          allowNegative: false,
+          sortOrder: 0,
+        ),
+      );
+
+      expect(account.calculatedBalance, Money.parse('75', 'MAD'));
+      expect((await local.read('owner-a')).single.id, 'offline-account');
+      final operation =
+          (await database.watchOutboxOperations('owner-a').first).single;
+      expect(operation.type, 'ACCOUNT_CREATE');
+      expect(operation.entityId, 'offline-account');
+    },
+  );
+
+  test('offline account update is visible and queued once', () async {
+    final current = _account(
+      id: 'account-a',
+      ownerId: 'owner-a',
+      name: 'Wallet',
+      amount: '100.0000',
+    );
+    await local.upsert(current);
+
+    final updated = await local.queueUpdate(
+      current: current,
+      operationId: 'operation-account-update',
+      patch: const AccountPatch(version: 1, name: 'Everyday wallet'),
+    );
+
+    expect(updated.name, 'Everyday wallet');
+    expect((await local.read('owner-a')).single.name, 'Everyday wallet');
+    await expectLater(
+      local.queueUpdate(
+        current: updated,
+        operationId: 'operation-account-update-2',
+        patch: const AccountPatch(version: 1, name: 'Duplicate edit'),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('server refresh cannot erase a pending offline account', () async {
+    await local.queueCreate(
+      ownerId: 'owner-a',
+      operationId: 'operation-account-create',
+      draft: AccountDraft(
+        id: 'offline-account',
+        name: 'Offline wallet',
+        type: AccountType.cash,
+        openingBalance: Money.parse('25', 'MAD'),
+        openedAt: DateTime.utc(2026, 9, 18),
+        includeInTotal: true,
+        allowNegative: false,
+        sortOrder: 0,
+      ),
+    );
+
+    await local.replace('owner-a', const <Account>[]);
+
+    expect((await local.read('owner-a')).single.id, 'offline-account');
+  });
+
+  test(
+    'discarding an account update restores the confirmed snapshot',
+    () async {
+      final current = _account(
+        id: 'account-a',
+        ownerId: 'owner-a',
+        name: 'Confirmed wallet',
+        amount: '100.0000',
+      );
+      await local.upsert(current);
+      await local.queueUpdate(
+        current: current,
+        operationId: 'operation-account-update',
+        patch: const AccountPatch(version: 1, name: 'Offline edit'),
+      );
+      final transactions = TransactionsLocalDataSource(database);
+      final operation =
+          (await transactions.watchPendingOperations('owner-a').first).single;
+
+      await transactions.discardPendingOperation(operation);
+
+      expect((await local.read('owner-a')).single.name, 'Confirmed wallet');
+      expect(await database.watchPendingOperationCount('owner-a').first, 0);
+    },
+  );
 }
 
 Account _account({

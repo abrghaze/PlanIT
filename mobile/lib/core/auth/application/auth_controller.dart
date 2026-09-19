@@ -13,6 +13,7 @@ final NotifierProvider<AuthController, AuthState> authControllerProvider =
 final class AuthController extends Notifier<AuthState> {
   Future<AuthSession>? _refreshInFlight;
   String? _refreshTokenInFlight;
+  var _identityRevision = 0;
 
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
@@ -23,15 +24,19 @@ final class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _restore() async {
+    final revision = _identityRevision;
     try {
       final restored = await _repository.restore();
+      if (revision != _identityRevision) return;
       state = AuthState(
         initialized: true,
         busy: false,
         offline: restored.offline,
+        reauthenticationRequired: restored.reauthenticationRequired,
         session: restored.session,
       );
     } on Object {
+      if (revision != _identityRevision) return;
       state = const AuthState(
         initialized: true,
         busy: false,
@@ -42,6 +47,7 @@ final class AuthController extends Notifier<AuthState> {
   }
 
   Future<bool> signIn({required String email, required String password}) async {
+    _identityRevision += 1;
     state = state.copyWith(busy: true, clearError: true);
     try {
       final session = await _repository.login(email: email, password: password);
@@ -49,6 +55,7 @@ final class AuthController extends Notifier<AuthState> {
         initialized: true,
         busy: false,
         offline: false,
+        reauthenticationRequired: false,
         session: session,
       );
       return true;
@@ -71,6 +78,7 @@ final class AuthController extends Notifier<AuthState> {
     required String baseCurrency,
     required String timezone,
   }) async {
+    _identityRevision += 1;
     state = state.copyWith(busy: true, clearError: true);
     try {
       final session = await _repository.register(
@@ -84,6 +92,7 @@ final class AuthController extends Notifier<AuthState> {
         initialized: true,
         busy: false,
         offline: false,
+        reauthenticationRequired: false,
         session: session,
       );
       return true;
@@ -105,6 +114,15 @@ final class AuthController extends Notifier<AuthState> {
       throw const AppException(
         code: 'SESSION_REQUIRED',
         message: 'Sign in to continue.',
+        statusCode: 401,
+      );
+    }
+
+    if (state.reauthenticationRequired) {
+      throw const AppException(
+        code: 'REAUTHENTICATION_REQUIRED',
+        message:
+            'Sign in again to synchronize. Your saved phone data is still available.',
         statusCode: 401,
       );
     }
@@ -145,16 +163,20 @@ final class AuthController extends Notifier<AuthState> {
         state = state.copyWith(
           session: refreshed,
           offline: false,
+          reauthenticationRequired: false,
           clearError: true,
         );
       }
       return refreshed;
     } on AppException catch (error) {
-      if (error.isAuthenticationFailure) {
+      final current = state.session;
+      if (error.requiresReauthentication &&
+          current != null &&
+          current.refreshToken == session.refreshToken) {
         state = state.copyWith(
           busy: false,
-          offline: false,
-          clearSession: true,
+          offline: true,
+          reauthenticationRequired: true,
           errorMessage: error.message,
         );
       } else if (error.isNetworkFailure) {
@@ -172,7 +194,9 @@ final class AuthController extends Notifier<AuthState> {
   }
 
   void markServerReachable() {
-    if (state.session == null || !state.offline) {
+    if (state.session == null ||
+        !state.offline ||
+        state.reauthenticationRequired) {
       return;
     }
     state = state.copyWith(offline: false);
@@ -183,6 +207,7 @@ final class AuthController extends Notifier<AuthState> {
     if (session == null) {
       return;
     }
+    _identityRevision += 1;
     state = state.copyWith(busy: true, clearError: true);
     try {
       await _repository.logout(session, clearLocalData: clearLocalData);

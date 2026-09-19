@@ -11,15 +11,14 @@ abstract interface class AccountsRepository {
 
   Future<Account> create({
     required String ownerId,
-    required String accessToken,
     required String idempotencyKey,
     required AccountDraft draft,
   });
 
   Future<Account> update({
     required String ownerId,
-    required String accessToken,
     required String accountId,
+    required String operationId,
     required AccountPatch patch,
   });
 }
@@ -51,42 +50,34 @@ final class DefaultAccountsRepository implements AccountsRepository {
   @override
   Future<Account> create({
     required String ownerId,
-    required String accessToken,
     required String idempotencyKey,
     required AccountDraft draft,
   }) async {
-    final account = await remote.createAccount(
+    return local.queueCreate(
       ownerId: ownerId,
-      accessToken: accessToken,
-      idempotencyKey: idempotencyKey,
       draft: draft,
+      operationId: idempotencyKey,
     );
-    _requireOwner(account, ownerId);
-    await local.upsert(account);
-    return account;
   }
 
   @override
   Future<Account> update({
     required String ownerId,
-    required String accessToken,
     required String accountId,
+    required String operationId,
     required AccountPatch patch,
   }) async {
-    final account = await remote.updateAccount(
-      ownerId: ownerId,
-      accessToken: accessToken,
-      accountId: accountId,
-      patch: patch,
-    );
-    _requireOwner(account, ownerId);
-    await local.upsert(account);
-    return account;
-  }
-
-  static void _requireOwner(Account account, String ownerId) {
-    if (account.ownerId != ownerId) {
-      throw StateError('The account response belongs to another owner.');
+    final accounts = await local.read(ownerId);
+    final current = accounts
+        .where((value) => value.id == accountId)
+        .firstOrNull;
+    if (current == null) {
+      throw StateError('This account is not available on the phone.');
     }
+    return local.queueUpdate(
+      current: current,
+      patch: patch,
+      operationId: operationId,
+    );
   }
 }

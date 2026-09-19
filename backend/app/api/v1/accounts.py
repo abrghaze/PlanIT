@@ -17,7 +17,11 @@ from app.api.schemas.accounts import (
     AccountUpdateRequest,
 )
 from app.application.accounts import AccountService
-from app.application.idempotency import OperationResponse, execute_idempotent
+from app.application.idempotency import (
+    FINANCIAL_IDEMPOTENCY_TTL,
+    OperationResponse,
+    execute_idempotent,
+)
 from app.domain.ledger.enums import AccountStatus
 
 router = APIRouter(prefix="/accounts")
@@ -50,6 +54,7 @@ async def create_account(
         key=idempotency_key,
         request_payload=cast(dict[str, object], payload.model_dump(mode="json")),
         operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
     return JSONResponse(
         status_code=result.status_code,
@@ -110,11 +115,41 @@ async def update_account(
     request: Request,
     principal: CurrentPrincipal,
     session: DatabaseSession,
-) -> AccountResponse:
-    account = await AccountService(session).update(
-        account_id=account_id,
+    idempotency_key: Annotated[UUID | None, Header(alias="Idempotency-Key")] = None,
+) -> object:
+    if idempotency_key is None:
+        account = await AccountService(session).update(
+            account_id=account_id,
+            user_id=principal.user.id,
+            command=payload.to_command(),
+            request_id=str(request.state.request_id),
+        )
+        return AccountResponse.from_domain(account)
+
+    async def operation(_session: AsyncSession) -> OperationResponse:
+        account = await AccountService(_session).update_in_transaction(
+            account_id=account_id,
+            user_id=principal.user.id,
+            command=payload.to_command(),
+            request_id=str(request.state.request_id),
+        )
+        body = AccountResponse.from_domain(account).model_dump(mode="json")
+        return OperationResponse(status_code=200, body=cast(dict[str, object], body))
+
+    result = await execute_idempotent(
+        session,
         user_id=principal.user.id,
-        command=payload.to_command(),
-        request_id=str(request.state.request_id),
+        scope=f"accounts.update:{account_id}",
+        key=idempotency_key,
+        request_payload=cast(
+            dict[str, object],
+            payload.model_dump(mode="json", exclude_unset=True),
+        ),
+        operation=operation,
+        ttl=FINANCIAL_IDEMPOTENCY_TTL,
     )
-    return AccountResponse.from_domain(account)
+    return JSONResponse(
+        status_code=result.status_code,
+        content=result.body,
+        headers={"Idempotency-Replayed": str(result.replayed).lower()},
+    )

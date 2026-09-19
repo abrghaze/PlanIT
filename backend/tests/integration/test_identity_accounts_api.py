@@ -341,15 +341,36 @@ async def test_account_version_concurrency_and_audited_lifecycle(
             )
             assert created.status_code == 201
 
+            update_operation_id = uuid4()
+            update_headers = {
+                **_authorization(auth),
+                "Idempotency-Key": str(update_operation_id),
+            }
+            update_payload = {"version": 1, "name": "Stable offline rename"}
+            updated = await client.patch(
+                f"/api/v1/accounts/{account_id}",
+                json=update_payload,
+                headers=update_headers,
+            )
+            replayed_update = await client.patch(
+                f"/api/v1/accounts/{account_id}",
+                json=update_payload,
+                headers=update_headers,
+            )
+            assert updated.status_code == replayed_update.status_code == 200
+            assert updated.json() == replayed_update.json()
+            assert updated.headers["Idempotency-Replayed"] == "false"
+            assert replayed_update.headers["Idempotency-Replayed"] == "true"
+
             first, second = await asyncio.gather(
                 client.patch(
                     f"/api/v1/accounts/{account_id}",
-                    json={"version": 1, "name": "Primary cash"},
+                    json={"version": 2, "name": "Primary cash"},
                     headers=_authorization(auth),
                 ),
                 client.patch(
                     f"/api/v1/accounts/{account_id}",
-                    json={"version": 1, "name": "Backup cash"},
+                    json={"version": 2, "name": "Backup cash"},
                     headers=_authorization(auth),
                 ),
             )

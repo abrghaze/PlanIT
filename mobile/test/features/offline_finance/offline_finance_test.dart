@@ -105,6 +105,36 @@ void main() {
     expect(progress.remaining, Money.parse('100', 'MAD'));
     expect(progress.percentUsed, 0);
   });
+
+  test(
+    'pending posted entries produce per-account estimated balance deltas',
+    () {
+      final now = DateTime(2026, 9, 14);
+      final balances = buildPendingAccountBalances(<LedgerTransaction>[
+        _transaction(
+          id: 'expense',
+          amount: '40',
+          occurredAt: now,
+          status: TransactionStatus.draft,
+          pendingAction: 'POST',
+          syncState: LocalTransactionSyncState.pending,
+        ),
+        _transaction(
+          id: 'income',
+          amount: '100',
+          occurredAt: now,
+          type: TransactionType.income,
+          effect: TransactionEffect.inflow,
+          status: TransactionStatus.draft,
+          pendingAction: 'POST',
+          syncState: LocalTransactionSyncState.retry,
+        ),
+      ]);
+
+      expect(balances['cash']?.delta, Money.parse('60', 'MAD'));
+      expect(balances['cash']?.transactionCount, 2);
+    },
+  );
 }
 
 LedgerTransaction _transaction({

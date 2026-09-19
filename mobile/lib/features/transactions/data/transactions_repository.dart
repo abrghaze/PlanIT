@@ -113,7 +113,8 @@ final class DefaultTransactionsRepository
 
   final TransactionsRemoteDataSource remote;
   final TransactionsLocalDataSource local;
-  Future<TransactionSyncResult>? _activeSynchronization;
+  final Map<String, Future<TransactionSyncResult>> _activeSynchronizations =
+      <String, Future<TransactionSyncResult>>{};
 
   @override
   Stream<List<LedgerTransaction>> watch(String ownerId) => local.watch(ownerId);
@@ -216,7 +217,7 @@ final class DefaultTransactionsRepository
     required String accessToken,
     bool force = false,
   }) {
-    final active = _activeSynchronization;
+    final active = _activeSynchronizations[ownerId];
     if (active != null) {
       return active;
     }
@@ -225,10 +226,10 @@ final class DefaultTransactionsRepository
       accessToken: accessToken,
       force: force,
     );
-    _activeSynchronization = future;
+    _activeSynchronizations[ownerId] = future;
     return future.whenComplete(() {
-      if (identical(_activeSynchronization, future)) {
-        _activeSynchronization = null;
+      if (identical(_activeSynchronizations[ownerId], future)) {
+        _activeSynchronizations.remove(ownerId);
       }
     });
   }

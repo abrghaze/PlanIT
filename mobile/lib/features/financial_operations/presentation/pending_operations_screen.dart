@@ -89,6 +89,10 @@ class PendingOperationsScreen extends ConsumerWidget {
     WidgetRef ref,
     PendingOperation operation,
   ) async {
+    if (operation.type.isAccountWrite) {
+      await context.push('/accounts');
+      return;
+    }
     if (!operation.type.isSpecializedFinancialCommit) {
       await context.push('/transactions/${operation.entityId}');
       return;
@@ -164,6 +168,8 @@ class PendingOperationsScreen extends ConsumerWidget {
     OutboxOperationType.debtPayment => '/debts',
     OutboxOperationType.shareCreate ||
     OutboxOperationType.refundCreate => '/activity',
+    OutboxOperationType.accountCreate ||
+    OutboxOperationType.accountUpdate => '/accounts',
     _ => '/activity',
   };
 }
@@ -277,6 +283,8 @@ class _PendingOperationCard extends StatelessWidget {
     OutboxOperationType.post => Icons.check_circle_outline,
     OutboxOperationType.createDraft ||
     OutboxOperationType.updateDraft => Icons.receipt_long_outlined,
+    OutboxOperationType.accountCreate ||
+    OutboxOperationType.accountUpdate => Icons.account_balance_wallet_outlined,
   };
 }
 

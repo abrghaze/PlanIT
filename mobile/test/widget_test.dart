@@ -404,7 +404,6 @@ final class _FakeAccountsRepository implements AccountsRepository {
   @override
   Future<Account> create({
     required String ownerId,
-    required String accessToken,
     required String idempotencyKey,
     required AccountDraft draft,
   }) {
@@ -425,8 +424,8 @@ final class _FakeAccountsRepository implements AccountsRepository {
   @override
   Future<Account> update({
     required String ownerId,
-    required String accessToken,
     required String accountId,
+    required String operationId,
     required AccountPatch patch,
   }) {
     throw UnsupportedError('Not used by this test.');

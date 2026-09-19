@@ -141,6 +141,47 @@ final class LocalMonthlySummary {
   bool get hasCurrencyWarning => omittedCurrencies.isNotEmpty;
 }
 
+final class PendingAccountBalance {
+  const PendingAccountBalance({
+    required this.delta,
+    required this.transactionCount,
+  });
+
+  final Money delta;
+  final int transactionCount;
+}
+
+Map<String, PendingAccountBalance> buildPendingAccountBalances(
+  Iterable<LedgerTransaction> transactions,
+) {
+  final deltas = <String, Money>{};
+  final counts = <String, int>{};
+  for (final transaction in transactions) {
+    if (!transaction.hasPendingWork || !_countsAsPosted(transaction)) continue;
+    final signed = transaction.effect == TransactionEffect.inflow
+        ? transaction.amount
+        : -transaction.amount;
+    final current = deltas[transaction.accountId];
+    if (current == null) {
+      deltas[transaction.accountId] = signed;
+    } else if (current.currency == signed.currency) {
+      deltas[transaction.accountId] = current + signed;
+    }
+    counts.update(
+      transaction.accountId,
+      (value) => value + 1,
+      ifAbsent: () => 1,
+    );
+  }
+  return <String, PendingAccountBalance>{
+    for (final entry in deltas.entries)
+      entry.key: PendingAccountBalance(
+        delta: entry.value,
+        transactionCount: counts[entry.key] ?? 0,
+      ),
+  };
+}
+
 final class CategoryBudgetProgress {
   const CategoryBudgetProgress({required this.budget, required this.spent});
 

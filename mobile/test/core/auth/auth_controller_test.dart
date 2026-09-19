@@ -141,6 +141,43 @@ void main() {
       expect(container.read(authControllerProvider).offline, isFalse);
     },
   );
+
+  test(
+    'authentication failure keeps local data accessible and requests reconnection',
+    () async {
+      final expired = _session(
+        accessToken: 'expired-access',
+        refreshToken: 'revoked-refresh',
+        accessExpired: true,
+      );
+      final repository = _ControlledAuthRepository(
+        restored: expired,
+        loginResult: expired,
+      );
+      final container = ProviderContainer(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      container.read(authControllerProvider);
+      await pumpEventQueue();
+      final controller = container.read(authControllerProvider.notifier);
+      final refresh = controller.requireFreshSession();
+      repository.refreshCompleter.completeError(
+        const AppException(
+          code: 'REAUTHENTICATION_REQUIRED',
+          message: 'Reconnect.',
+          statusCode: 401,
+        ),
+      );
+
+      await expectLater(refresh, throwsA(isA<AppException>()));
+      final state = container.read(authControllerProvider);
+      expect(state.session, same(expired));
+      expect(state.offline, isTrue);
+      expect(state.reauthenticationRequired, isTrue);
+    },
+  );
 }
 
 AuthSession _session({

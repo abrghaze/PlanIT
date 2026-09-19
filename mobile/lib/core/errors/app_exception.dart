@@ -21,6 +21,9 @@ final class AppException implements Exception {
       code == 'INVALID_REFRESH_TOKEN' ||
       code == 'TOKEN_REUSE_DETECTED';
 
+  bool get requiresReauthentication =>
+      code == 'REAUTHENTICATION_REQUIRED' || isAuthenticationFailure;
+
   factory AppException.fromDio(DioException error) {
     final response = error.response;
     final data = response?.data;

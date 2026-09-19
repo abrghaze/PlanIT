@@ -6,7 +6,9 @@ import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/features/auth/presentation/widgets/auth_scaffold.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
-  const SignInScreen({super.key});
+  const SignInScreen({this.reauthentication = false, super.key});
+
+  final bool reauthentication;
 
   @override
   ConsumerState<SignInScreen> createState() => _SignInScreenState();
@@ -17,6 +19,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _hidePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.reauthentication) {
+      _emailController.text =
+          ref.read(authControllerProvider).session?.user.email ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -30,21 +41,25 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       return;
     }
     FocusScope.of(context).unfocus();
-    await ref
+    final success = await ref
         .read(authControllerProvider.notifier)
         .signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+    if (success && widget.reauthentication && mounted) {
+      context.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     return AuthScaffold(
-      title: 'Welcome back',
-      subtitle:
-          'Your accounts and financial history stay private to your session.',
+      title: widget.reauthentication ? 'Reconnect securely' : 'Welcome back',
+      subtitle: widget.reauthentication
+          ? 'Your phone data is available. Sign in to resume synchronization.'
+          : 'Your accounts and financial history stay private to your session.',
       child: AutofillGroup(
         child: Form(
           key: _formKey,
@@ -107,13 +122,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Sign in'),
+                    : Text(widget.reauthentication ? 'Reconnect' : 'Sign in'),
               ),
               const SizedBox(height: PlanItSpacing.md),
-              TextButton(
-                onPressed: auth.busy ? null : () => context.go('/register'),
-                child: const Text('New to PlanIT? Create an account'),
-              ),
+              if (!widget.reauthentication)
+                TextButton(
+                  onPressed: auth.busy ? null : () => context.go('/register'),
+                  child: const Text('New to PlanIT? Create an account'),
+                ),
             ],
           ),
         ),

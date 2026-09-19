@@ -14,7 +14,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 def test_repository_release_versions_are_consistent() -> None:
-    assert MODULE.validate(ROOT, "v0.10.2") == "0.10.2"
+    assert MODULE.validate(ROOT, "v0.11.0") == "0.11.0"
 
 
 def test_release_tag_must_match_version() -> None:

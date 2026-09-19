@@ -5,6 +5,8 @@ import 'package:planit_mobile/core/errors/app_exception.dart';
 import 'package:planit_mobile/features/accounts/application/account_action_state.dart';
 import 'package:planit_mobile/features/accounts/application/providers.dart';
 import 'package:planit_mobile/features/accounts/domain/account.dart';
+import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
+import 'package:uuid/uuid.dart';
 
 final NotifierProvider<AccountController, AccountActionState>
 accountControllerProvider =
@@ -65,24 +67,20 @@ final class AccountController extends Notifier<AccountActionState> {
   }) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
-      final session = await ref
-          .read(authControllerProvider.notifier)
-          .requireFreshSession();
+      final session = ref.read(authControllerProvider).session;
+      if (session == null) throw StateError('Sign in to manage accounts.');
       await ref
           .read(accountsRepositoryProvider)
           .create(
             ownerId: session.user.id,
-            accessToken: session.accessToken,
             idempotencyKey: idempotencyKey,
             draft: draft,
           );
-      ref.read(authControllerProvider.notifier).markServerReachable();
-      state = state.copyWith(
-        busy: false,
-        clearError: true,
-        lastSyncedAt: DateTime.now().toUtc(),
-      );
+      state = state.copyWith(busy: false, clearError: true);
       ref.read(financialDataRevisionProvider.notifier).markChanged();
+      await ref
+          .read(transactionControllerProvider.notifier)
+          .refresh(silent: true, suppressNetworkErrors: true);
       return true;
     } on AppException catch (error) {
       if (error.isNetworkFailure) {
@@ -105,24 +103,21 @@ final class AccountController extends Notifier<AccountActionState> {
   }) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
-      final session = await ref
-          .read(authControllerProvider.notifier)
-          .requireFreshSession();
+      final session = ref.read(authControllerProvider).session;
+      if (session == null) throw StateError('Sign in to manage accounts.');
       await ref
           .read(accountsRepositoryProvider)
           .update(
             ownerId: session.user.id,
-            accessToken: session.accessToken,
             accountId: accountId,
+            operationId: const Uuid().v4(),
             patch: patch,
           );
-      ref.read(authControllerProvider.notifier).markServerReachable();
-      state = state.copyWith(
-        busy: false,
-        clearError: true,
-        lastSyncedAt: DateTime.now().toUtc(),
-      );
+      state = state.copyWith(busy: false, clearError: true);
       ref.read(financialDataRevisionProvider.notifier).markChanged();
+      await ref
+          .read(transactionControllerProvider.notifier)
+          .refresh(silent: true, suppressNetworkErrors: true);
       return true;
     } on AppException catch (error) {
       if (error.isNetworkFailure) {

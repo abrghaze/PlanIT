@@ -29,3 +29,17 @@ The repository intentionally does not contain signing keys or production service
 The automated workflow currently publishes Android. iOS distribution remains intentionally
 manual until an Apple Developer team, bundle ownership, certificates, and App Store Connect
 credentials exist.
+
+## Update-safe phone previews
+
+Ordinary CI debug APKs are compile checks only and are not distributed. Their generated debug
+keys are temporary, so installing them would make the next CI APK fail with a signature
+mismatch. A manually dispatched CI run instead builds the downloadable debug preview with the
+same protected Android key used by releases. Keep that key backed up outside GitHub as well as
+in protected repository secrets; losing it means Android cannot update the installed app.
+
+Any APK installed before this stable-key preview existed must be uninstalled once because its
+private signing key cannot be recovered. That one uninstall removes the old app-private local
+database, so synchronize and export a complete portable backup first. After installing the
+stable-key preview, subsequent higher-version APKs and production releases can update in place
+and retain app-private data, provided the application ID and signing key remain unchanged.

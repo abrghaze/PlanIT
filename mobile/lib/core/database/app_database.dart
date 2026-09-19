@@ -228,40 +228,109 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (Migrator migrator) => migrator.createAll(),
     onUpgrade: (Migrator migrator, int from, int to) async {
       if (from < 2) {
-        await migrator.createTable(cachedCategories);
-        await migrator.createTable(cachedTags);
-        await migrator.createTable(cachedTransactions);
-        await migrator.createTable(cachedTransactionTags);
-        await migrator.createTable(outboxOperations);
+        await _createTableIfMissing(
+          cachedCategories.actualTableName,
+          () => migrator.createTable(cachedCategories),
+        );
+        await _createTableIfMissing(
+          cachedTags.actualTableName,
+          () => migrator.createTable(cachedTags),
+        );
+        await _createTableIfMissing(
+          cachedTransactions.actualTableName,
+          () => migrator.createTable(cachedTransactions),
+        );
+        await _createTableIfMissing(
+          cachedTransactionTags.actualTableName,
+          () => migrator.createTable(cachedTransactionTags),
+        );
+        await _createTableIfMissing(
+          outboxOperations.actualTableName,
+          () => migrator.createTable(outboxOperations),
+        );
       }
       if (from < 3) {
-        await migrator.addColumn(
-          cachedTransactions,
-          cachedTransactions.merchantId,
+        await _addColumnIfMissing(
+          cachedTransactions.actualTableName,
+          'merchant_id',
+          () => migrator.addColumn(
+            cachedTransactions,
+            cachedTransactions.merchantId,
+          ),
         );
-        await migrator.addColumn(
-          cachedTransactions,
-          cachedTransactions.merchantLocationId,
+        await _addColumnIfMissing(
+          cachedTransactions.actualTableName,
+          'merchant_location_id',
+          () => migrator.addColumn(
+            cachedTransactions,
+            cachedTransactions.merchantLocationId,
+          ),
         );
-        await migrator.addColumn(
-          cachedTransactions,
-          cachedTransactions.itemsJson,
+        await _addColumnIfMissing(
+          cachedTransactions.actualTableName,
+          'items_json',
+          () => migrator.addColumn(
+            cachedTransactions,
+            cachedTransactions.itemsJson,
+          ),
         );
-        await migrator.createTable(cachedTransactionItems);
-        await migrator.createTable(cachedMerchants);
-        await migrator.createTable(cachedProducts);
+        await _createTableIfMissing(
+          cachedTransactionItems.actualTableName,
+          () => migrator.createTable(cachedTransactionItems),
+        );
+        await _createTableIfMissing(
+          cachedMerchants.actualTableName,
+          () => migrator.createTable(cachedMerchants),
+        );
+        await _createTableIfMissing(
+          cachedProducts.actualTableName,
+          () => migrator.createTable(cachedProducts),
+        );
       }
       if (from < 4) {
-        await migrator.createTable(cachedAnalyticsDashboards);
+        await _createTableIfMissing(
+          cachedAnalyticsDashboards.actualTableName,
+          () => migrator.createTable(cachedAnalyticsDashboards),
+        );
       }
       if (from < 5) {
-        await migrator.createTable(cachedPlanningSnapshots);
+        await _createTableIfMissing(
+          cachedPlanningSnapshots.actualTableName,
+          () => migrator.createTable(cachedPlanningSnapshots),
+        );
       }
     },
     beforeOpen: (OpeningDetails details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  Future<void> _createTableIfMissing(
+    String tableName,
+    Future<void> Function() create,
+  ) async {
+    final row = await customSelect(
+      'SELECT 1 AS present FROM sqlite_master '
+      'WHERE type = ? AND name = ? LIMIT 1',
+      variables: <Variable<Object>>[
+        const Variable<String>('table'),
+        Variable<String>(tableName),
+      ],
+    ).getSingleOrNull();
+    if (row == null) await create();
+  }
+
+  Future<void> _addColumnIfMissing(
+    String tableName,
+    String columnName,
+    Future<void> Function() add,
+  ) async {
+    final rows = await customSelect(
+      'PRAGMA table_info("${tableName.replaceAll('"', '""')}")',
+    ).get();
+    final exists = rows.any((row) => row.read<String>('name') == columnName);
+    if (!exists) await add();
+  }
 
   Stream<List<CachedAccount>> watchAccounts(String ownerId) {
     final query = select(cachedAccounts)
@@ -290,12 +359,37 @@ class AppDatabase extends _$AppDatabase {
     List<CachedAccountsCompanion> accounts,
   ) {
     return transaction(() async {
+      final pendingRows =
+          await (select(cachedAccounts).join(<Join>[
+                innerJoin(
+                  outboxOperations,
+                  outboxOperations.ownerId.equalsExp(cachedAccounts.ownerId) &
+                      outboxOperations.entityId.equalsExp(cachedAccounts.id),
+                  useColumns: false,
+                ),
+              ])..where(
+                cachedAccounts.ownerId.equals(ownerId) &
+                    outboxOperations.type.isIn(const <String>[
+                      'ACCOUNT_CREATE',
+                      'ACCOUNT_UPDATE',
+                    ]),
+              ))
+              .map((row) => row.readTable(cachedAccounts))
+              .get();
+      final pendingById = <String, CachedAccount>{
+        for (final row in pendingRows) row.id: row,
+      };
       await (delete(
         cachedAccounts,
       )..where((row) => row.ownerId.equals(ownerId))).go();
-      if (accounts.isNotEmpty) {
+      final merged = <CachedAccountsCompanion>[
+        for (final account in accounts)
+          if (!pendingById.containsKey(account.id.value)) account,
+        for (final row in pendingById.values) row.toCompanion(true),
+      ];
+      if (merged.isNotEmpty) {
         await batch((batch) {
-          batch.insertAll(cachedAccounts, accounts);
+          batch.insertAll(cachedAccounts, merged);
         });
       }
     });
@@ -458,6 +552,22 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> queueOutboxOperation(OutboxOperationsCompanion operation) {
     return into(outboxOperations).insert(operation);
+  }
+
+  Future<bool> hasPendingEntityOperation(
+    String ownerId,
+    String entityId, {
+    Set<String>? types,
+  }) async {
+    final query = select(outboxOperations)
+      ..where(
+        (row) => row.ownerId.equals(ownerId) & row.entityId.equals(entityId),
+      )
+      ..limit(1);
+    if (types != null && types.isNotEmpty) {
+      query.where((row) => row.type.isIn(types));
+    }
+    return await query.getSingleOrNull() != null;
   }
 
   Future<void> mergeRemoteTransactions({
@@ -652,6 +762,37 @@ class AppDatabase extends _$AppDatabase {
               row.entityId.equals(entityId),
         ))
         .go();
+  }
+
+  Future<void> discardAccountOperation({
+    required String ownerId,
+    required String operationId,
+    required String accountId,
+    required bool removeOptimisticAccount,
+    CachedAccountsCompanion? restoreAccount,
+  }) {
+    return transaction(() async {
+      if (removeOptimisticAccount) {
+        await (delete(outboxOperations)..where(
+              (row) =>
+                  row.ownerId.equals(ownerId) & row.entityId.equals(accountId),
+            ))
+            .go();
+        await (delete(cachedAccounts)..where(
+              (row) => row.ownerId.equals(ownerId) & row.id.equals(accountId),
+            ))
+            .go();
+        return;
+      }
+      await discardOutboxOperation(
+        ownerId: ownerId,
+        operationId: operationId,
+        entityId: accountId,
+      );
+      if (restoreAccount != null) {
+        await into(cachedAccounts).insertOnConflictUpdate(restoreAccount);
+      }
+    });
   }
 
   Future<void> discardEntityOperations({

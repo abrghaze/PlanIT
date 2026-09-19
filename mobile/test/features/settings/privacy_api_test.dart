@@ -3,8 +3,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/core/network/api_client.dart';
+import 'package:planit_mobile/features/offline_finance/domain/offline_finance.dart';
 import 'package:planit_mobile/features/settings/data/privacy_api.dart';
+import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 void main() {
   test(
@@ -65,6 +68,8 @@ void main() {
 
     expect(result.restoredRows, 14);
     expect(result.ignoredReceiptFiles, 2);
+    expect(result.budgets, isEmpty);
+    expect(result.templates, isEmpty);
     expect(
       adapter.request!.headers['Authorization'],
       'Bearer private-access-token',
@@ -74,6 +79,56 @@ void main() {
     final payload = adapter.request!.data! as Map<String, Object?>;
     expect(payload['confirmation'], 'RESTORE MY PLANIT DATA');
     expect(payload['password'], 'correct horse battery staple');
+  });
+
+  test('complete backup round-trips phone-only finance tools', () async {
+    final downloadAdapter = _PrivacyAdapter();
+    final downloadDio = Dio(BaseOptions(baseUrl: 'http://localhost/api/v1'));
+    downloadDio.httpClientAdapter = downloadAdapter;
+    final api = PrivacyApi(ApiClient(dio: downloadDio));
+    final budget = CategoryBudget(
+      id: 'budget-1',
+      categoryId: 'groceries',
+      monthKey: '2026-09',
+      limit: Money.parse('500', 'MAD'),
+      warningPercent: 80,
+      updatedAt: DateTime.utc(2026, 9, 18),
+    );
+    final template = QuickTransactionTemplate(
+      id: 'template-1',
+      name: 'Coffee',
+      type: TransactionType.expense,
+      accountId: 'account-1',
+      categoryId: 'food',
+      amount: Money.parse('20', 'MAD'),
+      counterparty: 'Cafe',
+      note: null,
+      tagIds: const <String>[],
+      updatedAt: DateTime.utc(2026, 9, 18),
+    );
+
+    final backup = await api.backup(
+      'private-access-token',
+      budgets: <CategoryBudget>[budget],
+      templates: <QuickTransactionTemplate>[template],
+    );
+    final restoreAdapter = _RestoreAdapter();
+    final restoreDio = Dio(BaseOptions(baseUrl: 'http://localhost/api/v1'));
+    restoreDio.httpClientAdapter = restoreAdapter;
+    final restored = await PrivacyApi(
+      ApiClient(dio: restoreDio),
+    ).restore(
+      'private-access-token',
+      bytes: backup.bytes,
+      password: 'correct horse battery staple',
+    );
+
+    expect(backup.filename, 'planit-complete-backup.json');
+    expect(restored.budgets.single.limit, Money.parse('500', 'MAD'));
+    expect(restored.templates.single.name, 'Coffee');
+    final payload = restoreAdapter.request!.data! as Map<String, Object?>;
+    final serverBackup = payload['backup']! as Map<String, Object?>;
+    expect(serverBackup['format'], 'planit-portable-backup');
   });
 }
 
@@ -89,6 +144,22 @@ final class _PrivacyAdapter implements HttpClientAdapter {
     requests.add(options);
     if (options.method == 'DELETE') {
       return ResponseBody.fromBytes(const <int>[], 204);
+    }
+    if (Uri.parse(options.path).path.endsWith('/privacy/backup.json')) {
+      return ResponseBody.fromBytes(
+        utf8.encode(
+          jsonEncode(<String, Object?>{
+            'format': 'planit-portable-backup',
+            'schema_version': 2,
+            'profile': <String, Object?>{},
+            'data': <String, Object?>{},
+          }),
+        ),
+        200,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>['application/json'],
+        },
+      );
     }
     return ResponseBody.fromBytes(
       utf8.encode('id,amount\ntransaction-1,12.3400\n'),

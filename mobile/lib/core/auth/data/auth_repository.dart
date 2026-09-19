@@ -4,10 +4,15 @@ import 'package:planit_mobile/core/auth/domain/auth_session.dart';
 import 'package:planit_mobile/core/errors/app_exception.dart';
 
 final class AuthRestoreResult {
-  const AuthRestoreResult({required this.session, required this.offline});
+  const AuthRestoreResult({
+    required this.session,
+    required this.offline,
+    this.reauthenticationRequired = false,
+  });
 
   final AuthSession? session;
   final bool offline;
+  final bool reauthenticationRequired;
 }
 
 abstract interface class AuthRepository {
@@ -40,6 +45,7 @@ final class DefaultAuthRepository implements AuthRepository {
   final AuthRemoteDataSource _remote;
   final TokenStore _tokenStore;
   final Future<void> Function(String ownerId) _clearOwnerData;
+  var _credentialRevision = 0;
 
   @override
   Future<AuthRestoreResult> restore() async {
@@ -48,21 +54,31 @@ final class DefaultAuthRepository implements AuthRepository {
       return const AuthRestoreResult(session: null, offline: false);
     }
     if (!stored.canRefresh) {
-      await _clearCredentials();
-      return const AuthRestoreResult(session: null, offline: false);
+      return AuthRestoreResult(
+        session: stored,
+        offline: true,
+        reauthenticationRequired: true,
+      );
     }
     if (stored.accessIsFresh()) {
       return AuthRestoreResult(session: stored, offline: false);
     }
 
+    final revision = _credentialRevision;
     try {
       final refreshed = await _remote.refresh(stored.refreshToken);
+      if (revision != _credentialRevision) {
+        return AuthRestoreResult(session: stored, offline: true);
+      }
       await _tokenStore.write(refreshed);
       return AuthRestoreResult(session: refreshed, offline: false);
     } on AppException catch (error) {
       if (error.isAuthenticationFailure) {
-        await _clearCredentials();
-        return const AuthRestoreResult(session: null, offline: false);
+        return AuthRestoreResult(
+          session: stored,
+          offline: true,
+          reauthenticationRequired: true,
+        );
       }
       return AuthRestoreResult(session: stored, offline: true);
     }
@@ -76,6 +92,7 @@ final class DefaultAuthRepository implements AuthRepository {
     required String baseCurrency,
     required String timezone,
   }) async {
+    _credentialRevision += 1;
     final session = await _remote.register(
       email: email,
       password: password,
@@ -93,6 +110,7 @@ final class DefaultAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
+    _credentialRevision += 1;
     final session = await _remote.login(
       email: email,
       password: password,
@@ -108,20 +126,34 @@ final class DefaultAuthRepository implements AuthRepository {
       return session;
     }
     if (!session.canRefresh) {
-      await _clearCredentials();
       throw const AppException(
-        code: 'SESSION_EXPIRED',
-        message: 'Your session expired. Sign in again.',
+        code: 'REAUTHENTICATION_REQUIRED',
+        message:
+            'Sign in again to synchronize. Your saved phone data is still available.',
         statusCode: 401,
       );
     }
+    final revision = _credentialRevision;
     try {
       final refreshed = await _remote.refresh(session.refreshToken);
+      if (revision != _credentialRevision) {
+        throw const AppException(
+          code: 'SESSION_CHANGED',
+          message: 'The active session changed. Please try again.',
+        );
+      }
       await _tokenStore.write(refreshed);
       return refreshed;
     } on AppException catch (error) {
-      if (error.isAuthenticationFailure) {
-        await _clearCredentials();
+      if (error.isAuthenticationFailure &&
+          error.code != 'REAUTHENTICATION_REQUIRED') {
+        throw AppException(
+          code: 'REAUTHENTICATION_REQUIRED',
+          message:
+              'Sign in again to synchronize. Your saved phone data is still available.',
+          statusCode: 401,
+          details: error.details,
+        );
       }
       rethrow;
     }
@@ -132,6 +164,7 @@ final class DefaultAuthRepository implements AuthRepository {
     AuthSession session, {
     bool clearLocalData = false,
   }) async {
+    _credentialRevision += 1;
     try {
       await _remote.logout(session.refreshToken);
     } on AppException {

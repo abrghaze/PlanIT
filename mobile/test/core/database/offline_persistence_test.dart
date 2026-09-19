@@ -87,4 +87,40 @@ void main() {
       );
     },
   );
+
+  test(
+    'database upgrade is idempotent when current columns already exist',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'planit-upgrade-',
+      );
+      final databaseFile = File(
+        '${directory.path}${Platform.pathSeparator}planit.sqlite',
+      );
+      final initial = AppDatabase(NativeDatabase(databaseFile));
+      await initial.saveAnalyticsDashboard(
+        ownerId: 'upgrade-owner',
+        cacheKey: 'THIS_MONTH:2026-09',
+        payloadJson: '{"preserved":true}',
+      );
+      await initial.close();
+
+      final versionEditor = AppDatabase(NativeDatabase(databaseFile));
+      await versionEditor.customStatement('PRAGMA user_version = 2');
+      await versionEditor.close();
+
+      final upgraded = AppDatabase(NativeDatabase(databaseFile));
+      addTearDown(() async {
+        await upgraded.close();
+        await directory.delete(recursive: true);
+      });
+
+      final saved = await upgraded.readAnalyticsDashboard(
+        'upgrade-owner',
+        'THIS_MONTH:2026-09',
+      );
+      expect(saved?.payloadJson, '{"preserved":true}');
+      expect(upgraded.schemaVersion, 5);
+    },
+  );
 }
