@@ -149,7 +149,18 @@ jobs:
           printf '%s' "$PLANIT_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$PLANIT_ANDROID_KEYSTORE_PATH"
           chmod 600 "$PLANIT_ANDROID_KEYSTORE_PATH"
           flutter build apk --debug --no-pub --dart-define="PLANIT_API_BASE_URL=$PREVIEW_API_URL"
-          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-debug.apk | grep -E 'SHA256:|Owner:'
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          if [[ -z "$apksigner_path" ]]; then
+            echo "::error::Android apksigner was not found."
+            exit 1
+          fi
+          signing_sha256="$("$apksigner_path" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          expected_sha256="7f4eee49ce6c86632186451e332d4c74c2d5077f78a1a6f4316a32c927706b4d"
+          if [[ "${signing_sha256,,}" != "$expected_sha256" ]]; then
+            echo "::error::Unexpected APK signing certificate: $signing_sha256"
+            exit 1
+          fi
+          echo "Verified APK signing certificate SHA-256: $signing_sha256"
       - name: Upload update-safe Android phone preview
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
