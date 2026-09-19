@@ -115,9 +115,7 @@ void main() {
     final restoreAdapter = _RestoreAdapter();
     final restoreDio = Dio(BaseOptions(baseUrl: 'http://localhost/api/v1'));
     restoreDio.httpClientAdapter = restoreAdapter;
-    final restored = await PrivacyApi(
-      ApiClient(dio: restoreDio),
-    ).restore(
+    final restored = await PrivacyApi(ApiClient(dio: restoreDio)).restore(
       'private-access-token',
       bytes: backup.bytes,
       password: 'correct horse battery staple',
