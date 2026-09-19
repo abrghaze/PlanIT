@@ -37,6 +37,8 @@ keys are temporary, so installing them would make the next CI APK fail with a si
 mismatch. A manually dispatched CI run instead builds the downloadable debug preview with the
 same protected Android key used by releases. Keep that key backed up outside GitHub as well as
 in protected repository secrets; losing it means Android cannot update the installed app.
+The current protected key is stored as PKCS#12, so automated builds set
+`PLANIT_ANDROID_KEYSTORE_TYPE=PKCS12` explicitly.
 
 Any APK installed before this stable-key preview existed must be uninstalled once because its
 private signing key cannot be recovered. That one uninstall removes the old app-private local

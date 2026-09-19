@@ -139,7 +139,8 @@ jobs:
         env:
           PREVIEW_API_URL: ${{ inputs.preview_api_url || 'http://10.0.2.2:8000/api/v1' }}
           PLANIT_ANDROID_KEYSTORE_BASE64: ${{ secrets.PLANIT_ANDROID_KEYSTORE_BASE64 }}
-          PLANIT_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/mobile/android/planit-release.jks
+          PLANIT_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/mobile/android/planit-release.p12
+          PLANIT_ANDROID_KEYSTORE_TYPE: PKCS12
           PLANIT_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.PLANIT_ANDROID_KEYSTORE_PASSWORD }}
           PLANIT_ANDROID_KEY_ALIAS: ${{ secrets.PLANIT_ANDROID_KEY_ALIAS }}
           PLANIT_ANDROID_KEY_PASSWORD: ${{ secrets.PLANIT_ANDROID_KEY_PASSWORD }}

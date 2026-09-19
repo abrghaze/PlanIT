@@ -8,6 +8,7 @@ val releaseKeystorePath = System.getenv("PLANIT_ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = System.getenv("PLANIT_ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = System.getenv("PLANIT_ANDROID_KEY_ALIAS")
 val releaseKeyPassword = System.getenv("PLANIT_ANDROID_KEY_PASSWORD")
+val releaseKeystoreType = System.getenv("PLANIT_ANDROID_KEYSTORE_TYPE") ?: "JKS"
 val releaseSigningValues =
     listOf(
         releaseKeystorePath,
@@ -50,6 +51,7 @@ android {
                 storePassword = requireNotNull(releaseKeystorePassword)
                 keyAlias = requireNotNull(releaseKeyAlias)
                 keyPassword = requireNotNull(releaseKeyPassword)
+                storeType = releaseKeystoreType
             }
         }
         buildTypes {

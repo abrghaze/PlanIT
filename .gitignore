@@ -40,3 +40,7 @@ Thumbs.db
 
 # Internal document-review artifacts
 .qa-docs/
+
+# Private Android signing material (back up securely; never commit)
+.signing/
+mobile/android/planit-release.*
