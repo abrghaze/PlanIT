@@ -8,6 +8,48 @@ import 'package:planit_mobile/features/planning/domain/planning.dart';
 
 void main() {
   test(
+    'linked goals follow local balances without changing manual goals or currencies',
+    () {
+      final goal = SavingsGoal(
+        id: 'goal',
+        name: 'Emergency fund',
+        target: Money.parse('1000', 'MAD'),
+        progress: Money.parse('100', 'MAD'),
+        remaining: Money.parse('900', 'MAD'),
+        percent: 10,
+        targetDate: null,
+        linkedAccountId: 'savings',
+        status: 'ACTIVE',
+        version: 1,
+      );
+      final local = goal.withLocalBalance(Money.parse('625.1234', 'MAD'));
+      expect(local.progress, Money.parse('625.1234', 'MAD'));
+      expect(local.remaining, Money.parse('374.8766', 'MAD'));
+      expect(
+        goal.withLocalBalance(Money.parse('-1', 'MAD')).progress,
+        Money.zero('MAD'),
+      );
+      expect(
+        goal.withLocalBalance(Money.parse('1200', 'MAD')).remaining,
+        Money.zero('MAD'),
+      );
+      expect(goal.withLocalBalance(Money.parse('50', 'EUR')), same(goal));
+      final manual = SavingsGoal(
+        id: 'manual',
+        name: 'Trip',
+        target: goal.target,
+        progress: goal.progress,
+        remaining: goal.remaining,
+        percent: 10,
+        targetDate: null,
+        linkedAccountId: null,
+        status: 'ACTIVE',
+        version: 1,
+      );
+      expect(manual.withLocalBalance(Money.parse('500', 'MAD')), same(manual));
+    },
+  );
+  test(
     'planning cache preserves exact projections and owner isolation',
     () async {
       final database = AppDatabase(NativeDatabase.memory());

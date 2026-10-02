@@ -40,7 +40,7 @@ class LocalMonthlyHealthCard extends StatelessWidget {
             ),
             const SizedBox(height: PlanItSpacing.md),
             Text(
-              'Recorded on this phone · Spent ${summary.spending.toDisplayString()} '
+              'Recorded on this phone · Net spending ${summary.spending.toDisplayString()} '
               '· Income ${summary.income.toDisplayString()}',
             ),
             if (summary.pendingPostedCount > 0) ...<Widget>[
@@ -130,7 +130,7 @@ class _BudgetRow extends StatelessWidget {
         ? Colors.orange.shade700
         : Theme.of(context).colorScheme.primary;
     final label = progress.isOverLimit
-        ? '${progress.percentUsed}% used · ${progress.spent.toDisplayString()} over ${progress.budget.limit.toDisplayString()}'
+        ? '${progress.percentUsed}% used · ${progress.overLimit.toDisplayString()} over budget'
         : '${progress.percentUsed}% used · ${progress.remaining.toDisplayString()} left';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

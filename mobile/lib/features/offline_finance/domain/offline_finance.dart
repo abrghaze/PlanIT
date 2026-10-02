@@ -157,10 +157,20 @@ Map<String, PendingAccountBalance> buildPendingAccountBalances(
   final deltas = <String, Money>{};
   final counts = <String, int>{};
   for (final transaction in transactions) {
-    if (!transaction.hasPendingWork || !_countsAsPosted(transaction)) continue;
-    final signed = transaction.effect == TransactionEffect.inflow
+    if (!transaction.hasPendingWork) continue;
+    final isNewPost =
+        transaction.status == TransactionStatus.draft &&
+        transaction.pendingAction == 'POST';
+    final isReversal =
+        transaction.status == TransactionStatus.posted &&
+        transaction.pendingAction == 'REVERSE';
+    // Posted rows already belong to the confirmed balance. Apply only the
+    // additional local action, never the original movement again.
+    if (!isNewPost && !isReversal) continue;
+    var signed = transaction.effect == TransactionEffect.inflow
         ? transaction.amount
         : -transaction.amount;
+    if (isReversal) signed = -signed;
     final current = deltas[transaction.accountId];
     if (current == null) {
       deltas[transaction.accountId] = signed;
@@ -203,15 +213,16 @@ final class CategoryBudgetProgress {
 
   int get percentUsed {
     if (budget.limit.scaledAmount <= BigInt.zero) return 0;
-    return (spent.scaledAmount.toDouble() /
-            budget.limit.scaledAmount.toDouble() *
-            100)
-        .round();
+    return (spent.scaledAmount * BigInt.from(100) ~/ budget.limit.scaledAmount)
+        .toInt();
   }
 
   bool get isOverLimit => spent.scaledAmount > budget.limit.scaledAmount;
 
   bool get isNearLimit => percentUsed >= budget.warningPercent;
+
+  Money get overLimit =>
+      isOverLimit ? spent - budget.limit : Money.zero(spent.currency);
 }
 
 LocalMonthlySummary buildLocalMonthlySummary({
@@ -228,6 +239,12 @@ LocalMonthlySummary buildLocalMonthlySummary({
   final spendingByCategory = <String, Money>{};
 
   for (final transaction in transactions) {
+    if (localMonthKey(transaction.occurredAt) == monthKey &&
+        transaction.hasPendingWork &&
+        transaction.pendingAction == 'REVERSE' &&
+        transaction.amount.currency == currency) {
+      pendingPostedCount += 1;
+    }
     if (localMonthKey(transaction.occurredAt) != monthKey ||
         !_countsAsPosted(transaction)) {
       continue;
@@ -277,9 +294,8 @@ LocalMonthlySummary buildLocalMonthlySummary({
     }
   }
 
-  if (spending.scaledAmount.isNegative) {
-    spending = Money.zero(currency);
-  }
+  // Refunds for a purchase in a previous month can legitimately exceed this
+  // month's expenses. Preserve that money in the overall cash picture.
   final nonNegativeCategories = <String, Money>{
     for (final entry in spendingByCategory.entries)
       entry.key: entry.value.scaledAmount.isNegative
@@ -298,6 +314,41 @@ LocalMonthlySummary buildLocalMonthlySummary({
 }
 
 bool _countsAsPosted(LedgerTransaction transaction) =>
-    transaction.status == TransactionStatus.posted ||
+    (transaction.status == TransactionStatus.posted &&
+        !(transaction.hasPendingWork &&
+            transaction.pendingAction == 'REVERSE')) ||
     (transaction.status == TransactionStatus.draft &&
         transaction.pendingAction == 'POST');
+
+/// The phone's view, including local posts and excluding local reversals.
+bool countsInLocalReports(LedgerTransaction transaction) =>
+    _countsAsPosted(transaction);
+
+List<CategoryBudget> copyMissingBudgets({
+  required List<CategoryBudget> budgets,
+  required String fromMonth,
+  required String toMonth,
+  required Set<String> activeCategoryIds,
+  required String Function() newId,
+  required DateTime now,
+}) {
+  final occupied = budgets
+      .where((b) => b.monthKey == toMonth)
+      .map((b) => b.categoryId)
+      .toSet();
+  return <CategoryBudget>[
+    ...budgets,
+    for (final budget in budgets)
+      if (budget.monthKey == fromMonth &&
+          activeCategoryIds.contains(budget.categoryId) &&
+          occupied.add(budget.categoryId))
+        CategoryBudget(
+          id: newId(),
+          categoryId: budget.categoryId,
+          monthKey: toMonth,
+          limit: budget.limit,
+          warningPercent: budget.warningPercent,
+          updatedAt: now.toUtc(),
+        ),
+  ];
+}

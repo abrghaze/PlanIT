@@ -199,7 +199,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your data'), findsOneWidget);
-    expect(find.text('Export transactions'), findsOneWidget);
+    expect(find.text('Export phone transactions'), findsOneWidget);
+    expect(
+      tester
+          .widget<ListTile>(
+            find.widgetWithText(ListTile, 'Export phone transactions'),
+          )
+          .enabled,
+      isTrue,
+    );
+    expect(find.text('Save phone recovery archive'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Delete profile permanently'),
       400,

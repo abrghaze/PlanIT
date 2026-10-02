@@ -41,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
     final analytics = ref.watch(
       analyticsDashboardProvider(const AnalyticsFilter()),
     );
-    final planning = ref.watch(planningDashboardProvider);
+    final planning = ref.watch(localPlanningDashboardProvider);
     final pendingCount = ref.watch(pendingTransactionCountProvider);
     final sync = ref.watch(transactionControllerProvider);
     final localSummary = ref.watch(localMonthlySummaryProvider);
@@ -88,7 +88,20 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: PlanItSpacing.lg),
                 accounts.when(
                   loading: () => const _BalanceCardLoading(),
-                  error: (error, stackTrace) => const _BalanceCardLoading(),
+                  error: (error, stackTrace) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline),
+                      title: const Text('Could not read saved accounts'),
+                      subtitle: const Text(
+                        'Your records have not been deleted. Try loading them again.',
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Try again',
+                        onPressed: () => ref.invalidate(accountsProvider),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ),
+                  ),
                   data: (items) => _HomeAccountContent(
                     accounts: items,
                     baseCurrency: auth.session?.user.baseCurrency ?? 'MAD',
@@ -229,12 +242,10 @@ class _HomeAccountContent extends StatelessWidget {
     }
     final dashboard = analytics.whenOrNull(data: (value) => value);
     final hasPendingBalances = pendingAccountCount > 0;
-    final displayedTotal = hasPendingBalances
-        ? estimatedBaseTotal
-        : dashboard?.kpis.moneyInAccounts ?? baseTotal;
-    final totalIsPartial = dashboard == null
-        ? hasUnconvertedAccounts
-        : !dashboard.kpis.complete;
+    // A previously downloaded report can predate a locally created account.
+    // The primary balance always reflects the live account projection.
+    final displayedTotal = estimatedBaseTotal;
+    final totalIsPartial = hasUnconvertedAccounts;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,9 +303,7 @@ class _HomeAccountContent extends StatelessWidget {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: PlanItSpacing.sm),
-        if (localSummary != null &&
-            (localSummary!.pendingPostedCount > 0 ||
-                localSummary!.hasCurrencyWarning))
+        if (localSummary != null)
           LocalMonthlyHealthCard(summary: localSummary!)
         else
           analytics.when(
@@ -468,7 +477,7 @@ class _PositionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Net position',
+              'Last server net position',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
@@ -486,6 +495,10 @@ class _PositionCard extends StatelessWidget {
               emphasized: true,
             ),
             const SizedBox(height: PlanItSpacing.xxs),
+            Text(
+              'Updated ${_shortTimestamp(dashboard.cachedAt ?? dashboard.generatedAt)} · excludes unsynchronized changes',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             Text(
               owesMoney
                   ? 'What you owe reduces net position, but does not change today\'s account balances until paid.'

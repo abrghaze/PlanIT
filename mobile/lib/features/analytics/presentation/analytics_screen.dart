@@ -8,6 +8,7 @@ import 'package:planit_mobile/core/money/money.dart';
 import 'package:planit_mobile/core/money/money_format.dart';
 import 'package:planit_mobile/features/analytics/application/providers.dart';
 import 'package:planit_mobile/features/analytics/domain/analytics_dashboard.dart';
+import 'package:planit_mobile/features/offline_finance/presentation/local_insights_view.dart';
 import 'package:uuid/uuid.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -20,12 +21,21 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   AnalyticsFilter _filter = const AnalyticsFilter();
   var _breakdown = 0;
+  bool _phoneView = true;
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(analyticsDashboardProvider(_filter));
+    final state = _phoneView
+        ? null
+        : ref.watch(analyticsDashboardProvider(_filter));
     return RefreshIndicator(
-      onRefresh: () => ref.refresh(analyticsDashboardProvider(_filter).future),
+      onRefresh: () async {
+        if (!_phoneView) {
+          return ref
+              .refresh(analyticsDashboardProvider(_filter).future)
+              .then<void>((_) {});
+        }
+      },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
@@ -46,31 +56,53 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 ),
                 const SizedBox(height: PlanItSpacing.xxs),
                 Text(
-                  'Traceable insights from posted financial facts.',
+                  'Understand your spending, with or without internet.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: PlanItSpacing.md),
-                _PeriodPicker(filter: _filter, onChanged: _setFilter),
-                const SizedBox(height: PlanItSpacing.lg),
-                state.when(
-                  loading: () => const SizedBox(
-                    height: 360,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, stackTrace) => _ErrorCard(
-                    onRetry: () =>
-                        ref.invalidate(analyticsDashboardProvider(_filter)),
-                  ),
-                  data: (dashboard) => _DashboardBody(
-                    dashboard: dashboard,
-                    breakdown: _breakdown,
-                    onBreakdownChanged: (value) =>
-                        setState(() => _breakdown = value),
-                    onSources: _showSources,
-                    onAddRate: (currency) =>
-                        _addRate(dashboard.baseCurrency, currency),
-                  ),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: true,
+                      label: Text('On this phone'),
+                      icon: Icon(Icons.phone_android),
+                    ),
+                    ButtonSegment(
+                      value: false,
+                      label: Text('Server reports'),
+                      icon: Icon(Icons.cloud_outlined),
+                    ),
+                  ],
+                  selected: {_phoneView},
+                  onSelectionChanged: (values) =>
+                      setState(() => _phoneView = values.single),
                 ),
+                const SizedBox(height: PlanItSpacing.lg),
+                if (_phoneView)
+                  const LocalInsightsView()
+                else ...[
+                  _PeriodPicker(filter: _filter, onChanged: _setFilter),
+                  const SizedBox(height: PlanItSpacing.lg),
+                  state!.when(
+                    loading: () => const SizedBox(
+                      height: 360,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (error, stackTrace) => _ErrorCard(
+                      onRetry: () =>
+                          ref.invalidate(analyticsDashboardProvider(_filter)),
+                    ),
+                    data: (dashboard) => _DashboardBody(
+                      dashboard: dashboard,
+                      breakdown: _breakdown,
+                      onBreakdownChanged: (value) =>
+                          setState(() => _breakdown = value),
+                      onSources: _showSources,
+                      onAddRate: (currency) =>
+                          _addRate(dashboard.baseCurrency, currency),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

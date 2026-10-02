@@ -1,5 +1,10 @@
 # PlanIT mobile
 
+The October offline improvements (build 14) provide live phone analytics,
+monthly budget history/copy, offline CSV and recovery-archive exports, immediate
+saved-session startup, and linked-goal progress from local account balances.
+See [offline capabilities and limits](../docs/offline-improvements-2026-10-01.md).
+
 This directory contains the Flutter application, Android/iOS/web runners, design
 system, identity/account/core-ledger features, secure session adapter, and
 owner-scoped Drift cache/outbox. CI pins Flutter 3.47.1, project metadata records that SDK

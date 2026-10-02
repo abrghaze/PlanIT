@@ -25,10 +25,9 @@ void main() {
           clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
         );
 
-        final result = await repository.restore();
+        final result = await repository.ensureFresh(stored);
 
-        expect(result.session, same(rotated));
-        expect(result.offline, isFalse);
+        expect(result, same(rotated));
         expect(remote.refreshedTokens, <String>['refresh-token']);
         expect(tokenStore.value, same(rotated));
         expect(tokenStore.writeCount, 1);
@@ -55,11 +54,16 @@ void main() {
           clearOwnerData: (ownerId) async => clearedOwners.add(ownerId),
         );
 
-        final result = await repository.restore();
-
-        expect(result.session, same(stored));
-        expect(result.offline, isTrue);
-        expect(result.reauthenticationRequired, isTrue);
+        await expectLater(
+          repository.ensureFresh(stored),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.code,
+              'code',
+              'REAUTHENTICATION_REQUIRED',
+            ),
+          ),
+        );
         expect(tokenStore.value, same(stored));
         expect(tokenStore.clearCount, 0);
         expect(clearedOwners, isEmpty);
@@ -109,10 +113,29 @@ void main() {
 
       expect(result.session, same(stored));
       expect(result.offline, isTrue);
+      expect(remote.refreshedTokens, isEmpty);
       expect(tokenStore.value, same(stored));
       expect(tokenStore.clearCount, 0);
       expect(clearedOwners, isEmpty);
     });
+
+    test(
+      'expired access restores immediately without making a refresh request',
+      () async {
+        final stored = _session(accessExpired: true);
+        final remote = _FakeAuthRemote();
+        final repository = DefaultAuthRepository(
+          remote: remote,
+          tokenStore: _MemoryTokenStore(stored),
+          clearOwnerData: (_) async {},
+        );
+        final result = await repository.restore();
+        expect(result.session, same(stored));
+        expect(result.reauthenticationRequired, isFalse);
+        expect(result.offline, isTrue);
+        expect(remote.refreshedTokens, isEmpty);
+      },
+    );
 
     test(
       'logout clears local secrets but preserves recoverable owner data',

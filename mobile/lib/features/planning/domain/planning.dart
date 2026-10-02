@@ -121,6 +121,32 @@ final class SavingsGoal {
   final int version;
   bool get manual => linkedAccountId == null;
 
+  SavingsGoal withLocalBalance(Money balance) {
+    if (manual || balance.currency != target.currency) return this;
+    final current = balance.scaledAmount.isNegative
+        ? Money.zero(balance.currency)
+        : balance;
+    final outstanding = target - current;
+    return SavingsGoal(
+      id: id,
+      name: name,
+      target: target,
+      progress: current,
+      remaining: outstanding.scaledAmount.isNegative
+          ? Money.zero(target.currency)
+          : outstanding,
+      percent: target.scaledAmount <= BigInt.zero
+          ? 0
+          : current.scaledAmount.toDouble() /
+                target.scaledAmount.toDouble() *
+                100,
+      targetDate: targetDate,
+      linkedAccountId: linkedAccountId,
+      status: status,
+      version: version,
+    );
+  }
+
   factory SavingsGoal.fromJson(Map<String, Object?> json) => SavingsGoal(
     id: json['id']! as String,
     name: json['name']! as String,

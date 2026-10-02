@@ -9,17 +9,28 @@ import 'package:planit_mobile/features/offline_finance/domain/offline_finance.da
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:planit_mobile/features/transactions/domain/catalog.dart';
 
-class BudgetsScreen extends ConsumerWidget {
+class BudgetsScreen extends ConsumerStatefulWidget {
   const BudgetsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BudgetsScreen> createState() => _BudgetsScreenState();
+}
+
+class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
+  DateTime? _selectedMonth;
+  bool _busy = false;
+  DateTime get _month =>
+      _selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month);
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(localClockProvider);
     final session = ref.watch(authControllerProvider).session;
     final categories =
         ref.watch(transactionCategoriesProvider).value ??
         const <TransactionCategory>[];
     final budgets = ref.watch(offlineBudgetsProvider);
-    final progress = ref.watch(offlineBudgetProgressProvider);
+    final transactions = ref.watch(transactionsProvider);
     final categoryNames = <String, String>{
       for (final category in categories) category.id: category.name,
     };
@@ -33,9 +44,55 @@ class BudgetsScreen extends ConsumerWidget {
         .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Monthly budgets')),
+      appBar: AppBar(
+        title: const Text('Monthly budgets'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Previous month',
+                onPressed: _busy
+                    ? null
+                    : () => setState(
+                        () => _selectedMonth = DateTime(
+                          _month.year,
+                          _month.month - 1,
+                        ),
+                      ),
+                icon: const Icon(Icons.chevron_left),
+              ),
+              Expanded(
+                child: Text(
+                  MaterialLocalizations.of(context).formatMonthYear(_month),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Next month',
+                onPressed: _busy
+                    ? null
+                    : () => setState(
+                        () => _selectedMonth = DateTime(
+                          _month.year,
+                          _month.month + 1,
+                        ),
+                      ),
+                icon: const Icon(Icons.chevron_right),
+              ),
+              IconButton(
+                tooltip: 'Copy missing budgets from previous month',
+                onPressed: _busy || budgets.value == null
+                    ? null
+                    : () => _copyPrevious(expenseCategories),
+                icon: const Icon(Icons.content_copy),
+              ),
+            ],
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: session == null || expenseCategories.isEmpty
+        onPressed: _busy || session == null || expenseCategories.isEmpty
             ? null
             : () => _editBudget(
                 context: context,
@@ -53,7 +110,7 @@ class BudgetsScreen extends ConsumerWidget {
         ),
         data: (items) {
           final current = items
-              .where((item) => item.monthKey == localMonthKey(DateTime.now()))
+              .where((item) => item.monthKey == localMonthKey(_month))
               .toList(growable: false);
           if (current.isEmpty) {
             return _EmptyBudgets(
@@ -66,8 +123,25 @@ class BudgetsScreen extends ConsumerWidget {
               ),
             );
           }
+          final summaries = {
+            if (transactions.value != null)
+              for (final currency
+                  in current.map((b) => b.limit.currency).toSet())
+                currency: buildLocalMonthlySummary(
+                  transactions: transactions.value!,
+                  currency: currency,
+                  now: _month,
+                ),
+          };
           final progressByBudget = <String, CategoryBudgetProgress>{
-            for (final item in progress) item.budget.id: item,
+            for (final budget in current)
+              if (summaries.containsKey(budget.limit.currency))
+                budget.id: CategoryBudgetProgress(
+                  budget: budget,
+                  spent: summaries[budget.limit.currency]!.spendingFor(
+                    budget.categoryId,
+                  ),
+                ),
           };
           return ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -89,19 +163,78 @@ class BudgetsScreen extends ConsumerWidget {
                     context: context,
                     ref: ref,
                     categories: expenseCategories,
-                    currency:
-                        session?.user.baseCurrency ?? budget.limit.currency,
+                    currency: budget.limit.currency,
                     initial: budget,
                   ),
-                  onDelete: () => ref
-                      .read(offlineBudgetsProvider.notifier)
-                      .remove(budget.id),
+                  onDelete: () => _removeBudget(budget),
                 ),
             ],
           );
         },
       ),
     );
+  }
+
+  Future<void> _copyPrevious(List<TransactionCategory> categories) async {
+    setState(() => _busy = true);
+    try {
+      final count = await ref
+          .read(offlineBudgetsProvider.notifier)
+          .copyPreviousMonth(_month, categories.map((c) => c.id).toSet());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              count == 0
+                  ? 'No missing budgets to copy. Existing limits were kept.'
+                  : '$count budgets copied. Existing limits were kept.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not copy budgets. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _removeBudget(CategoryBudget budget) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this budget?'),
+        content: const Text('Your transactions and other months will be kept.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(offlineBudgetsProvider.notifier).remove(budget.id);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not delete the budget. Please try again.'),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _editBudget({
@@ -126,7 +259,7 @@ class BudgetsScreen extends ConsumerWidget {
           .save(
             id: initial?.id,
             categoryId: result.categoryId,
-            monthKey: localMonthKey(DateTime.now()),
+            monthKey: localMonthKey(_month),
             amount: result.amount,
             currency: currency,
             warningPercent: result.warningPercent,
@@ -147,6 +280,14 @@ class BudgetsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Enter a positive amount with up to 4 decimals.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save the budget. Please try again.'),
           ),
         );
       }
@@ -223,6 +364,15 @@ class _BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (progress == null) {
+      return Card(
+        child: ListTile(
+          title: Text(categoryName),
+          subtitle: const Text('Spending totals are not available yet.'),
+          onTap: onEdit,
+        ),
+      );
+    }
     final calculated =
         progress ??
         CategoryBudgetProgress(
@@ -269,7 +419,7 @@ class _BudgetCard extends StatelessWidget {
               const SizedBox(height: PlanItSpacing.xs),
               Text(
                 calculated.isOverLimit
-                    ? '${calculated.percentUsed}% used · limit exceeded'
+                    ? '${calculated.percentUsed}% used · ${calculated.overLimit.toDisplayString()} over budget'
                     : '${calculated.percentUsed}% used · ${calculated.remaining.toDisplayString()} remaining',
                 style: Theme.of(context).textTheme.bodySmall,
               ),

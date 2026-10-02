@@ -100,7 +100,7 @@ void main() {
       spent: summary.spendingFor('home'),
     );
 
-    expect(summary.spending, Money.zero('MAD'));
+    expect(summary.spending, Money.parse('-5', 'MAD'));
     expect(progress.spent, Money.zero('MAD'));
     expect(progress.remaining, Money.parse('100', 'MAD'));
     expect(progress.percentUsed, 0);

@@ -1,10 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/money/money.dart';
+import 'package:planit_mobile/features/offline_finance/data/local_write_queue.dart';
 import 'package:planit_mobile/features/offline_finance/data/offline_finance_store.dart';
 import 'package:planit_mobile/features/offline_finance/domain/offline_finance.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
 import 'package:uuid/uuid.dart';
+
+final localClockProvider = Provider<DateTime>((ref) {
+  final timer = Timer(const Duration(minutes: 1), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+  return DateTime.now();
+});
 
 final Provider<OfflineFinanceStore> offlineFinanceStoreProvider =
     Provider<OfflineFinanceStore>((ref) => SecureOfflineFinanceStore());
@@ -33,6 +42,7 @@ final Provider<LocalMonthlySummary?> localMonthlySummaryProvider =
       return buildLocalMonthlySummary(
         transactions: transactions,
         currency: session.user.baseCurrency,
+        now: ref.watch(localClockProvider),
       );
     });
 
@@ -71,6 +81,19 @@ final Provider<List<CategoryBudgetProgress>> offlineBudgetProgressProvider =
 final class OfflineBudgetsController
     extends AsyncNotifier<List<CategoryBudget>> {
   String? _ownerId;
+  final _writes = LocalWriteQueue();
+
+  Future<T> _forOwner<T>(Future<T> Function(String) action) {
+    final requestedOwner = _ownerId;
+    return _writes.run(() async {
+      if (!ref.mounted ||
+          requestedOwner == null ||
+          _ownerId != requestedOwner) {
+        throw StateError('The active account changed. Please try again.');
+      }
+      return action(requestedOwner);
+    });
+  }
 
   @override
   Future<List<CategoryBudget>> build() async {
@@ -89,10 +112,14 @@ final class OfflineBudgetsController
     required String currency,
     required int warningPercent,
     String? id,
-  }) async {
-    final ownerId = _ownerId;
-    if (ownerId == null) throw StateError('Sign in to manage budgets.');
-    final current = state.value ?? await future;
+  }) => _forOwner((ownerId) async {
+    final current = await future;
+    if (_ownerId != ownerId) throw StateError('The active account changed.');
+    if (!RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(monthKey) ||
+        warningPercent < 1 ||
+        warningPercent > 100) {
+      throw const FormatException('Invalid budget month or warning threshold.');
+    }
     final limit = Money.parse(amount, currency);
     if (limit.scaledAmount <= BigInt.zero) {
       throw const FormatException('A budget must be greater than zero.');
@@ -114,22 +141,59 @@ final class OfflineBudgetsController
       budget,
     ];
     await ref.read(offlineFinanceStoreProvider).saveBudgets(ownerId, next);
-    state = AsyncData<List<CategoryBudget>>(_sortedBudgets(next));
-  }
+    if (ref.mounted && _ownerId == ownerId) {
+      state = AsyncData<List<CategoryBudget>>(_sortedBudgets(next));
+    }
+  });
 
-  Future<void> remove(String id) async {
-    final ownerId = _ownerId;
-    if (ownerId == null) return;
-    final current = state.value ?? await future;
+  Future<void> remove(String id) => _forOwner((ownerId) async {
+    final current = await future;
+    if (_ownerId != ownerId) throw StateError('The active account changed.');
     final next = current.where((value) => value.id != id).toList();
     await ref.read(offlineFinanceStoreProvider).saveBudgets(ownerId, next);
-    state = AsyncData<List<CategoryBudget>>(_sortedBudgets(next));
-  }
+    if (ref.mounted && _ownerId == ownerId) {
+      state = AsyncData<List<CategoryBudget>>(_sortedBudgets(next));
+    }
+  });
+
+  Future<int> copyPreviousMonth(
+    DateTime month,
+    Set<String> activeCategoryIds,
+  ) => _forOwner((ownerId) async {
+    final current = await future;
+    if (_ownerId != ownerId) throw StateError('The active account changed.');
+    final next = copyMissingBudgets(
+      budgets: current,
+      fromMonth: localMonthKey(DateTime(month.year, month.month - 1)),
+      toMonth: localMonthKey(month),
+      activeCategoryIds: activeCategoryIds,
+      newId: const Uuid().v4,
+      now: DateTime.now(),
+    );
+    await ref.read(offlineFinanceStoreProvider).saveBudgets(ownerId, next);
+    if (ref.mounted && _ownerId == ownerId) {
+      state = AsyncData(_sortedBudgets(next));
+    }
+    return next.length - current.length;
+  });
 }
 
 final class OfflineTemplatesController
     extends AsyncNotifier<List<QuickTransactionTemplate>> {
   String? _ownerId;
+  final _writes = LocalWriteQueue();
+
+  Future<T> _forOwner<T>(Future<T> Function(String) action) {
+    final requestedOwner = _ownerId;
+    return _writes.run(() async {
+      if (!ref.mounted ||
+          requestedOwner == null ||
+          _ownerId != requestedOwner) {
+        throw StateError('The active account changed. Please try again.');
+      }
+      return action(requestedOwner);
+    });
+  }
 
   @override
   Future<List<QuickTransactionTemplate>> build() async {
@@ -141,27 +205,31 @@ final class OfflineTemplatesController
     return ref.read(offlineFinanceStoreProvider).readTemplates(ownerId);
   }
 
-  Future<void> save(QuickTransactionTemplate template) async {
-    final ownerId = _ownerId;
-    if (ownerId == null) throw StateError('Sign in to save a template.');
-    final current = state.value ?? await future;
+  Future<void> save(QuickTransactionTemplate template) => _forOwner((
+    ownerId,
+  ) async {
+    final current = await future;
+    if (_ownerId != ownerId) throw StateError('The active account changed.');
     final next = <QuickTransactionTemplate>[
       for (final value in current)
         if (value.id != template.id) value,
       template,
     ];
     await ref.read(offlineFinanceStoreProvider).saveTemplates(ownerId, next);
-    state = AsyncData<List<QuickTransactionTemplate>>(_sortedTemplates(next));
-  }
+    if (ref.mounted && _ownerId == ownerId) {
+      state = AsyncData<List<QuickTransactionTemplate>>(_sortedTemplates(next));
+    }
+  });
 
-  Future<void> remove(String id) async {
-    final ownerId = _ownerId;
-    if (ownerId == null) return;
-    final current = state.value ?? await future;
+  Future<void> remove(String id) => _forOwner((ownerId) async {
+    final current = await future;
+    if (_ownerId != ownerId) throw StateError('The active account changed.');
     final next = current.where((value) => value.id != id).toList();
     await ref.read(offlineFinanceStoreProvider).saveTemplates(ownerId, next);
-    state = AsyncData<List<QuickTransactionTemplate>>(_sortedTemplates(next));
-  }
+    if (ref.mounted && _ownerId == ownerId) {
+      state = AsyncData<List<QuickTransactionTemplate>>(_sortedTemplates(next));
+    }
+  });
 }
 
 List<CategoryBudget> _sortedBudgets(Iterable<CategoryBudget> budgets) =>

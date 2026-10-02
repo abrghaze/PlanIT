@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/auth/application/providers.dart';
+import 'package:planit_mobile/core/database/providers.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/errors/app_exception.dart';
 import 'package:planit_mobile/features/offline_finance/application/providers.dart';
+import 'package:planit_mobile/features/settings/data/local_data_export.dart';
 import 'package:planit_mobile/features/settings/data/privacy_api.dart';
 import 'package:planit_mobile/features/settings/data/privacy_file_saver.dart';
 import 'package:planit_mobile/features/transactions/application/providers.dart';
@@ -26,10 +28,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) async {
     setState(() => _busy = true);
     try {
-      final session = await ref
-          .read(authControllerProvider.notifier)
-          .requireFreshSession();
-      final download = await action(session.accessToken);
+      final session = ref.read(authControllerProvider).session;
+      if (session == null) throw StateError('Sign in to export your data.');
+      final download = await action(session.user.id);
       final savedAt = await savePrivacyFile(download.filename, download.bytes);
       _message(savedAt == null ? 'Export cancelled.' : 'Export saved.');
     } on AppException catch (error) {
@@ -188,6 +189,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final auth = ref.watch(authControllerProvider);
     final user = auth.session?.user;
     final enabled = !_busy && !auth.offline;
+    final localEnabled = !_busy && user != null;
+    final localExport = LocalDataExport(ref.read(appDatabaseProvider));
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -205,7 +208,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 leading: Icon(Icons.cloud_off_outlined),
                 title: Text('Offline mode'),
                 subtitle: Text(
-                  'Exports and profile deletion need a secure server connection.',
+                  'Phone exports work without internet. Server backup, server restore, and profile deletion need a connection.',
                 ),
               ),
             ),
@@ -236,26 +239,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.receipt_long_outlined),
-                title: const Text('Export transactions'),
-                subtitle: const Text('CSV with exact amounts for spreadsheets'),
+                title: const Text('Export phone transactions'),
+                subtitle: const Text(
+                  'Offline CSV, including drafts and pending changes with their status',
+                ),
                 trailing: const Icon(Icons.download_rounded),
-                enabled: enabled,
-                onTap: enabled
-                    ? () => _download(
-                        (token) =>
-                            _api.exportCsv(token, dataType: 'transactions'),
-                      )
+                enabled: localEnabled,
+                onTap: localEnabled
+                    ? () => _download(localExport.transactions)
                     : null,
               ),
               ListTile(
                 leading: const Icon(Icons.account_balance_outlined),
-                title: const Text('Export account balances'),
-                subtitle: const Text('CSV balance snapshot as of now'),
+                title: const Text('Export phone balances'),
+                subtitle: const Text(
+                  'Offline CSV with saved balances, pending changes, and estimates',
+                ),
                 trailing: const Icon(Icons.download_rounded),
-                enabled: enabled,
-                onTap: enabled
+                enabled: localEnabled,
+                onTap: localEnabled
+                    ? () => _download(localExport.accounts)
+                    : null,
+              ),
+              ListTile(
+                leading: const Icon(Icons.save_alt),
+                title: const Text('Save phone recovery archive'),
+                subtitle: const Text(
+                  'Offline copy of phone records, pending changes, budgets, and templates. Contains private data; save somewhere safe. Manual recovery only, not a portable restore file.',
+                ),
+                trailing: const Icon(Icons.download_rounded),
+                enabled: localEnabled,
+                onTap: localEnabled
                     ? () => _download(
-                        (token) => _api.exportCsv(token, dataType: 'accounts'),
+                        (ownerId) => localExport.archive(
+                          ownerId,
+                          ref.read(offlineFinanceStoreProvider),
+                        ),
                       )
                     : null,
               ),

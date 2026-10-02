@@ -86,9 +86,7 @@ class TemplatesScreen extends ConsumerWidget {
                         categories: categories,
                         initial: template,
                       ),
-                      onDelete: () => ref
-                          .read(offlineTemplatesProvider.notifier)
-                          .remove(template.id),
+                      onDelete: () => _deleteTemplate(context, ref, template),
                     ),
                 ],
               ),
@@ -112,7 +110,18 @@ class TemplatesScreen extends ConsumerWidget {
       ),
     );
     if (template == null || !context.mounted) return;
-    await ref.read(offlineTemplatesProvider.notifier).save(template);
+    try {
+      await ref.read(offlineTemplatesProvider.notifier).save(template);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save the template. Please try again.'),
+          ),
+        );
+      }
+      return;
+    }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -131,6 +140,44 @@ class TemplatesScreen extends ConsumerWidget {
       if (account.id == id) return account.name;
     }
     return 'Choose when used';
+  }
+
+  Future<void> _deleteTemplate(
+    BuildContext context,
+    WidgetRef ref,
+    QuickTransactionTemplate template,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this template?'),
+        content: const Text(
+          'Transactions already recorded from it will be kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(offlineTemplatesProvider.notifier).remove(template.id);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not delete the template. Please try again.'),
+          ),
+        );
+      }
+    }
   }
 
   static String _categoryName(

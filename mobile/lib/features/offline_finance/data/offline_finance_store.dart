@@ -68,14 +68,18 @@ final class SecureOfflineFinanceStore implements OfflineFinanceStore {
     if (encoded == null) return const <Map<String, Object?>>[];
     try {
       final decoded = jsonDecode(encoded);
-      if (decoded is! List) return const <Map<String, Object?>>[];
+      if (decoded is! List || decoded.any((value) => value is! Map)) {
+        throw const FormatException('Invalid saved finance data.');
+      }
       return decoded
           .whereType<Map>()
           .map((value) => Map<String, Object?>.from(value))
           .toList(growable: false);
     } on Object {
-      await _storage.delete(key: key);
-      return const <Map<String, Object?>>[];
+      // Keep the original bytes for recovery instead of silently deleting them.
+      throw const FormatException(
+        'Saved finance data could not be read. The original data has been preserved.',
+      );
     }
   }
 

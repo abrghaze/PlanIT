@@ -21,7 +21,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dashboard = ref.watch(planningDashboardProvider);
+    final dashboard = ref.watch(localPlanningDashboardProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Savings goals')),
       floatingActionButton: FloatingActionButton.extended(
@@ -52,7 +52,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   leading: Icon(Icons.savings_outlined),
                   title: Text('Saving is not spending'),
                   subtitle: Text(
-                    'Manual allocations only track progress. Linked goals read the account balance. Neither creates an expense.',
+                    'Linked goals follow balances on this phone, including pending income and expenses. Manual allocations show the last saved progress. Neither creates an expense.',
                   ),
                 ),
               ),
@@ -60,7 +60,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 const Card(
                   child: ListTile(
                     leading: Icon(Icons.cloud_off_outlined),
-                    title: Text('Showing saved goal progress'),
+                    title: Text('Offline goal progress'),
+                    subtitle: Text(
+                      'Linked balances update locally. Creating goals and changing manual allocations still require a connection.',
+                    ),
                   ),
                 ),
               if (value.goals.isEmpty)

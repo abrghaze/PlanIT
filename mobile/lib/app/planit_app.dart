@@ -9,6 +9,7 @@ import 'package:planit_mobile/core/design_system/app_theme.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/privacy/app_privacy_controller.dart';
 import 'package:planit_mobile/core/privacy/app_privacy_gate.dart';
+import 'package:planit_mobile/features/offline_finance/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 
 class PlanItApp extends ConsumerStatefulWidget {
@@ -73,6 +74,7 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
 
   void _resumeForegroundWork() {
     _isForeground = true;
+    ref.invalidate(localClockProvider);
     _startForegroundRetries();
     _scheduleSynchronization();
   }

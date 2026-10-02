@@ -64,24 +64,9 @@ final class DefaultAuthRepository implements AuthRepository {
       return AuthRestoreResult(session: stored, offline: false);
     }
 
-    final revision = _credentialRevision;
-    try {
-      final refreshed = await _remote.refresh(stored.refreshToken);
-      if (revision != _credentialRevision) {
-        return AuthRestoreResult(session: stored, offline: true);
-      }
-      await _tokenStore.write(refreshed);
-      return AuthRestoreResult(session: refreshed, offline: false);
-    } on AppException catch (error) {
-      if (error.isAuthenticationFailure) {
-        return AuthRestoreResult(
-          session: stored,
-          offline: true,
-          reauthenticationRequired: true,
-        );
-      }
-      return AuthRestoreResult(session: stored, offline: true);
-    }
+    // Opening saved data must never wait for the network. Synchronization
+    // calls ensureFresh separately; it still enforces server authentication.
+    return AuthRestoreResult(session: stored, offline: true);
   }
 
   @override
