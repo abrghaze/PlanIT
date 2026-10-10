@@ -89,7 +89,7 @@ jobs:
           python -m alembic -c backend/alembic.ini check
           python -m pytest backend/tests
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
