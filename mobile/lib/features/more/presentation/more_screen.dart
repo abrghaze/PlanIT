@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:planit_mobile/core/auth/application/auth_controller.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
+import 'package:planit_mobile/features/local_wallet/data/wallet_store.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -12,6 +13,11 @@ class MoreScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final user = auth.session?.user;
     final entries = <({IconData icon, String label, VoidCallback? onTap})>[
+      (
+        icon: Icons.phone_android,
+        label: 'Open local workspace',
+        onTap: () => ref.read(localModeProvider.notifier).select(true),
+      ),
       (
         icon: Icons.account_balance_wallet_outlined,
         label: 'Accounts',

@@ -11,10 +11,13 @@ class AppPrivacyGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final privacy = ref.watch(appPrivacyControllerProvider);
-    if (!privacy.ready || !privacy.locked) return child;
+    if (!privacy.ready) {
+      return const Material(child: Center(child: CircularProgressIndicator()));
+    }
+    if (!privacy.locked) return child;
     return Stack(
       children: <Widget>[
-        child,
+        ExcludeSemantics(child: IgnorePointer(child: child)),
         Positioned.fill(
           child: Material(
             color: Theme.of(context).colorScheme.surface,

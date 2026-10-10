@@ -68,11 +68,7 @@ final class SecureAppPrivacyStore implements AppPrivacyStore {
 
   @override
   Future<bool> readLockEnabled() async {
-    try {
-      return await _storage.read(key: _key) == 'true';
-    } on Object {
-      return false;
-    }
+    return await _storage.read(key: _key) == 'true';
   }
 
   @override
@@ -120,15 +116,32 @@ final class AppPrivacyController extends Notifier<AppPrivacyState> {
   }
 
   Future<void> _load() async {
-    final available = await ref.read(deviceAuthenticatorProvider).isAvailable();
-    final enabled =
-        available && await ref.read(appPrivacyStoreProvider).readLockEnabled();
-    state = AppPrivacyState(
-      ready: true,
-      enabled: enabled,
-      locked: enabled,
-      available: available,
-    );
+    try {
+      final enabled = await ref.read(appPrivacyStoreProvider).readLockEnabled();
+      final available = await ref
+          .read(deviceAuthenticatorProvider)
+          .isAvailable();
+      if (!ref.mounted) return;
+      state = AppPrivacyState(
+        ready: true,
+        enabled: enabled,
+        locked: enabled,
+        available: available,
+        errorMessage: enabled && !available
+            ? 'Restore your phone screen lock to unlock PlanIT.'
+            : null,
+      );
+    } on Object {
+      if (!ref.mounted) return;
+      state = const AppPrivacyState(
+        ready: true,
+        enabled: true,
+        locked: true,
+        available: false,
+        errorMessage:
+            'Could not read the device privacy setting. Restart PlanIT to retry. Your data remains protected.',
+      );
+    }
   }
 
   Future<bool> enable() async {
@@ -166,6 +179,10 @@ final class AppPrivacyController extends Notifier<AppPrivacyState> {
   }
 
   Future<bool> unlock() async {
+    if (!state.available) {
+      await _load();
+      if (!state.available) return false;
+    }
     if (!state.enabled) return true;
     final unlocked = await ref.read(deviceAuthenticatorProvider).authenticate();
     if (!unlocked) {

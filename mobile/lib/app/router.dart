@@ -17,6 +17,7 @@ import 'package:planit_mobile/features/financial_operations/presentation/realloc
 import 'package:planit_mobile/features/financial_operations/presentation/reconciliation_screen.dart';
 import 'package:planit_mobile/features/financial_operations/presentation/transfer_screen.dart';
 import 'package:planit_mobile/features/home/presentation/home_screen.dart';
+import 'package:planit_mobile/features/local_wallet/presentation/wallet_screen.dart';
 import 'package:planit_mobile/features/more/presentation/more_screen.dart';
 import 'package:planit_mobile/features/offline_finance/presentation/budgets_screen.dart';
 import 'package:planit_mobile/features/offline_finance/presentation/templates_screen.dart';
@@ -31,6 +32,16 @@ import 'package:planit_mobile/features/transactions/presentation/transaction_det
 import 'package:planit_mobile/features/transactions/presentation/transaction_form_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+final GoRouter localWalletRouter = GoRouter(
+  initialLocation: '/local',
+  routes: [
+    GoRoute(path: '/local', builder: (_, _) => const WalletScreen()),
+    GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
+    GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
+    GoRoute(path: '/privacy', builder: (_, _) => const PrivacySettingsScreen()),
+  ],
+);
 
 final GoRouter publicRouter = GoRouter(
   initialLocation: '/sign-in',

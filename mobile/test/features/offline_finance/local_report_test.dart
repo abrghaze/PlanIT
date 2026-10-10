@@ -14,6 +14,7 @@ LedgerTransaction entry(
   int month = 10,
   int day = 5,
   String? category = 'food',
+  DateTime? at,
 }) => LedgerTransaction(
   id: id,
   ownerId: 'owner',
@@ -23,7 +24,7 @@ LedgerTransaction entry(
       ? TransactionEffect.inflow
       : TransactionEffect.outflow,
   amount: Money.parse(amount, currency),
-  occurredAt: DateTime(2026, month, day),
+  occurredAt: at ?? DateTime(2026, month, day),
   status: status,
   categoryId: category,
   counterparty: null,

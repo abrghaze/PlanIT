@@ -102,6 +102,12 @@ jobs:
       - name: Test
         working-directory: mobile
         run: flutter test --no-pub
+      - name: Verify calendar reports across device time zones
+        working-directory: mobile
+        run: |
+          for zone in Africa/Casablanca Europe/Berlin America/New_York Pacific/Auckland; do
+            TZ="$zone" flutter test --no-pub test/features/offline_finance/report_period_test.dart
+          done
       - name: Compile Android debug app
         working-directory: mobile
         env:

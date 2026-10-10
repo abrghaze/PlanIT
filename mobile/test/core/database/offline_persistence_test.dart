@@ -120,7 +120,7 @@ void main() {
         'THIS_MONTH:2026-09',
       );
       expect(saved?.payloadJson, '{"preserved":true}');
-      expect(upgraded.schemaVersion, 5);
+      expect(upgraded.schemaVersion, 6);
     },
   );
 }

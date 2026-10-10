@@ -3,6 +3,226 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class $LocalWalletSnapshotsTable extends LocalWalletSnapshots
+    with TableInfo<$LocalWalletSnapshotsTable, LocalWalletSnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalWalletSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, payloadJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_wallet_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalWalletSnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalWalletSnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalWalletSnapshot(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalWalletSnapshotsTable createAlias(String alias) {
+    return $LocalWalletSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalWalletSnapshot extends DataClass
+    implements Insertable<LocalWalletSnapshot> {
+  final String id;
+  final String payloadJson;
+  const LocalWalletSnapshot({required this.id, required this.payloadJson});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['payload_json'] = Variable<String>(payloadJson);
+    return map;
+  }
+
+  LocalWalletSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return LocalWalletSnapshotsCompanion(
+      id: Value(id),
+      payloadJson: Value(payloadJson),
+    );
+  }
+
+  factory LocalWalletSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalWalletSnapshot(
+      id: serializer.fromJson<String>(json['id']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+    };
+  }
+
+  LocalWalletSnapshot copyWith({String? id, String? payloadJson}) =>
+      LocalWalletSnapshot(
+        id: id ?? this.id,
+        payloadJson: payloadJson ?? this.payloadJson,
+      );
+  LocalWalletSnapshot copyWithCompanion(LocalWalletSnapshotsCompanion data) {
+    return LocalWalletSnapshot(
+      id: data.id.present ? data.id.value : this.id,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalWalletSnapshot(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payloadJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalWalletSnapshot &&
+          other.id == this.id &&
+          other.payloadJson == this.payloadJson);
+}
+
+class LocalWalletSnapshotsCompanion
+    extends UpdateCompanion<LocalWalletSnapshot> {
+  final Value<String> id;
+  final Value<String> payloadJson;
+  final Value<int> rowid;
+  const LocalWalletSnapshotsCompanion({
+    this.id = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalWalletSnapshotsCompanion.insert({
+    required String id,
+    required String payloadJson,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       payloadJson = Value(payloadJson);
+  static Insertable<LocalWalletSnapshot> custom({
+    Expression<String>? id,
+    Expression<String>? payloadJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalWalletSnapshotsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? payloadJson,
+    Value<int>? rowid,
+  }) {
+    return LocalWalletSnapshotsCompanion(
+      id: id ?? this.id,
+      payloadJson: payloadJson ?? this.payloadJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalWalletSnapshotsCompanion(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CachedAccountsTable extends CachedAccounts
     with TableInfo<$CachedAccountsTable, CachedAccount> {
   @override
@@ -7592,6 +7812,8 @@ class OutboxOperationsCompanion extends UpdateCompanion<OutboxOperation> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $LocalWalletSnapshotsTable localWalletSnapshots =
+      $LocalWalletSnapshotsTable(this);
   late final $CachedAccountsTable cachedAccounts = $CachedAccountsTable(this);
   late final $CachedCategoriesTable cachedCategories = $CachedCategoriesTable(
     this,
@@ -7619,6 +7841,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    localWalletSnapshots,
     cachedAccounts,
     cachedCategories,
     cachedTags,
@@ -7633,6 +7856,167 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
 }
 
+typedef $$LocalWalletSnapshotsTableCreateCompanionBuilder =
+    LocalWalletSnapshotsCompanion Function({
+      required String id,
+      required String payloadJson,
+      Value<int> rowid,
+    });
+typedef $$LocalWalletSnapshotsTableUpdateCompanionBuilder =
+    LocalWalletSnapshotsCompanion Function({
+      Value<String> id,
+      Value<String> payloadJson,
+      Value<int> rowid,
+    });
+
+class $$LocalWalletSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalWalletSnapshotsTable> {
+  $$LocalWalletSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalWalletSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalWalletSnapshotsTable> {
+  $$LocalWalletSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalWalletSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalWalletSnapshotsTable> {
+  $$LocalWalletSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+}
+
+class $$LocalWalletSnapshotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalWalletSnapshotsTable,
+          LocalWalletSnapshot,
+          $$LocalWalletSnapshotsTableFilterComposer,
+          $$LocalWalletSnapshotsTableOrderingComposer,
+          $$LocalWalletSnapshotsTableAnnotationComposer,
+          $$LocalWalletSnapshotsTableCreateCompanionBuilder,
+          $$LocalWalletSnapshotsTableUpdateCompanionBuilder,
+          (
+            LocalWalletSnapshot,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalWalletSnapshotsTable,
+              LocalWalletSnapshot
+            >,
+          ),
+          LocalWalletSnapshot,
+          PrefetchHooks Function()
+        > {
+  $$LocalWalletSnapshotsTableTableManager(
+    _$AppDatabase db,
+    $LocalWalletSnapshotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalWalletSnapshotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalWalletSnapshotsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalWalletSnapshotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalWalletSnapshotsCompanion(
+                id: id,
+                payloadJson: payloadJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String payloadJson,
+                Value<int> rowid = const Value.absent(),
+              }) => LocalWalletSnapshotsCompanion.insert(
+                id: id,
+                payloadJson: payloadJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalWalletSnapshotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalWalletSnapshotsTable,
+      LocalWalletSnapshot,
+      $$LocalWalletSnapshotsTableFilterComposer,
+      $$LocalWalletSnapshotsTableOrderingComposer,
+      $$LocalWalletSnapshotsTableAnnotationComposer,
+      $$LocalWalletSnapshotsTableCreateCompanionBuilder,
+      $$LocalWalletSnapshotsTableUpdateCompanionBuilder,
+      (
+        LocalWalletSnapshot,
+        BaseReferences<
+          _$AppDatabase,
+          $LocalWalletSnapshotsTable,
+          LocalWalletSnapshot
+        >,
+      ),
+      LocalWalletSnapshot,
+      PrefetchHooks Function()
+    >;
 typedef $$CachedAccountsTableCreateCompanionBuilder =
     CachedAccountsCompanion Function({
       required String id,
@@ -11301,6 +11685,8 @@ typedef $$OutboxOperationsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$LocalWalletSnapshotsTableTableManager get localWalletSnapshots =>
+      $$LocalWalletSnapshotsTableTableManager(_db, _db.localWalletSnapshots);
   $$CachedAccountsTableTableManager get cachedAccounts =>
       $$CachedAccountsTableTableManager(_db, _db.cachedAccounts);
   $$CachedCategoriesTableTableManager get cachedCategories =>

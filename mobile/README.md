@@ -1,9 +1,11 @@
 # PlanIT mobile
 
-The October offline improvements (build 14) provide live phone analytics,
-monthly budget history/copy, offline CSV and recovery-archive exports, immediate
-saved-session startup, and linked-goal progress from local account balances.
-See [offline capabilities and limits](../docs/offline-improvements-2026-10-01.md).
+Build 16 adds a registration-free personal wallet, day/week/month/year/custom
+reports, local accounts/records/budgets/goals, and encrypted offline backup and
+restore. Existing signed-in records and synchronization remain separate and
+preserved. Fresh installs open the local wallet; existing users can select
+**More → Open local workspace** and optionally copy downloaded financial records.
+See [verification and phone checklist](../docs/offline-wallet-dashboard-2026-10-10.md).
 
 This directory contains the Flutter application, Android/iOS/web runners, design
 system, identity/account/core-ledger features, secure session adapter, and

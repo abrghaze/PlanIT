@@ -9,6 +9,7 @@ import 'package:planit_mobile/core/design_system/app_theme.dart';
 import 'package:planit_mobile/core/design_system/tokens.dart';
 import 'package:planit_mobile/core/privacy/app_privacy_controller.dart';
 import 'package:planit_mobile/core/privacy/app_privacy_gate.dart';
+import 'package:planit_mobile/features/local_wallet/data/wallet_store.dart';
 import 'package:planit_mobile/features/offline_finance/application/providers.dart';
 import 'package:planit_mobile/features/transactions/application/transaction_controller.dart';
 
@@ -53,7 +54,9 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
   }
 
   void _handleAuthState(AuthState auth) {
-    final ownerId = auth.session?.user.id;
+    final ownerId = ref.read(localModeProvider).value == true
+        ? null
+        : auth.session?.user.id;
     if (ownerId == _activeOwnerId) {
       if (ownerId != null && _isForeground) {
         _startForegroundRetries();
@@ -87,7 +90,10 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
   }
 
   void _startForegroundRetries() {
-    if (!_isForeground || _activeOwnerId == null || _retryTimer != null) {
+    if (ref.read(localModeProvider).value == true ||
+        !_isForeground ||
+        _activeOwnerId == null ||
+        _retryTimer != null) {
       return;
     }
     _retryTimer = Timer.periodic(
@@ -99,6 +105,7 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
   void _scheduleSynchronization() {
     final ownerId = _activeOwnerId;
     if (!mounted ||
+        ref.read(localModeProvider).value == true ||
         !_isForeground ||
         ownerId == null ||
         _synchronizationScheduled) {
@@ -130,18 +137,24 @@ class _PlanItAppState extends ConsumerState<PlanItApp> {
       (_, next) => _handleAuthState(next),
     );
     final auth = ref.watch(authControllerProvider);
-    if (!auth.initialized) {
+    final localMode = ref.watch(localModeProvider);
+    ref.listen(
+      localModeProvider,
+      (_, _) => _handleAuthState(ref.read(authControllerProvider)),
+    );
+    if (!auth.initialized || localMode.isLoading) {
       return const _BootstrapApp();
     }
 
+    final local = !auth.isAuthenticated || localMode.value == true;
     return MaterialApp.router(
-      key: ValueKey<bool>(auth.isAuthenticated),
+      key: ValueKey<String>(local ? 'local' : 'account'),
       title: 'PlanIT',
       debugShowCheckedModeBanner: false,
       theme: PlanItTheme.light,
       darkTheme: PlanItTheme.dark,
       themeMode: ThemeMode.system,
-      routerConfig: auth.isAuthenticated ? authenticatedRouter : publicRouter,
+      routerConfig: local ? localWalletRouter : authenticatedRouter,
       builder: (context, child) =>
           AppPrivacyGate(child: child ?? const SizedBox.shrink()),
     );

@@ -1,6 +1,8 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:planit_mobile/app/planit_app.dart';
 import 'package:planit_mobile/core/auth/application/providers.dart';
@@ -24,6 +26,14 @@ import 'package:planit_mobile/features/transactions/domain/catalog.dart';
 import 'package:planit_mobile/features/transactions/domain/transaction.dart';
 
 void main() {
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('com.abrghaze.planit/privacy_lock'),
+          (_) async => false,
+        );
+  });
   testWidgets('sign-in unlocks the owner-scoped application shell', (
     WidgetTester tester,
   ) async {
@@ -60,6 +70,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Create your first account'), findsOneWidget);
+    await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Optional account sign-in'), 300);
+    await tester.tap(find.text('Optional account sign-in'));
+    await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('Add your first account'), findsNothing);
 

@@ -70,10 +70,11 @@ void main() {
       ]);
       await tester.pumpAndSettle();
       expect(find.text('35.00 MAD'), findsWidgets);
-      expect(find.textContaining('1 local changes'), findsOneWidget);
+      expect(find.textContaining('1 pending changes'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('View all 1 source records'),
         300,
+        scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('View all 1 source records'));
@@ -81,7 +82,7 @@ void main() {
       await tester.tap(find.text('View all 1 source records'));
       await tester.pumpAndSettle();
       expect(find.text('1 source records'), findsOneWidget);
-      await tester.tap(find.widgetWithText(ListTile, 'Expense').last);
+      await tester.tap(find.textContaining('Expense ·').last);
       await tester.pumpAndSettle();
       expect(find.text('Opened coffee'), findsOneWidget);
       expect(serverReads, 0);
@@ -124,6 +125,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      await tester.ensureVisible(find.byTooltip('Previous month'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Previous month'));
       await tester.pumpAndSettle();
       expect(find.text('September 2026'), findsOneWidget);

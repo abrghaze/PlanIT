@@ -4,6 +4,28 @@ import 'package:planit_mobile/core/privacy/app_privacy_controller.dart';
 
 void main() {
   test(
+    'saved app lock remains locked when device authentication becomes unavailable',
+    () async {
+      final store = _MemoryPrivacyStore()..enabled = true;
+      final container = ProviderContainer(
+        overrides: [
+          appPrivacyStoreProvider.overrideWithValue(store),
+          deviceAuthenticatorProvider.overrideWithValue(
+            _FakeDeviceAuthenticator(available: false),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(appPrivacyControllerProvider);
+      await pumpEventQueue();
+      expect(container.read(appPrivacyControllerProvider).locked, isTrue);
+      expect(
+        await container.read(appPrivacyControllerProvider.notifier).unlock(),
+        isFalse,
+      );
+    },
+  );
+  test(
     'enabled app lock requires device authentication after backgrounding',
     () async {
       final store = _MemoryPrivacyStore();

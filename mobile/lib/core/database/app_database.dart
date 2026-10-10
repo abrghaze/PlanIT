@@ -3,6 +3,13 @@ import 'package:planit_mobile/core/database/database_connection.dart';
 
 part 'app_database.g.dart';
 
+class LocalWalletSnapshots extends Table {
+  TextColumn get id => text()();
+  TextColumn get payloadJson => text()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class CachedAccounts extends Table {
   TextColumn get id => text()();
   TextColumn get ownerId => text()();
@@ -203,6 +210,7 @@ class CachedPlanningSnapshots extends Table {
 
 @DriftDatabase(
   tables: <Type>[
+    LocalWalletSnapshots,
     CachedAccounts,
     CachedCategories,
     CachedTags,
@@ -221,12 +229,18 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? openPlanItDatabase());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator migrator) => migrator.createAll(),
     onUpgrade: (Migrator migrator, int from, int to) async {
+      if (from < 6) {
+        await _createTableIfMissing(
+          localWalletSnapshots.actualTableName,
+          () => migrator.createTable(localWalletSnapshots),
+        );
+      }
       if (from < 2) {
         await _createTableIfMissing(
           cachedCategories.actualTableName,
